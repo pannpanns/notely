@@ -1,0 +1,7 @@
+{
+  "name": "notely-ui-tests",
+  "private": true,
+  "dependencies": {
+    "jsdom": "26.1.0"
+  }
+}

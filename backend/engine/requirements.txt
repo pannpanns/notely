@@ -1,0 +1,11 @@
+numpy>=1.26,<3
+PyAudioWPatch>=0.2.12.7
+faster-whisper>=1.2.0,<1.3
+# faster-whisper 1.2.1 memanggil av.open(metadata_errors=...) yang dihapus di PyAV 19.
+av>=11,<19
+
+# Indonesian fine-tuned checkpoints: download CTranslate2 subfolder (no training at install).
+huggingface_hub>=1.33,<2
+ctranslate2>=4.5,<5
+# Lossless meeting audio compression. WAV is retained if FLAC conversion fails.
+soundfile>=0.12.1,<1

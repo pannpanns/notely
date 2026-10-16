@@ -1,0 +1,86 @@
+/* Size against the usable window, including Windows display scaling. */
+.app .workspace,.notes-page,.tabbed-notes .notes-content,.tabbed-notes section{min-width:0;min-height:0}
+.app .page{flex:1;height:auto;padding-bottom:88px}
+.tabbed-notes .note-header{padding:clamp(12px,2vh,24px) clamp(16px,3vw,38px);flex-shrink:0}
+.tabbed-notes .note-header>div{min-width:0}
+.tabbed-notes .note-header h1{font-size:clamp(18px,1.6vw,24px)}
+.tabbed-notes .focus-toolbar{padding:0 clamp(16px,3vw,38px) 10px;flex-shrink:0}
+.tabbed-notes .pane-head{height:auto;min-height:44px;padding:8px 20px;gap:10px;flex-wrap:wrap}
+.tabbed-notes .summary-model-bar{flex-shrink:0;padding:8px 20px;gap:12px;flex-wrap:wrap}
+.tabbed-notes .summary-model-bar>span{flex:1;min-width:100px}
+.tabbed-notes .summary-scroll,.tabbed-notes .transcript-list{flex:1 1 0;min-height:0;overflow:auto;overscroll-behavior:contain;padding:20px clamp(16px,3vw,40px);scrollbar-gutter:stable}
+.tabbed-notes .summary-paper,.tabbed-notes .transcript-row{max-width:900px;margin-left:auto;margin-right:auto;overflow-wrap:anywhere}
+.tabbed-notes .summary-paper{font-size:14px;line-height:1.8}
+.tabbed-notes .context-disclosure{padding:10px 20px;max-height:40%;overflow:auto;flex:0 0 auto}
+.tabbed-notes .context-disclosure summary{min-height:24px;color:var(--accent)}
+.tabbed-notes .context-disclosure summary:after{content:'＋';margin-left:auto}
+.tabbed-notes .context-disclosure[open] summary:after{content:'−'}
+.tabbed-notes .context-disclosure textarea{max-height:100px;min-height:52px}
+.tabbed-notes .summary-actions{flex-shrink:0}
+.tabbed-notes .summary-error{max-height:100px;overflow:auto;flex-shrink:0}
+.tabbed-notes .has-preview .summary-empty{min-height:0;align-items:flex-start;text-align:left;padding:0 0 14px;margin:0 auto 16px;max-width:900px;border-bottom:1px solid var(--line)}
+.has-preview .working-orbit,.has-preview .summary-empty h3{display:none}
+#summary-progress{overflow-wrap:anywhere}
+.recording-dock{bottom:10px;padding:7px;gap:10px}
+.recording-dock .dock-record{width:46px;height:46px}
+@media(max-height:780px){
+ .tabbed-notes .note-header{padding-top:10px;padding-bottom:10px}
+ .tabbed-notes .eyebrow{display:none}
+ .tabbed-notes .note-header p{margin-top:4px}
+ .tabbed-notes .focus-toolbar{padding-bottom:6px}
+ .tabbed-notes .context-disclosure{max-height:35%}
+ .app .page{padding-bottom:76px}
+}
+@media(max-width:1100px){.app .sidebar{width:min(var(--sidebar-expanded,220px),220px);min-width:0}}
+@media(max-width:760px){
+ .app .sidebar{width:64px;min-width:64px;padding:15px 7px}
+ .app .sidebar .brand{font-size:0;margin:0 0 20px;gap:0;justify-content:center}
+ .app .sidebar .search,.app .sidebar .list-label,.app #meeting-list,.app .sidebar .version,.app .sidebar-resize,.app .storage-total{display:none}
+ .app .sidebar .navlink,.app .sidebar .sidebtn{font-size:0;gap:0;justify-content:center;padding:12px 8px}
+ .tabbed-notes .pane-head,.tabbed-notes .summary-model-bar,.tabbed-notes .context-disclosure{padding-left:12px;padding-right:12px}
+ .tabbed-notes .transcript-row{grid-template-columns:42px minmax(0,1fr);gap:10px}
+ .tabbed-notes .summary-paper{font-size:13px}
+ .recording-dock .dock-spectrum{width:70px}
+}
+
+/* Compact setup responds to the usable viewport, including display scaling. */
+#setup-wizard{padding:12px}
+.wizard-card{width:min(740px,calc(100vw - 24px));padding:clamp(18px,3vh,30px);max-height:calc(100dvh - 24px)}
+.wizard-stage{gap:10px}
+.wizard-logo{width:44px;height:44px;margin-bottom:2px}
+.wizard-card h2{font-size:clamp(21px,2.6vw,27px)}
+.wizard-model-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.wizard-field-group{display:flex;flex-direction:column;gap:9px;min-width:0}
+.wizard-card select,.wizard-card .control-select{width:100%;min-width:0;min-height:38px;padding:9px;font-size:12px}
+.wizard-card .wizard-note{font-size:11px;line-height:1.5}
+.wizard-card label{font-size:12px;margin-top:3px}
+.wizard-card .wizard-actions{margin-top:4px}
+.wizard-card .wizard-gpu-choice{align-items:flex-start}
+.wizard-field-group #wizard-key-area{display:grid;gap:6px}
+.tabbed-notes.summary-view .note-header{display:none}
+.tabbed-notes.summary-view .focus-toolbar{padding-top:12px}
+.tabbed-notes .summary-empty{min-height:150px}
+.prompt-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:8px}
+.prompt-actions small{font-size:11px;color:#7a8a96}
+.calm-home{padding:clamp(20px,4vh,52px) clamp(20px,4vw,56px)}
+.calm-home .home-choices{margin:clamp(14px,3vh,30px) 0}
+.calm-home .home-choice{padding:clamp(14px,2.5vh,25px)}
+.calm-home .recent-note{padding:12px 14px}
+.calm-home .privacy-foot{margin-top:18px}
+@media(max-height:650px){
+ .wizard-stage{gap:7px}.wizard-logo{width:32px;height:32px}
+ .wizard-card{padding:16px 22px}.wizard-card h2{font-size:21px}
+ .wizard-stage>p{font-size:12px}.wizard-field-group{gap:6px}
+ .calm-home .home-greeting h1{font-size:26px}.calm-home .home-greeting p{margin-top:8px}
+ .calm-home .choice-icon{width:30px;height:30px;margin-bottom:8px}
+ .calm-home .recent-note{padding:8px 12px}.calm-home .privacy-foot{margin-top:10px}
+}
+@media(max-width:560px){.wizard-model-grid{grid-template-columns:1fr;gap:14px}}
+/* Small purposeful transitions; respect operating-system motion preferences. */
+.calm-home,.settings-page,.note-header,[role="tabpanel"]:not([hidden]){animation:fade-rise .24s ease-out}
+.home-choice,.recent-note,.local-model,.button{transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease}
+.home-choice:hover,.recent-note:hover{transform:translateY(-2px);box-shadow:0 7px 20px #173b3210}
+.button:active{transform:scale(.98)}
+.working-orbit{animation:soft-glow 1.8s ease-in-out infinite}
+@keyframes soft-glow{50%{box-shadow:0 0 0 9px #18786c08;opacity:.65}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

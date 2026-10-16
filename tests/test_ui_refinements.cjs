@@ -1,0 +1,48 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const {JSDOM}=require('jsdom');
+const root=path.resolve(__dirname,'../frontend');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const dom=new JSDOM(html,{url:'http://localhost',runScripts:'outside-only'}),w=dom.window;
+w.setInterval=()=>0;w.setTimeout=()=>0;w.matchMedia=()=>({matches:false});
+let motions=0;w.Element.prototype.animate=function(){motions++;};
+const run=s=>new vm.Script(s).runInContext(dom.getInternalVMContext());
+for(const [,name] of html.matchAll(/<script src="([^"]+)"/g))run(fs.readFileSync(path.join(root,name),'utf8'));
+(async()=>{
+ run("state.folders=[{id:'today',name:'Today'},{id:'other',name:'Other'}];meetings.push({id:'r1',title:'Meeting',when:'today',folder:'today',rows:[[4,'First paragraph'],[9,'Second paragraph']],audioBytes:123,summary:null});state.selected='r1';state.page='notes';render();");
+ assert.equal(w.document.querySelector('.note-header'),null);
+ assert.equal(w.document.querySelector('.timestamp').textContent,'[00:04]');
+ assert.equal(w.document.querySelectorAll('.transcript-row').length,2);
+ assert.equal(run('transcriptText(getMeeting())'),'First paragraph\n\nSecond paragraph');
+ assert.equal(w.document.querySelector('.folder-toolbar'),null);
+ assert.equal(w.document.querySelector('.storage-total'),null);
+ run("state.page='settings';state.tab='summary';state.settings.provider='gemini';render();");
+ assert.equal(w.document.querySelector('#recording-dock').hidden,true);
+ assert.match(w.document.querySelector('.api-guide').textContent,/Create API key/);
+ assert.equal(w.document.querySelector('[data-provider-help]').href,'https://aistudio.google.com/apikey');
+ for(const id of ['openai','claude','groq','openrouter','custom']){
+  run(`state.settings.provider='${id}';refreshPage()`);assert.ok(w.document.querySelector('.api-guide'));
+ }
+ const previous=motions;run('refreshPage()');assert.equal(motions,previous,'polling must not restart navigation motion');
+ run("state.page='recordings';render();");assert.ok(motions>previous);
+ assert.equal(w.document.querySelector('#library-folder'),null);
+ assert.equal(w.document.querySelectorAll('.library-recording').length,0,'folder contents must not leak into root');
+ w.document.querySelector('[data-action="open-folder"][data-id="today"]').click();
+ assert.equal(w.document.querySelectorAll('.library-recording').length,1);
+ assert.equal(run('state.folderFilter'),'today');
+ assert.ok(w.document.querySelector('[data-action="delete-folder"][data-id="today"]'));
+ w.document.querySelector('[data-action="delete-folder"]').click();
+ assert.match(w.document.querySelector('.modal').textContent,/halaman utama/);
+ run("window.calls=[];api=async(route,payload)=>{window.calls.push({route,payload});state.folders=state.folders.filter(f=>f.id!==payload.id);meetings[0].folder='';return {deleted:payload.id};};loadSessions=async()=>{};");
+ await run("handleClick('confirm-delete-folder')");
+ assert.equal(w.calls[0].route,'/folders/delete');assert.equal(w.calls[0].payload.id,'today');
+ assert.equal(run('meetings[0].rows.length'),2);assert.equal(run('state.libraryFolder'),'all');
+ assert.equal(w.document.querySelector('[data-action="delete-folder"][data-id="today"]'),null);
+ assert.equal(w.document.querySelectorAll('.library-recording').length,1,'deleted folder recordings return to root');
+ run("engine.ready=true;engine.deviceChecked=true;transcriptionCatalogLoaded=false;api=async()=>({models:models.map(m=>({name:choiceIds[m.id],sizeBytes:123456789}))});showWizard();");
+ assert.ok([...w.document.querySelector('#wizard-model').options].every(o=>/MB|GB/.test(o.textContent)));
+ await Promise.resolve();await Promise.resolve();
+ assert.match(w.document.querySelector('#wizard-model').textContent,/123,46 MB/);
+ assert.ok(!w.document.querySelector('#setup-wizard').textContent.includes('Model lokal Ollama dapat'));
+ console.log('PASS: clean transcript/sidebar, settings dock, all provider guides, navigation-only motion, folder deletion and wizard model sizes');
+ dom.window.close();
+})().catch(e=>{console.error(e);dom.window.close();process.exitCode=1});

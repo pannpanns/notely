@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync(require('path').join(__dirname,'../frontend/modern.js'),'utf8');
+const timers=[];const ctx={Map,Set,Object,setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},state:{page:'home'},renderDownloads(){},refreshPage(){}};
+vm.createContext(ctx);
+vm.runInContext('const transfers=new Map();const transferExpiry=new Map();const dismissedTransfers=new Set();let downloadsOpen=false;'+source.slice(source.indexOf('function beginDownload'),source.indexOf('function renderDownloads')),ctx);
+vm.runInContext("beginDownload('a','model');updateDownloadCenter({a:{kind:'ollama',status:'done'}})",ctx);
+assert.equal(timers[0].ms,5000);timers[0].fn();
+vm.runInContext("updateDownloadCenter({a:{kind:'ollama',status:'done'}})",ctx);
+assert.equal(vm.runInContext('transfers.size',ctx),0);
+vm.runInContext("beginDownload('b','model');updateDownloadCenter({b:{kind:'ollama',status:'error'}})",ctx);
+assert.equal(timers[1].ms,12000);timers[1].fn();assert.equal(vm.runInContext('transfers.size',ctx),0);
+vm.runInContext("beginDownload('c','model');updateDownloadCenter({c:{kind:'ollama',status:'running'}})",ctx);
+assert.equal(timers.length,2);assert.equal(vm.runInContext('transfers.size',ctx),1);
+console.log('PASS: completed/error transfers expire; polling does not restore them; active transfers remain.');

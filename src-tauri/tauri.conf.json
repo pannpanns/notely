@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Notely",
+  "version": "1.0.0",
+  "identifier": "app.notely.desktop",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Notely",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 700,
+        "minHeight": 520,
+        "backgroundColor": "#ffffff",
+        "center": true,
+        "maximized": true,
+        "fullscreen": false,
+        "decorations": true,
+        "resizable": true,
+        "minimizable": true,
+        "maximizable": true,
+        "closable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "externalBin": [
+      "binaries/notely-engine"
+    ],
+    "icon": [
+      "icons/notely-icon.png",
+      "icons/notely-icon.ico"
+    ],
+    "shortDescription": "Catat rekaman dan materi dengan transkripsi Indonesia",
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installMode": "currentUser",
+        "compression": "zlib",
+        "installerHooks": "windows/hooks-models.nsh",
+        "installerIcon": "icons/notely-icon.ico"
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      }
+    },
+    "resources": {
+      "binaries/runtime/": "./"
+    }
+  }
+}

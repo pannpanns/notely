@@ -1,0 +1,27 @@
+.app .sidebar{position:relative;width:var(--sidebar-expanded,244px);min-width:var(--sidebar-expanded,244px);flex-shrink:0;transition:width .18s ease,min-width .18s ease}
+.app .workspace{position:relative}.app .page{padding-bottom:108px}
+.sidebar-toggle{display:grid;place-items:center;width:32px;height:30px;border:1px solid #e1e8e3;border-radius:7px;background:#fff;color:#5c7468;margin-right:12px;flex-shrink:0}
+.app-strip>span:first-of-type{margin-right:auto}.sidebar-toggle:hover{background:#edf5f0}
+.sidebar-resize{position:absolute;right:-4px;top:0;bottom:0;width:8px;cursor:col-resize;z-index:12;touch-action:none}.sidebar-resize:hover,.sidebar-resize:focus-visible{background:#18786c35}
+.resizing-sidebar{cursor:col-resize;user-select:none}.resizing-sidebar .sidebar{transition:none}
+.app.sidebar-collapsed .sidebar{width:76px;min-width:76px;padding-left:12px;padding-right:12px}.sidebar-collapsed .sidebar .brand{font-size:0;gap:0;margin:0 0 22px;justify-content:center}
+.sidebar-collapsed .sidebar .search,.sidebar-collapsed .sidebar .list-label,.sidebar-collapsed #meeting-list,.sidebar-collapsed .sidebar .version,.sidebar-collapsed .sidebar-resize{display:none}
+.sidebar-collapsed .sidebar .navlink,.sidebar-collapsed .sidebar .sidebtn{font-size:0;gap:0;justify-content:center;padding:12px}.sidebar-collapsed .sidebar svg{width:20px;height:20px}.sidebar-collapsed .sidebar .sidebar-bottom{gap:8px}
+.recording-dock{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:14;display:flex;align-items:center;gap:13px;padding:9px 13px 9px 9px;border:1px solid #f0f0f0;border-radius:48px;background:#fff;box-shadow:0 9px 24px #1d343324;max-width:calc(100% - 28px)}
+.dock-record{width:54px;height:54px;flex-shrink:0;border:0;border-radius:50%;background:#f34248;color:white;display:grid;place-items:center}.dock-record svg{width:24px;height:24px}.dock-record:hover{background:#de3039}.dock-record:focus-visible{outline:3px solid #f2a5a9;outline-offset:3px}
+.dock-spectrum{display:flex;align-items:center;justify-content:center;gap:3px;height:36px;width:123px;flex-shrink:0}.dock-spectrum i{display:block;width:4px;min-height:3px;border-radius:3px;background:#cbd5d0;transition:height .16s ease-out,background .2s}.is-recording .dock-spectrum i{background:#ef555b}
+.dock-time{font-size:12px;font-variant-numeric:tabular-nums;color:#7b8782;min-width:63px;white-space:nowrap}.is-recording .dock-time{color:#c3464b}.dock-more{display:grid;place-items:center;width:30px;height:38px;border:0;border-radius:20px;color:#f34248;background:transparent}.dock-more:hover{background:#fff0f1}
+@media(max-width:850px){.recording-dock{gap:9px}.dock-time{display:none}.app .page{padding-bottom:102px}.dock-spectrum{width:105px;gap:2px}.sidebar-collapsed .sidebar .brand-logo{width:34px;height:34px}}
+@media(prefers-reduced-motion:reduce){.app .sidebar,.dock-spectrum i{transition:none}}
+
+.meeting-row .meeting-link strong{max-width:none}.meeting-row .meeting-link>div{flex:1;min-width:0}
+
+.recording-dock{transform:translateX(-50%) scale(var(--dock-scale,1));transform-origin:center bottom}
+.dock-size-control{position:relative;color:#718478}
+.dock-size-control>summary{display:grid;place-items:center;cursor:pointer;width:28px;height:32px;list-style:none}
+.dock-size-control>summary::-webkit-details-marker{display:none}
+.dock-size-control svg{width:17px;height:17px}
+.dock-size-popover{position:absolute;bottom:48px;right:0;width:210px;padding:15px;background:white;border:1px solid #e1e8e3;border-radius:12px;box-shadow:0 6px 24px #1d343324;font-size:12px}
+.dock-size-popover label{display:flex;justify-content:space-between;margin-bottom:12px;gap:10px}
+.dock-size-popover input{width:100%;accent-color:#18786c}
+.dock-size-popover span{display:block;margin-top:6px;font-size:10px;color:#849087}

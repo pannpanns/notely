@@ -1,0 +1,59 @@
+.import-backdrop,#audio-drop-overlay{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#172b285c;backdrop-filter:blur(7px);z-index:100;animation:fade-in .18s ease-out}
+.import-dialog{position:relative;background:#fff;width:min(480px,100%);max-height:calc(100dvh - 48px);overflow:auto;border:1px solid #e0ebe5;border-radius:24px;padding:30px;box-shadow:0 24px 90px #102d3133;animation:import-arrive .28s cubic-bezier(.2,.7,.2,1)}
+.import-dialog h2{font-size:23px;color:#233e33;margin:16px 0 7px;letter-spacing:-.6px}.import-subtitle{color:#7c8d83;font-size:13px;line-height:1.6;margin-bottom:24px}
+.import-heading-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#eaf5ef;color:#18786c}.import-heading-icon svg{width:23px;height:23px}
+.import-close{position:absolute;right:20px;top:18px;border:0;background:#f3f6f4;color:#667c70;border-radius:50%;width:30px;height:30px;font-size:22px}
+.import-dropzone{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;width:100%;padding:30px 20px;border:1.5px dashed #91b5a2;border-radius:17px;background:#f8fcfa;color:#31594a;transition:background .2s,border-color .2s,transform .2s}
+.import-dropzone:hover{background:#eff8f2;border-color:#18786c;transform:translateY(-2px)}
+.import-dropzone strong{font-size:15px}.import-dropzone>span:not(.import-upload-icon){font-size:12px}.import-dropzone small{font-size:10px;color:#84998c}
+.import-upload-icon{display:grid;place-items:center;width:52px;height:52px;background:white;border-radius:16px;box-shadow:0 4px 16px #18786c0e;color:#18786c}.import-upload-icon svg{width:26px;height:26px}
+.import-file{display:flex;align-items:center;gap:14px;padding:20px 16px;border-radius:16px;border:1px solid #deebe2;background:#f7fbf8;animation:fade-rise .22s ease-out}.import-file>span{color:#18786c}.import-file svg{width:25px;height:25px}.import-file>div{min-width:0;flex:1}.import-file strong{display:block;font-size:13px;overflow-wrap:anywhere}.import-file small{display:block;color:#809087;font-size:11px;margin-top:8px}.import-check svg{width:18px;height:18px}
+.import-choose{width:100%;margin-top:12px;justify-content:center}.import-feedback{font-size:12px;color:#718579;margin:18px 0;line-height:1.6;overflow-wrap:anywhere;min-height:20px}.import-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+#import-progress{width:100%;height:5px;accent-color:#18786c}
+#audio-drop-overlay{z-index:110;pointer-events:none;background:#13252279}
+.audio-drop-card{width:min(490px,100%);text-align:center;border:2px dashed #90d3b7;border-radius:26px;padding:48px 28px;background:#e9fff01a;color:white;box-shadow:0 20px 90px #112e3226;animation:import-arrive .25s ease-out}
+.audio-drop-card h2{font-size:20px;margin:24px 0 12px;font-weight:600}.audio-drop-card p{font-size:12px;color:#d4e8dd}.audio-drop-card>span{display:block;margin-top:22px;font-size:11px;color:#b5ccbf}
+.drop-orbit{display:grid;place-items:center;width:76px;height:76px;border-radius:24px;margin:auto;background:#d5ffe619;color:#b5f4d5;animation:upload-float 1.5s ease-in-out infinite}.drop-orbit svg{width:40px;height:40px}
+@keyframes upload-float{50%{transform:translateY(-7px)}}
+@keyframes import-arrive{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.import-dialog{max-height:90vh;overflow-y:auto}.import-options{display:grid;gap:8px;margin:18px 0;text-align:left}.import-options select{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;background:var(--surface,#fff);color:inherit}.import-options small{color:#777;font-size:12px}.import-auto{display:flex;align-items:center;gap:8px;margin-top:6px}
+
+.folder-toolbar{display:grid;gap:8px;padding:12px}.folder-toolbar select,#organize-value{width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#222}.folder-toolbar>div{display:flex;gap:6px;flex-wrap:wrap}.recording-actions{display:flex;flex-direction:column;gap:6px}.recording-actions button{background:transparent;border:0;color:inherit;cursor:pointer;font-size:11px;padding:4px}.recording-actions button:hover{text-decoration:underline}.meeting-row{flex-wrap:wrap}.meeting-link{min-width:0;flex:1}.meeting-link strong{overflow-wrap:anywhere}
+@media(max-width:760px){.import-dialog{padding:20px}}
+
+.note-organize{display:flex;gap:6px;margin-top:7px}.folder-toolbar small{font-size:11px;color:#718579}.note-header:has(.note-organize){height:auto;min-height:100px;padding-top:16px;padding-bottom:16px}
+
+/* Compact recording controls, persistent prompt and spacious organization forms. */
+.tabbed-notes.summary-view .note-header{display:none}
+.tabbed-notes .prompt-panel{padding:14px 20px 18px;max-height:none;overflow:visible}
+.prompt-label{display:block;color:var(--accent);font-size:13px;font-weight:600}
+.tabbed-notes .prompt-panel textarea{display:block;margin-top:9px;height:58px;min-height:48px;max-height:100px;box-sizing:border-box}
+.organize-dialog{padding:28px;width:min(440px,calc(100vw - 32px));box-sizing:border-box}
+.organize-dialog h2{margin:0 0 24px}
+.organize-dialog>p{margin:0}
+.organize-dialog label{display:block;margin-bottom:10px;font-size:13px;font-weight:600;line-height:1.5}
+.organize-dialog #organize-value{display:block;box-sizing:border-box;height:44px;padding:10px 12px;font:inherit}
+.organize-dialog .modal-actions{margin-top:26px;gap:10px}
+.recording-context-menu{position:fixed;z-index:150;padding:6px;min-width:200px;border:1px solid #dfe8e3;border-radius:12px;background:white;box-shadow:0 8px 28px #1d343324}
+.recording-context-menu button{display:block;width:100%;padding:11px 12px;border:0;border-radius:7px;background:transparent;text-align:left;color:#344f3d;font:inherit;font-size:13px}
+.recording-context-menu button:hover,.recording-context-menu button:focus{background:#edf5f0}
+.recording-dock{gap:9px;padding:6px 10px 6px 6px;bottom:18px;left:50%;width:max-content;max-width:calc(100% - 24px)}
+.dock-record{width:38px;height:38px}.dock-record svg{width:19px;height:19px}
+.recording-dock .dock-spectrum{width:70px;height:24px;gap:2px}.dock-spectrum i{width:2px}
+.recording-dock .dock-time{font-size:11px;min-width:60px}.dock-more{width:26px;height:30px}
+
+.tabbed-notes.summary-view .notes-preview-banner{display:none}
+.prompt-composer{position:relative;margin-top:9px}
+.tabbed-notes .prompt-composer textarea{margin-top:0;padding-right:58px;resize:vertical}
+.prompt-send{position:absolute;right:10px;bottom:10px;width:34px;height:34px;border:0;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#fff;cursor:pointer}
+.prompt-send svg{width:19px;height:19px}.prompt-send:disabled{opacity:.45;cursor:default}
+.recordings-page{max-width:1200px;margin:auto;padding:32px clamp(16px,3vw,40px)}
+.recordings-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.recordings-heading h1{font-size:25px}.recordings-heading p{margin-top:8px;color:#7c8b85;font-size:13px}
+.recordings-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,240px);gap:16px;margin-bottom:22px}.recordings-filters label{display:grid;gap:9px;font-size:12px;color:#65786e}
+.recordings-filters input,.recordings-filters select{box-sizing:border-box;width:100%;min-width:0;height:42px;padding:10px 12px;border:1px solid #dfe8e3;border-radius:9px;background:white;color:inherit;font:inherit}
+#library-recordings{display:grid;gap:12px}.library-recording{display:flex;align-items:center;gap:16px;border:1px solid #e1e8e3;border-radius:14px;padding:20px;background:white;flex-wrap:wrap}
+.library-recording-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:#edf5f0;color:var(--accent)}.library-recording-icon svg{width:21px;height:21px}
+.library-recording-info{flex:1;min-width:180px}.recording-title{padding:0;border:0;background:transparent;text-align:left;font:inherit;font-weight:600;color:#294a3b;overflow-wrap:anywhere;cursor:pointer}
+.recording-meta{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:11px;color:#84938b;margin-top:9px}.library-recording-actions{display:flex;flex-wrap:wrap;gap:8px}.button.danger{color:#b34848;border-color:#edd7d7;background:#fffafa}
+.library-empty{text-align:center;padding:60px 20px;color:#84938b;border:1px dashed #dfe8e3;border-radius:14px}
+@media(max-width:700px){.recordings-filters{grid-template-columns:1fr}.library-recording-actions{width:100%}.recordings-heading{align-items:flex-start;flex-wrap:wrap}}

@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const {renderSummaryMarkdown,cleanSummaryText}=require('../frontend/summary-format.js');
+const input='# Rapat\n\n> Dibuat oleh Google Gemini / gemini-test. Periksa kembali dengan transkrip asli.\n\nBerikut adalah ringkasan yang ringkas dan akurat berdasarkan catatan yang diberikan:\n\n---\n\n#### 1. Topik\n- **Harga**: *hemat*\n- Dua\n\n1. Tugas\n2. Selesai\n<script>alert(1)</script>';
+const html=renderSummaryMarkdown(input);
+assert.ok(html.includes('<h4>1. Topik</h4>'));
+assert.ok(html.includes('<strong>Harga</strong>'));assert.ok(html.includes('<em>hemat</em>'));
+assert.ok(html.includes('<ul>'));assert.ok(html.includes('<ol start="1">'));
+assert.ok(!html.includes('Dibuat oleh'));assert.ok(!html.includes('Berikut adalah'));
+assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;script&gt;'));
+assert.equal(cleanSummaryText('#### Topik\nBerikut adalah ringkasan dari narasumber'),'#### Topik\nBerikut adalah ringkasan dari narasumber');
+console.log('Summary rendering regression checks passed');
