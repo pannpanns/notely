@@ -1,0 +1,135 @@
+name: Build Notely Lite Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+# Keep Python text IO consistent on Windows runners.
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+
+permissions:
+  contents: read
+
+jobs:
+  windows-installer:
+    name: Windows x64 - compact NSIS
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install isolated engine dependencies
+        shell: pwsh
+        run: |
+          python -m venv .build-venv
+          ./.build-venv/Scripts/python.exe -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.build-venv/Scripts/python.exe -m pip install "pyinstaller>=6.11,<7" -r backend/engine/requirements.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force build_reports | Out-Null
+          ./.build-venv/Scripts/python.exe -m pip freeze | Out-File -Encoding utf8 build_reports/python-resolved.txt
+
+      - name: Test source and audio conversion
+        shell: pwsh
+        run: |
+          ./.build-venv/Scripts/python.exe -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.build-venv/Scripts/python.exe -m compileall -q backend scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/test_summary_format.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check frontend/recording-history.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check frontend/desktop.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check frontend/modern.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check frontend/ui.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test recording controls and sidebar
+        shell: pwsh
+        run: |
+          npm ci --prefix test-tools --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:NODE_PATH = Join-Path $PWD 'test-tools/node_modules'
+          node tests/test_audio_import.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/test_ui_100.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/test_recording_dock.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build compact engine without bundled CUDA
+        shell: pwsh
+        run: |
+          ./.build-venv/Scripts/python.exe scripts/build_engine.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.build-venv/Scripts/python.exe scripts/smoke_engine.py dist/notely-engine/notely-engine.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.build-venv/Scripts/python.exe scripts/stage_engine.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version '^2' --locked
+
+      - name: Build Windows NSIS installer
+        working-directory: src-tauri
+        run: cargo tauri build --bundles nsis
+
+      - name: Verify installed layout and real uninstall
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
+          if (-not $installer) { throw 'Installer missing' }
+          ./scripts/test_installer.ps1 -Installer $installer.FullName
+
+      - name: Record installer sizes and checksums
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe)
+          if ($files.Count -eq 0) { throw 'Installer not found' }
+          $rows = foreach ($f in $files) {
+            $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash
+            "$($f.Name): $([math]::Round($f.Length/1MB,2)) MiB; SHA256 $hash"
+          }
+          $rows | Out-File -Encoding utf8 build_reports/installer-size.txt
+          Get-Content build_reports/engine-size.md | Add-Content $env:GITHUB_STEP_SUMMARY
+          $rows | Add-Content $env:GITHUB_STEP_SUMMARY
+          Copy-Item src-tauri/Cargo.lock build_reports/Cargo.lock
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Notely-Lite-Windows-Installer
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Notely-Build-Reports
+          path: |
+            build_reports/
+            build/notely-engine/warn-notely-engine.txt
+          if-no-files-found: warn
+          retention-days: 14
