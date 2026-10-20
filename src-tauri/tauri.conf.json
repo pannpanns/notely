@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Notely",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "app.notely.desktop",
   "build": {
     "frontendDist": "../frontend"
@@ -58,6 +58,12 @@
     },
     "resources": {
       "binaries/runtime/": "./"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": []
     }
   }
 }

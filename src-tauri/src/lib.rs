@@ -1,3 +1,4 @@
+mod updates;
 use rand::{distributions::Alphanumeric, Rng};
 use std::{net::TcpListener, sync::{Mutex, atomic::{AtomicBool, Ordering}}};
 use tauri::Emitter;
@@ -60,6 +61,8 @@ fn bridge_connection(bridge: State<'_, Bridge>) -> serde_json::Value {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updates::PendingUpdate::default())
         .setup(|app| {
             let listener = TcpListener::bind("127.0.0.1:0")?;
             let port = listener.local_addr()?.port();
@@ -82,7 +85,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move { while rx.recv().await.is_some() {} });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![bridge_connection, set_busy_guard, open_storage, choose_model_folder, open_provider_help])
+        .invoke_handler(tauri::generate_handler![bridge_connection, set_busy_guard, open_storage, choose_model_folder, open_provider_help, updates::check_update, updates::install_update])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if let Some(busy) = window.try_state::<BusyGuard>() {

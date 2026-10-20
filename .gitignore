@@ -1,0 +1,23 @@
+# Local files that must not be uploaded
+.venv/
+.build-venv*/
+build_logs/
+__pycache__/
+*.pyc
+/dist/
+/build/
+/src-tauri/target/
+/src-tauri/binaries/*.exe
+*.wav
+*.flac
+*.mp3
+.env
+.env.*
+*.key
+*.pem
+/build_reports/
+/notely-engine.spec
+
+/src-tauri/binaries/_internal/
+
+node_modules/

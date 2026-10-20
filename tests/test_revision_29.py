@@ -52,10 +52,13 @@ class Revision29(unittest.TestCase):
    providers.summarize('title',text,'ollama','model',instructions='Jelaskan dalam paragraf dengan analogi')
   self.assertEqual(ask.call_count,1)
   self.assertIn(text,ask.call_args.args[3]);self.assertIn('Jelaskan dalam paragraf dengan analogi',ask.call_args.args[3])
- def test_oversized_local_summary_never_calls_model(self):
-  with patch('providers._ask') as ask,self.assertRaisesRegex(ValueError,'terlalu panjang'):
-   providers.summarize('title','x'*40000,'ollama','model')
-  ask.assert_not_called()
+ def test_oversized_local_summary_uses_bounded_parts(self):
+  with patch('providers._ask',return_value='Catatan') as ask:
+   result=providers.summarize('title','x'*40000,'ollama','model')
+  self.assertGreater(ask.call_count,1)
+  for call in ask.call_args_list:
+   providers._local_context_size([{'content':call.args[3]}])
+  self.assertIn('Catatan',result)
  def test_fresh_install_root(self):
   dest=self.root/'D_Notely';dest.mkdir()
   with patch.dict(os.environ,{'NOTELY_INSTALL_DIR':str(dest)}):preferences.use_install_storage()
