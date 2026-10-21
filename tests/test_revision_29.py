@@ -40,12 +40,15 @@ class Revision29(unittest.TestCase):
   old=self.old_models();data=preferences.read();data['storagePolicy']='custom';preferences.write(data)
   with patch.dict(os.environ,{'NOTELY_INSTALL_DIR':str(self.root/'unused')}):preferences.use_install_storage()
   self.assertEqual(Path(os.environ['NOTELY_MODEL_ROOT']),old)
- def test_length_limit_preserves_preview_without_replay(self):
-  opener=Mock();opener.open.return_value=io.BytesIO(json.dumps({'message':{'content':'Awal '},'done':True,'done_reason':'length'}).encode()+b'\n')
+ def test_length_limit_continues_automatically(self):
+  first=io.BytesIO(json.dumps({'message':{'content':'Awal '},'done':True,'done_reason':'length'}).encode()+b'\n')
+  second=io.BytesIO(json.dumps({'message':{'content':'lanjutan'},'done':True,'done_reason':'stop'}).encode()+b'\n')
+  opener=Mock();opener.open.side_effect=[first,second]
   events=[]
-  with patch('providers.urllib.request.build_opener',return_value=opener),self.assertRaisesRegex(RuntimeError,'tidak diulang otomatis'):
-   providers._stream_local('model','prompt',events.append)
-  self.assertEqual(opener.open.call_count,1);self.assertEqual(events[-1]['preview'],'Awal ')
+  with patch('providers.urllib.request.build_opener',return_value=opener):
+   result=providers._stream_local('model','prompt',events.append)
+  self.assertEqual(result,'Awal lanjutan');self.assertEqual(opener.open.call_count,2)
+  self.assertTrue(any(e.get('phase')=='continuing' for e in events if isinstance(e,dict)))
  def test_local_summary_uses_entire_transcript_once(self):
   text='awal '+('materi '*3500)+' akhir'
   with patch('providers._ask',return_value='Catatan') as ask:

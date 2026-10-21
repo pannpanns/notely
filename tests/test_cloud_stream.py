@@ -24,6 +24,23 @@ class CloudStreamTests(unittest.TestCase):
  def test_claude(self):
   result,events,req=self.run_stream('claude',[{'type':'ping'},{'type':'content_block_delta','delta':{'type':'text_delta','text':'Halo'}},{'type':'message_delta','delta':{'stop_reason':'end_turn'}},{'type':'message_stop'}])
   self.assertEqual(result,'Halo');self.assertTrue(json.loads(req.data)['stream'])
+ def test_length_limit_continues_automatically(self):
+  first=io.BytesIO(frames([{'choices':[{'delta':{'content':'Awal '},'finish_reason':'length'}]},'[DONE]']))
+  second=io.BytesIO(frames([{'choices':[{'delta':{'content':'lanjutan'},'finish_reason':'stop'}]},'[DONE]']))
+  events=[]
+  with patch.object(providers.urllib.request,'urlopen',side_effect=[first,second]) as request:
+   result=providers._ask('openai','model','key','prompt','',events.append)
+  self.assertEqual(result,'Awal lanjutan');self.assertEqual(request.call_count,2)
+  continuation=json.loads(request.call_args.args[0].data)
+  self.assertIn('Lanjutkan jawaban',continuation['messages'][-1]['content'])
+ def test_response_over_100k_has_no_application_length_cap(self):
+  items=[]
+  for i in range(11):
+   items.append({'choices':[{'delta':{'content':('x'*10000)},'finish_reason':'stop' if i==10 else None}]})
+  events=[]
+  with patch.object(providers.urllib.request,'urlopen',return_value=io.BytesIO(frames(items+['[DONE]']))):
+   result=providers._ask('openai','model','key','prompt',progress=events.append)
+  self.assertEqual(len(result),110000)
  def test_incomplete_and_length_never_succeed(self):
   for items in ([{'choices':[{'delta':{'content':'partial'}}]}],[{'choices':[{'delta':{'content':'partial'},'finish_reason':'length'}]}],['[DONE]'],[{'error':{'message':'secret'}}]):
    with self.subTest(items=items),self.assertRaises(RuntimeError):self.run_stream('openai',items)

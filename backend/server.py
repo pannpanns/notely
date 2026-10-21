@@ -215,7 +215,6 @@ class Service:
         if provider not in PROVIDERS:raise ValueError('Penyedia tidak tersedia.')
         key=str(args.get('apiKey',''));context=str(args.get('context',''))
         instructions=str(args.get('instructions',''))
-        if len(instructions)>4000:raise ValueError('Prompt AI maksimal 4.000 karakter.')
         (p/'summary-options.json').write_text(json.dumps({'instructions':instructions,'context':context},ensure_ascii=False),encoding='utf-8')
         endpoint=str(args.get('endpoint',''))
         transcript=self.session(id)['transcript']
@@ -319,6 +318,11 @@ class Handler(BaseHTTPRequestHandler):
             elif path=='/session':out=svc.session(q.get('id',[''])[0])
             elif path=='/models':out={'transcribe':MODEL_CHOICES,'summary':PROVIDERS}
             elif path=='/gpu':out={'report':runtime_report(), 'nvidia': discover_nvidia(), 'cudaInstalled': cuda_installed()}
+            elif path=='/ollama/status':
+                svc.require_storage()
+                try:managed_ollama.ensure()
+                except RuntimeError as exc:out={'running':False,'processor':'unknown','message':str(exc),'nvidia':managed_ollama.nvidia_status(),'models':[]}
+                else:out=managed_ollama.diagnostics()
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             return self._json(out)
         except Exception as e:self._json({'error':str(e)[:300]},400)
@@ -352,7 +356,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(result)
             if n>2*1024*1024:return self._json({'error':'Permintaan JSON terlalu besar.'},413)
             args=json.loads(self.rfile.read(n) or b'{}')
-            if path in ('/start','/model/prepare','/cuda/prepare','/reprocess','/ollama/pull','/ollama/catalog','/ollama/delete','/provider/test'):
+            if path in ('/start','/model/prepare','/cuda/prepare','/reprocess','/ollama/pull','/ollama/catalog','/ollama/delete','/ollama/status','/ollama/gpu-test','/provider/test'):
                 svc.require_storage()
             if path=='/start':out=svc.start(args)
             elif path=='/stop':out=svc.stop()
@@ -397,6 +401,9 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:return {'name':name,'sizeBytes':None}
                 with ThreadPoolExecutor(max_workers=6) as pool:
                     out={'models':list(pool.map(describe,MODEL_IDS.items()))}
+            elif path=='/ollama/gpu-test':
+                if svc.state!='idle':raise ValueError('Selesaikan rekaman sebelum menjalankan tes GPU Ollama.')
+                out=managed_ollama.test_gpu(str(args.get('model','')))
             elif path=='/ollama/catalog':
                 try:managed_ollama.ensure();out=catalog()
                 except RuntimeError as exc:out={'connected':False,'message':str(exc),'models':[dict(m,installed=False,sizeBytes=m['estimatedBytes'],sizeSource='estimate') for m in __import__('local_models').CATALOG]}

@@ -6,6 +6,15 @@ def module(name):
     spec=importlib.util.spec_from_file_location(name,ROOT/'scripts'/f'{name}.py')
     m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 class ReleaseTests(unittest.TestCase):
+
+    def test_no_persistent_update_button_but_startup_check_remains(self):
+        source=(ROOT/'frontend/updates.js').read_text(encoding='utf-8')
+        self.assertNotIn("button.textContent = 'Cek update'",source)
+        self.assertNotIn("document.body.append(button)",source)
+        self.assertIn('setTimeout(() => check(), 3500)',source)
+        self.assertIn('setInterval(() => check(), 6 * 60 * 60 * 1000)',source)
+        self.assertIn("tauri.core.invoke('check_update')",source)
+
     def test_config_and_manifest(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);d=root/'src-tauri';d.mkdir()

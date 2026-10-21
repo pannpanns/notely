@@ -5,15 +5,13 @@
   let checking = false;
   const busy = () => typeof state !== 'undefined' && (state.recording || state.summaryLoading) ||
     typeof engine !== 'undefined' && (engine.state === 'stopping' || engine.transcribeJob || engine.currentJob || engine.modelJob || engine.ollamaJob || engine.cudaJob);
-  async function check(manual = false) {
+  async function check() {
     if (checking || document.getElementById('notely-update-dialog')) return;
     checking = true;
     try {
       const update = await tauri.core.invoke('check_update');
       if (update) show(update);
-      else if (manual) alert('Notely sudah menggunakan versi terbaru.');
     } catch (error) {
-      if (manual) alert('Belum dapat memeriksa update. Periksa koneksi atau konfigurasi rilis.\n' + error);
       console.warn('Pemeriksaan update belum tersedia:', error);
     } finally { checking = false; }
   }
@@ -51,10 +49,8 @@
     dialog.append(title, version, notes, status, later, install);
     document.body.append(dialog); dialog.showModal(); later.focus();
   }
-  // A small persistent entry point also supports retry after offline startup.
-  const button = document.createElement('button'); button.textContent = 'Cek update';
-  button.className = 'button'; button.title = 'Periksa pembaruan Notely';
-  button.style.cssText = 'position:fixed;right:16px;bottom:8px;z-index:40;font-size:11px;min-height:26px';
-  button.onclick = () => check(true); document.body.append(button);
+  // Check GitHub releases at startup and retry periodically if the app was offline.
+  // No persistent corner button is needed for automatic update discovery.
   setTimeout(() => check(), 3500);
+  setInterval(() => check(), 6 * 60 * 60 * 1000);
 })();

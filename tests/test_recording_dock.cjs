@@ -35,7 +35,7 @@ assert.equal(w.document.querySelectorAll('#recording-dock').length,1);
 w.document.querySelector('.dock-more').click();assert.ok(w.document.querySelector('#modal-root').textContent.includes('Pilihan rekaman'));
 new vm.Script("state.recording=false;meetings.push({id:'prompt-test',title:'Test',when:'',rows:[],context:''});state.selected='prompt-test';state.page='notes';refreshPage()").runInContext(ctx);
 const promptInput=w.document.getElementById('summary-instructions');
-assert.ok(promptInput);assert.equal(promptInput.maxLength,4000);
+assert.ok(promptInput);assert.equal(promptInput.maxLength,-1);
 promptInput.value='Jelaskan dalam paragraf dengan contoh';promptInput.dispatchEvent(new w.Event('input',{bubbles:true}));
 assert.equal(new vm.Script('getMeeting().instructions').runInContext(ctx),'Jelaskan dalam paragraf dengan contoh');
 new vm.Script('refreshPage()').runInContext(ctx);

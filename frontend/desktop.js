@@ -257,7 +257,7 @@ async function confirmRealSummary(){
  state.summarySubmitting=true;
  closeModal();const m=getMeeting();const sentInstructions=m.instructions||'';
  const model=state.settings.customModel?.trim()&&state.settings.summaryModel==='custom'?state.settings.customModel:state.settings.summaryModel;
- try{const result=await api('/summary',{session:m.id,provider:state.settings.provider,model,apiKey:state.apiKey,geminiFallback:state.settings.geminiFallback!==false,context:'',instructions:sentInstructions,economy:state.settings.provider!=='ollama'&&state.settings.summaryEconomy===true,endpoint:state.settings.endpoint||''});
+ try{const result=await api('/summary',{session:m.id,provider:state.settings.provider,model,apiKey:state.apiKey,geminiFallback:state.settings.geminiFallback!==false,context:'',instructions:sentInstructions,endpoint:state.settings.endpoint||''});
   if(m.instructions===sentInstructions)m.instructions='';
   engine.summaryJob=result.job;engine.summarySession=m.id;engine.summaryStarted=Date.now();engine.summaryLastText=Date.now();engine.summaryPreview='';engine.summaryStream=null;state.summaryLoading=true;state.noteTab='summary';state.promptOpen=false;state.summaryError='';toast('AI sedang membuat ringkasan…');refreshPage();
  }catch(e){alertError(e);}finally{state.summarySubmitting=false;}
@@ -274,8 +274,27 @@ const originalSummaryTab=summaryTab;
 summaryTab=function(){const html=originalSummaryTab();
  if(state.settings.provider!=='ollama')return html;
  return html.replace('<div class="space-between" style="margin-top:20px">',
- `<div style="margin-top:12px"><button class="button" data-action="download-ollama-model">${icon('download')} Unduh model Ollama</button><p class="field-help" style="margin-top:7px">Notely memasang mesin AI lokal dan mengunduh model secara otomatis.</p></div><div class="space-between" style="margin-top:20px">`);
+ `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="button" data-action="download-ollama-model">${icon('download')} Unduh model Ollama</button><button class="button" data-action="ollama-gpu-test">${icon('cpu')} Tes GPU Ollama</button></div><p class="field-help" style="margin-top:7px">Tes menjalankan inferensi singkat dengan model pilihan, lalu memeriksa alokasi VRAM dari runtime Ollama. Model harus sudah diunduh.</p><div class="space-between" style="margin-top:20px">`);
 };
+let ollamaGpuTestRunning=false;
+async function testOllamaGpu(){
+ if(ollamaGpuTestRunning)return;
+ if(engine.state!=='idle')return toast('Selesaikan perekaman atau proses aktif terlebih dahulu.');
+ const model=state.settings.summaryModel;
+ ollamaGpuTestRunning=true;toast('Menjalankan tes singkat Ollama dan memeriksa alokasi GPU…');
+ try{
+  const r=await api('/ollama/gpu-test',{model});
+  const fmt=n=>{if(!Number.isFinite(Number(n))||Number(n)<=0)return '0 B';const u=['B','KB','MB','GB'];let v=Number(n),i=0;while(v>=1024&&i<u.length-1){v/=1024;i++;}return v.toFixed(i?1:0)+' '+u[i];};
+  const models=(r.models||[]).map(m=>`<li><strong>${esc(m.name)}</strong>: ${esc(m.processor)}; VRAM ${esc(fmt(m.vramBytes))} dari ukuran model ${esc(fmt(m.sizeBytes))}${m.contextLength?`; konteks ${esc(m.contextLength)} token`:''}.</li>`).join('')||'<li>Tidak ada model aktif yang dilaporkan.</li>';
+  const devices=r.nvidia?.devices||[];
+  const deviceHtml=devices.length?devices.map(g=>`<li>${esc(g.name)}; driver ${esc(g.driver)}; GPU ${g.utilizationPercent===null?'tidak diketahui':esc(g.utilizationPercent+'%')}; VRAM ${g.memoryUsedMiB===null?'?':esc(g.memoryUsedMiB+' MiB')} / ${g.memoryTotalMiB===null?'?':esc(g.memoryTotalMiB+' MiB')}; suhu ${g.temperatureC===null?'?':esc(g.temperatureC+'°C')}.</li>`).join(''):`<li>${esc(r.nvidia?.message||'Telemetri NVIDIA tidak tersedia.')}</li>`;
+  const labels={GPU:'GPU aktif: model dimuat hampir seluruhnya di VRAM.', 'CPU + GPU':'GPU aktif sebagian: model memakai VRAM dan RAM/CPU.', CPU:'Model terdeteksi berjalan di CPU, bukan VRAM.', idle:'Tes selesai, tetapi tidak ada model aktif.', unknown:'Status GPU belum dapat dipastikan.'};
+  const message=labels[r.processor]||r.message||'Status tidak diketahui.';
+  const html=`<p><strong>${esc(message)}</strong></p><p>Versi Ollama Notely: ${esc(r.version||'tidak diketahui')}</p><h3>Penempatan model menurut Ollama</h3><ul>${models}</ul><h3>Telemetri NVIDIA</h3><ul>${deviceHtml}</ul><p class="field-help">Jika model tercatat CPU, periksa driver NVIDIA dan buka file log untuk melihat alasan backend CUDA gagal dimuat. Grafik Task Manager harus menggunakan CUDA/Compute, bukan hanya 3D.</p><p class="field-help">Log: ${esc(r.logPath||'tidak tersedia')}</p>`;
+  modal('Hasil tes GPU Ollama',html,[['Tutup','close-modal','']]);
+ }catch(e){modal('Tes GPU Ollama gagal',`<p>${esc(e.message||e)}</p><p>Pastikan mesin Ollama terpasang, model sudah diunduh, dan driver NVIDIA kompatibel.</p>`,[['Tutup','close-modal','']]);}
+ finally{ollamaGpuTestRunning=false;}
+}
 const prototypeClick=handleClick;
 handleClick=function(action,id){
  if(action==='ask-demo'||action==='start-demo')return startRecording();
@@ -290,6 +309,7 @@ handleClick=function(action,id){
  if(action==='confirm-delete-local'){closeModal();return api('/ollama/delete',{model:state.deleteModel}).then(()=>loadLocalCatalog()).then(()=>toast('Model dihapus.')).catch(alertError);}
  if(action==='ai-connection')return refreshProviderModels();
  if(action==='download-ollama-model')return downloadOllama();
+ if(action==='ollama-gpu-test')return testOllamaGpu();
  if(action==='confirm-real-summary')return confirmRealSummary();
  if(action==='open-note')return loadSession(id).catch(alertError);
  if(action==='import-audio')return showAudioImport();

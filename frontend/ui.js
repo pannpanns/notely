@@ -80,7 +80,7 @@ function sidebar(){const active=state.page;return `<aside class="sidebar">
  <button class="sidebtn secondary" data-action="import-audio">${icon('upload')} Impor audio</button>
  <button class="sidebtn neutral tiny" data-action="page" data-id="settings">${icon('settings')} Pengaturan</button>
  <button class="sidebtn neutral tiny" data-action="about">${icon('info')} Tentang</button>
- <div class="version">Notely · Desktop 1.0.0</div></div></aside>`;}
+ <div class="version">Notely · Desktop 1.1.2</div></div></aside>`;}
 function meetingList(){const q=state.search.trim().toLowerCase();const filtered=meetings.filter(m=>(m.title+' '+m.rows.map(r=>r[1]).join(' ')).toLowerCase().includes(q));return filtered.length?filtered.slice().reverse().map(m=>`<button class="meeting-link ${state.page==='notes'&&state.selected===m.id?'active':''}" data-action="open-note" data-id="${esc(m.id)}">${icon('file')}<div><strong>${esc(m.title)}</strong><span>${esc(m.when)}${m.type==='Simulasi'?' · Demo':''}</span></div></button>`).join(''):`<div class="no-search">Tidak ada catatan yang cocok.</div>`;}
 function appStrip(){return `<div class="app-strip"><span><strong>Notely</strong> &nbsp; / &nbsp; Desktop</span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
 function render(){document.getElementById('root').innerHTML=`<div class="app">${sidebar()}<main class="workspace">${appStrip()}<div class="page" id="main-page">${renderPage()}</div></main></div>`;if(state.recording)updateTimer();}
@@ -181,7 +181,7 @@ case 'copy-transcript':copyText(transcriptText(getMeeting()));break;
 case 'copy-summary':copyText(document.querySelector('.summary-paper')?.innerText||'');break;
 case 'go-summary':state.page='settings';state.tab='summary';render();break;
 case 'template-menu':modal('Templat ringkasan','Gunakan Pengaturan → Ringkasan AI untuk memilih ringkasan materi, catatan transkripsi rekaman, atau ringkasan cepat.',[['Ke pengaturan','go-summary','accent'],['Kembali','close-modal','']]);break;
-case 'about':modal('Notely Desktop 1.0.0','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
+case 'about':modal('Notely Desktop 1.1.2','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
 case 'quick-menu':modal('Aksi cepat','Coba simulasi transkrip, buka catatan, atau atur model AI. Semua fitur mesin suara memerlukan backend pada tahap berikutnya.',[['Coba simulasi','start-demo','accent'],['Tutup','close-modal','']]);break;
 case 'ask-demo':modal('Coba tampilan saat merekam','Browser pratinjau ini tidak menangkap suara speaker, mikrofon, atau rekaman Anda. Untuk menguji tata letak, kita dapat menjalankan transkrip contoh yang muncul bertahap selama simulasi.',[['Batal','close-modal',''],['Mulai simulasi','start-demo','accent']]);break;
 case 'start-demo':beginDemo();break;

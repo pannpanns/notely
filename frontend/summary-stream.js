@@ -9,7 +9,7 @@ function paintSummaryStream(){
  const job=engine.summaryStream,p=job.progress||{},status=document.getElementById('summary-progress');
  const seconds=Math.max(0,Math.floor((Date.now()-engine.summaryStarted)/1000));
  const quiet=Math.max(0,Math.floor((Date.now()-engine.summaryLastText)/1000));
- if(status)status.textContent=[p.stage,engine.summaryPreview?'Menyusun ringkasan…':'Membaca dan merangkum transkrip…'].filter(Boolean).join(' · ');
+ if(status){const stage=p.stage||p.message||job.message||'Memproses transkrip…';const activity=p.phase==='final'?'Menyatukan hasil akhir…':p.phase==='reducing'?'Menggabungkan catatan…':p.phase==='collecting'?'Mengumpulkan isi dari semua bagian…':engine.summaryPreview?'Menulis ringkasan sementara…':'Menyiapkan pemrosesan…';status.textContent=[stage,activity].filter(Boolean).join(' · ');}
  let live=document.getElementById('summary-live');
  if(!live&&engine.summaryPreview&&state.summaryError){live=document.createElement('div');live.id='summary-live';live.className='summary-paper real-summary';document.getElementById('summary-scroll')?.prepend(live);}
  if(live){

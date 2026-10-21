@@ -13,12 +13,12 @@ for(const [start,end] of [['async function generateRealSummary()','async functio
 (async()=>{
  await ctx.generateRealSummary();assert.ok(open&&focused);
  await ctx.generateRealSummary();assert.equal(calls.length,0);
- vm.runInContext(modern.slice(modern.indexOf("document.addEventListener('keydown',e=>{",modern.indexOf('// Keep keyboard events')),modern.indexOf('const summaryBeforeEconomy')),ctx);
+ vm.runInContext(modern.slice(modern.indexOf("document.addEventListener('keydown',e=>{",modern.indexOf('// Keep keyboard events')),modern.indexOf('const instructionView')),ctx);
  const event={key:'Enter',target:{closest:()=>null},preventDefault(){},stopImmediatePropagation(){}};
  // Supply the dialog methods used by the handler.
  ctx.document.querySelector=()=>open?{closest:()=>({})}:null;
  handler({...event,repeat:true});assert.equal(calls.length,0);
- handler(event);assert.equal(calls.length,1);assert.equal(calls[0].payload.instructions,'Ringkas ini');assert.equal(calls[0].payload.economy,true);
+ handler(event);assert.equal(calls.length,1);assert.equal(calls[0].payload.instructions,'Ringkas ini');assert.equal(calls[0].payload.economy,undefined);
  await ctx.confirmRealSummary();assert.equal(calls.length,1,'duplicate submits blocked');
  resolveRequest({job:'j1'});await new Promise(setImmediate);
  assert.equal(m.instructions,'');assert.equal(ctx.state.summaryLoading,true);

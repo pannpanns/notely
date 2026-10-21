@@ -1,6 +1,6 @@
 [package]
 name = "notely-desktop"
-version = "1.1.0"
+version = "1.1.2"
 description = "Notely desktop audio transcriber"
 authors = ["Notely Contributors"]
 edition = "2021"
