@@ -33,7 +33,7 @@ async function startup(){
  const gpuNote=document.getElementById('wizard-gpu-note');if(gpuNote)gpuNote.textContent=window.__notelyGpuStatus||'';
  if(typeof loadLocalCatalog==='function')loadLocalCatalog();
  if(typeof loadTranscriptionSizes==='function')loadTranscriptionSizes();
- setInterval(poll,200);
+ setInterval(poll,500);
  if(!safeStore.get('notelySetupComplete')) showWizard();else activateSavedModel();
 }
 async function activateSavedModel(){
@@ -186,7 +186,7 @@ async function startRecording(){
  state.recordStarting=true;
  try{
   const title='Rekaman '+new Date().toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  const opts={title,folder:state.folderFilter&&state.folderFilter!=='all'?state.folderFilter:'',model:choiceIds[state.settings.model]||choiceIds['maleo-turbo'],gpu:engine.preferCuda?'Otomatis':'CPU',language:state.settings.language==='en'?'Inggris':'Indonesia',speaker:engine.selectedSpeaker.index};
+  const opts={title,folder:state.folderFilter&&state.folderFilter!=='all'?state.folderFilter:'',model:choiceIds[state.settings.model]||choiceIds['maleo-turbo'],gpu:engine.preferCuda?'Otomatis':'CPU',language:state.settings.language==='en'?'Inggris':'Indonesia',speaker:engine.selectedSpeaker.index,livePreview:Boolean(state.settings.livePreview)};
   if(engine.selectedMic!==null)opts.microphone=engine.selectedMic;
   const res=await api('/start',opts);
   state.recording=true;engine.state='recording';state.started=Date.now();state.recordSeconds=0;

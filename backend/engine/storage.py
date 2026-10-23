@@ -58,6 +58,20 @@ def compress_recording(wav_path: Path, *, sf_module=None):
         raise
 
 
+def discard_computer_audio(session: Path):
+    """Delete captured computer-loopback files and return deleted names/errors."""
+    removed, errors = [], []
+    for path in Path(session).glob('audio_komputer.*'):
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in ('.wav', '.flac', '.mp3', '.m4a', '.ogg'):
+            continue
+        try:
+            path.unlink()
+            removed.append(path.name)
+        except OSError as exc:
+            errors.append(f'Audio komputer tidak dapat dihapus ({path.name}): {exc}')
+    return removed, errors
+
+
 def compress_session_audio(session: Path, progress=None):
     results, errors = [], []
     for src in ('komputer', 'mikrofon'):

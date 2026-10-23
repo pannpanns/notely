@@ -109,29 +109,77 @@ def write_wav(path: Path, samples, sample_rate: int = SAMPLE_RATE):
         wav.writeframes(pcm.tobytes())
 
 
+class StreamingMono16kResampler:
+    """Stateful band-limited resampler for long-running audio capture.
+
+    Keeping one PyAV resampler per device avoids constructing and flushing an
+    FFmpeg resampler for every tiny audio buffer. ``flush`` must be called once
+    when capture stops so the final filter samples are not lost.
+    """
+    def __init__(self, input_rate=48000):
+        import numpy as np
+        if not isinstance(input_rate, (int, np.integer)) or input_rate <= 0:
+            raise ValueError('Sample rate must be a positive integer.')
+        self.input_rate = int(input_rate)
+        self._resampler = None
+        self._av = None
+        self._needs_resampling = self.input_rate != SAMPLE_RATE
+        self._closed = False
+
+    @staticmethod
+    def _flatten_frames(frames):
+        import numpy as np
+        if not frames:
+            return np.empty(0, dtype=np.float32)
+        if len(frames) == 1:
+            return frames[0].to_ndarray().reshape(-1).astype(np.float32, copy=False)
+        return np.concatenate([frame.to_ndarray().reshape(-1) for frame in frames]).astype(np.float32, copy=False)
+
+    def process(self, data):
+        import numpy as np
+        if self._closed:
+            raise RuntimeError('Resampler sudah ditutup.')
+        array = np.asarray(data, dtype=np.float32)
+        if array.ndim not in (1, 2):
+            raise ValueError('Audio must be mono or samples-by-channels.')
+        if array.ndim == 2:
+            if array.shape[1] == 0:
+                raise ValueError('Audio must contain at least one channel.')
+            array = array.mean(axis=1)
+        if not len(array):
+            return np.empty(0, dtype=np.float32)
+        if not self._needs_resampling:
+            return np.ascontiguousarray(array)
+        if self._resampler is None:
+            import av
+            self._av = av
+            self._resampler = av.AudioResampler(format='fltp', layout='mono', rate=SAMPLE_RATE)
+        frame = self._av.AudioFrame.from_ndarray(
+            np.ascontiguousarray(array.reshape(1, -1)), format='fltp', layout='mono')
+        frame.sample_rate = self.input_rate
+        return self._flatten_frames(self._resampler.resample(frame))
+
+    def flush(self):
+        import numpy as np
+        if self._closed:
+            return np.empty(0, dtype=np.float32)
+        self._closed = True
+        if self._resampler is None:
+            return np.empty(0, dtype=np.float32)
+        return self._flatten_frames(self._resampler.resample(None))
+
+
 def to_mono_16k(data, input_rate=48000):
+    """Convert a complete audio array to mono 16 kHz float32."""
     import numpy as np
-    array = np.asarray(data, dtype=np.float32)
-    if array.ndim not in (1, 2):
-        raise ValueError('Audio must be mono or samples-by-channels.')
-    if not isinstance(input_rate, (int, np.integer)) or input_rate <= 0:
-        raise ValueError('Sample rate must be a positive integer.')
-    if array.ndim == 2:
-        if array.shape[1] == 0:
-            raise ValueError('Audio must contain at least one channel.')
-        array = array.mean(axis=1)
-    if not len(array) or input_rate == SAMPLE_RATE:
-        return np.ascontiguousarray(array)
-    # Reuse band-limited FFmpeg resampling already shipped with PyAV.
-    import av
-    frame = av.AudioFrame.from_ndarray(
-        np.ascontiguousarray(array.reshape(1, -1)), format='fltp', layout='mono')
-    frame.sample_rate = int(input_rate)
-    resampler = av.AudioResampler(format='fltp', layout='mono', rate=SAMPLE_RATE)
-    frames = resampler.resample(frame) + resampler.resample(None)
-    if not frames:
-        return np.empty(0, dtype=np.float32)
-    return np.concatenate([f.to_ndarray().reshape(-1) for f in frames]).astype(np.float32)
+    resampler = StreamingMono16kResampler(input_rate)
+    first = resampler.process(data)
+    tail = resampler.flush()
+    if not len(first):
+        return tail
+    if not len(tail):
+        return first
+    return np.concatenate((first, tail)).astype(np.float32, copy=False)
 
 
 def segment_as_sentences(segments: list[dict]) -> list[tuple[float, str]]:

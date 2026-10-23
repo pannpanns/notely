@@ -58,13 +58,16 @@ class PauseChunker:
         self.voiced_samples = 0
         return [piece] if piece else []
 
-    def feed(self, samples):
+    def feed(self, samples, rms=None):
         samples = np.asarray(samples, dtype=np.float32)
         if not len(samples):
             return []
         start = self.position
         self.position += len(samples)
-        rms = float(np.sqrt(np.mean(samples * samples)))
+        if rms is None:
+            rms = float(np.sqrt(np.mean(samples * samples)))
+        else:
+            rms = float(rms)
         voiced = rms >= self.threshold
         if not self.active:
             self._add_pre(start, samples.copy())

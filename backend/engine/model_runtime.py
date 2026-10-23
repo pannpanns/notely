@@ -66,7 +66,7 @@ def _model_folder(model_choice, progress=None):
 
 def transcribe_options(language: str | None, *, preview=False):
     """Natural Indonesian decoding, no hotwords or hard-coded corrections."""
-    return dict(language=language, task='transcribe', beam_size=1 if preview else 3,
+    return dict(language=language, task='transcribe', beam_size=1 if preview else 2,
                 best_of=1, temperature=0.0, condition_on_previous_text=False,
                 # CT2 decoding discourages repeated loops; default Whisper
                 # thresholds reject highly compressed/hallucinated hypotheses.
@@ -120,7 +120,12 @@ class ModelManager:
                                        else choice, progress)
             def load_and_check(device):
                 mode = 'int8_float16' if device == 'cuda' else 'int8'
-                loaded = WhisperModel(model_path, device=device, compute_type=mode, num_workers=2)
+                # Bound native inference parallelism. The default CTranslate2
+                # worker/thread counts can saturate a laptop during long captures.
+                logical_cpus = os.cpu_count() or 4
+                cpu_threads = max(1, min(4, logical_cpus // 2 or 1))
+                loaded = WhisperModel(model_path, device=device, compute_type=mode,
+                                      cpu_threads=cpu_threads, num_workers=1)
                 # Consume lazy generator to force cuBLAS/cuDNN kernel execution now.
                 # A detected CUDA device is not enough to claim GPU actually works.
                 warmup = transcribe_options('id', preview=True)

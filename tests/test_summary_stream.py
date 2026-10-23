@@ -31,8 +31,19 @@ class StreamTests(unittest.TestCase):
   with patch.object(providers,'_stream_local',side_effect=fake):providers.summarize('Title','transcript','ollama','local',progress=events.append)
   self.assertEqual([x for x in events if isinstance(x,dict)][-1]['stage'],'Menyusun ringkasan')
 
- def test_local_context_is_bounded_and_scales_with_input(self):
+ def test_local_progress_preview_is_bounded(self):
+  events=[]
+  def fake_ask(provider,model,key,prompt,endpoint,progress_callback):
+   progress_callback({'preview':'x'*10000,'message':'writing','phase':'generating'})
+   return 'Ringkasan selesai.'
+  with patch.object(providers,'_ask',side_effect=fake_ask):
+   providers.summarize('Title','transkrip pendek','ollama','local',progress=events.append)
+  previews=[event.get('preview','') for event in events if isinstance(event,dict)]
+  self.assertTrue(previews)
+  self.assertLessEqual(max(map(len,previews)),providers.LOCAL_PREVIEW_CHARS)
+
+ def test_local_context_uses_token_estimate_and_scales_with_input(self):
   self.assertEqual(providers._local_context_size([{'content':'short'}]),8192)
-  self.assertEqual(providers._local_context_size([{'content':'x'*10000}]),16384)
-  self.assertEqual(providers._local_context_size([{'content':'x'*24000}]),32768)
-  with self.assertRaises(ValueError):providers._local_context_size([{'content':'x'*40000}])
+  self.assertEqual(providers._local_context_size([{'content':'x'*10000}]),8192)
+  self.assertEqual(providers._local_context_size([{'content':'x'*24000}]),16384)
+  self.assertEqual(providers._local_context_size([{'content':'x'*40000}]),20480)

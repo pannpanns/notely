@@ -58,8 +58,12 @@ def enumerate_devices():
 
 
 @contextmanager
-def open_input(device: AudioDevice, frames_per_buffer: int = 2048):
-    """Open native-rate PCM16 capture. The caller reads via stream.read()."""
+def open_input(device: AudioDevice, frames_per_buffer: int = 4096):
+    """Open native-rate PCM16 capture with a moderate buffer to reduce wakeups.
+
+    A 4096-frame buffer keeps latency below about 100 ms for common device
+    rates while cutting per-read Python/FFmpeg overhead versus 2048 frames.
+    """
     import pyaudiowpatch as pa
     p = pa.PyAudio()
     stream = None

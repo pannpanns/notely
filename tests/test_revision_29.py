@@ -55,13 +55,22 @@ class Revision29(unittest.TestCase):
    providers.summarize('title',text,'ollama','model',instructions='Jelaskan dalam paragraf dengan analogi')
   self.assertEqual(ask.call_count,1)
   self.assertIn(text,ask.call_args.args[3]);self.assertIn('Jelaskan dalam paragraf dengan analogi',ask.call_args.args[3])
- def test_oversized_local_summary_uses_bounded_parts(self):
-  with patch('providers._ask',return_value='Catatan') as ask:
-   result=providers.summarize('title','x'*40000,'ollama','model')
-  self.assertGreater(ask.call_count,1)
-  for call in ask.call_args_list:
-   providers._local_context_size([{'content':call.args[3]}])
-  self.assertIn('Catatan',result)
+ def test_oversized_local_summary_processes_all_text_in_context_sized_chunks(self):
+  text='START\n'+('x'*60000)+'\nMIDDLE\n'+('y'*60000)+'\nEND'
+  source_chunks=[]
+  def fake_ask(*args,**kwargs):
+   prompt=args[3]
+   if '<DATA>\n' in prompt:
+    source_chunks.append(prompt.split('<DATA>\n',1)[1].split('\n</DATA>',1)[0])
+   return 'Catatan lengkap dari sumber.'
+  with patch.object(providers,'_ask',side_effect=fake_ask) as ask:
+   result=providers.summarize('title',text,'ollama','model')
+  self.assertGreater(len(source_chunks),1)
+  self.assertEqual(''.join(source_chunks),text)
+  self.assertIn('START', ''.join(source_chunks))
+  self.assertIn('MIDDLE', ''.join(source_chunks))
+  self.assertIn('END', ''.join(source_chunks))
+  self.assertNotIn('Catatan pemrosesan',result)
  def test_fresh_install_root(self):
   dest=self.root/'D_Notely';dest.mkdir()
   with patch.dict(os.environ,{'NOTELY_INSTALL_DIR':str(dest)}):preferences.use_install_storage()

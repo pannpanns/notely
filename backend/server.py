@@ -162,7 +162,7 @@ class Service:
             session=new_session(self.root,str(args.get('title','Catatan transkripsi'))[:70])
             from engine.core import refresh_metadata
             refresh_metadata(session,folder=folder)
-            engine=RecordingEngine(self,session,chosen,model,str(args.get('language','Indonesia')),gpu)
+            engine=RecordingEngine(self,session,chosen,model,str(args.get('language','Indonesia')),gpu, bool(args.get('livePreview', False)))
             self.recording=engine;self.active_session=str(session);self.state='recording';self.spectra={};self.preview={};self.transcript_count=0
             engine.start()
             return {'session':session.name}
@@ -222,6 +222,7 @@ class Service:
         def work(progress):
             if provider=='ollama':
                 self.require_storage()
+                self.transcriber.release()
                 managed_ollama.ensure(progress, install=True)
                 if model not in models_for('ollama'):pull_model(model,progress)
             result=summarize(title,transcript,provider,model,key,endpoint,context,progress, bool(args.get('geminiFallback',True)),instructions=instructions,economy=args.get('economy') is True)

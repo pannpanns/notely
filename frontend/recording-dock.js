@@ -75,7 +75,7 @@ function finishSidebarDrag(){if(!sidebarDrag)return;sidebarDrag=null;document.bo
 document.addEventListener('pointerup',finishSidebarDrag);document.addEventListener('pointercancel',finishSidebarDrag);
 window.addEventListener('blur',finishSidebarDrag);
 document.addEventListener('keydown',e=>{if(e.target.id!=='sidebar-resize')return;if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();setSidebarWidth(e.key==='Home'?220:e.key==='End'?380:sidebarLayout.width+(e.key==='ArrowLeft'?-10:10));safeStore.set('notelySidebarWidth',sidebarLayout.width);}});
-setInterval(paintRecordingDock,250);
+setInterval(paintRecordingDock,500);
 render();
 
 function applyDockScale(){
