@@ -689,11 +689,20 @@ Konteks tambahan: {context or 'tidak ada'}
 </TRANSKRIP>
 Instruksi pengguna: {style}
 Langsung mulai isi ringkasan tanpa pengantar atau atribusi penyedia/model. Untuk transkrip panjang, targetkan 700–1.200 kata; sesuaikan jika sumber pendek dan ikuti instruksi format pengguna. Pertahankan nama, angka, keputusan, tugas, dan topik penting dari sumber.'''
-        try:
-            _local_context_size([{'content':prompt}])
-        except ValueError:
+        # Start lossless chunk processing once the transcript exceeds the
+        # per-request byte target, even if the conservative token estimate says
+        # it could fit in one request. This keeps individual requests bounded
+        # for long ASCII transcripts as well as CJK/emoji-heavy transcripts.
+        use_long_mode = len(text.encode('utf-8')) > LOCAL_CHUNK_TARGET_BYTES
+        if not use_long_mode:
+            try:
+                _local_context_size([{'content':prompt}])
+            except ValueError:
+                use_long_mode = True
+
+        if use_long_mode:
             progress({'stage':'Mode transkrip panjang',
-                      'message':'Transkrip melebihi konteks satu permintaan. Memproses seluruh teks secara bertahap tanpa melewati bagian.',
+                      'message':'Transkrip melebihi batas aman satu permintaan. Memproses seluruh teks secara bertahap tanpa melewati bagian.',
                       'phase':'collecting','preview':''})
             result=_summarize_long_local(text, title, context, style, ask, progress)
         else:
