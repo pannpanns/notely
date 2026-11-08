@@ -29,9 +29,24 @@ URLS={
 # There is no application-level total transcript cap. Each local-model request
 # uses as much context as safely available; oversized transcripts are processed
 # losslessly in context-sized chunks. Chunk sizes are adaptive for non-Latin text.
-LOCAL_CHUNK_TARGET_BYTES = 48_000
-LOCAL_REDUCE_GROUP_BYTES = 32_000
+LOCAL_CHUNK_TARGET_BYTES = 96_000
+LOCAL_REDUCE_GROUP_BYTES = 64_000
 LOCAL_PREVIEW_CHARS = 2_400
+
+# Threading event used to cancel a running summary job from the UI.
+_cancel_event = None
+_cancel_lock = __import__('threading').Lock()
+
+def set_cancel_event(event):
+    global _cancel_event
+    with _cancel_lock:
+        _cancel_event = event
+
+def check_cancelled():
+    with _cancel_lock:
+        ev = _cancel_event
+    if ev is not None and ev.is_set():
+        raise RuntimeError('Ringkasan dibatalkan oleh pengguna.')
 
 class ProviderError(RuntimeError):
     def __init__(self, code, message):
@@ -126,9 +141,11 @@ def _continuation_prompt(text):
 
 def _stream_local(model, prompt, progress=None):
     """Generate locally and continue automatically whenever Ollama reaches its output-token limit."""
+    check_cancelled()
     messages=[{'role':'user','content':prompt}]
     text=''
     while True:
+        check_cancelled()
         part,reason=_stream_local_part(model,messages,progress,prefix=text)
         combined=_join_continuation(text,part)
         if len(combined)<=len(text):
@@ -310,6 +327,7 @@ def _summarize_long_local(text, title, context, style, ask, progress):
     notes = []
 
     for i, chunk in enumerate(chunks):
+        check_cancelled()
         stage = f'Membaca bagian {i + 1}/{len(chunks)}'
         previous = _preview_excerpt('\n\n'.join(notes))
         progress({'stage': stage,
@@ -377,6 +395,7 @@ def _summarize_long_local(text, title, context, style, ask, progress):
         old_size = len(combined.encode('utf-8'))
         reduced = []
         for i, group in enumerate(groups):
+            check_cancelled()
             stage = f'Menggabungkan catatan tahap {level + 1}, bagian {i + 1}/{len(groups)}'
             progress({'stage': stage,
                       'message': f'Menyatukan kelompok catatan {i + 1} dari {len(groups)}.',
@@ -398,9 +417,10 @@ def _local_context_size(messages):
     # Estimate tokens rather than treating UTF-8 bytes as tokens. Reserve space
     # for the 4,096-token output budget and protocol overhead. Using 4K increments
     # avoids jumping from 16K straight to 32K, reducing KV-cache memory on laptops.
+    # Many modern local models (Qwen 3.5, Gemma 3) support 32K–128K context.
     input_tokens = sum(_estimate_tokens(m.get('content', '')) for m in messages)
     required = input_tokens + 4096 + 512
-    if required > 32768:
+    if required > 65536:
         raise ValueError('Satu permintaan melebihi konteks maksimum AI lokal.')
     return max(8192, math.ceil(required / 4096) * 4096)
 
@@ -411,6 +431,7 @@ def _stream_local_part(model, messages, progress=None, prefix=''):
     last_emit=0.; text=''
     emit({'message':'Memuat model / membaca konteks; menunggu teks pertama…',
           'preview':prefix, 'phase':'loading'})
+    check_cancelled()
     context_size=_local_context_size(messages)
     output_budget=min(4096,max(2048,context_size//2))
     req=urllib.request.Request(ollama_base()+'/api/chat',
@@ -421,6 +442,7 @@ def _stream_local_part(model, messages, progress=None, prefix=''):
     try:
         with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req,timeout=600) as response:
             while True:
+                check_cancelled()
                 line=response.readline(1_000_001)
                 if not line:raise RuntimeError('Aliran AI lokal terputus sebelum selesai. Pratinjau belum merupakan ringkasan final. Silakan coba lagi.')
                 if len(line)>1_000_000:raise RuntimeError('Respons AI lokal terlalu besar.')
@@ -486,6 +508,7 @@ def _stream_cloud(url, body, headers, provider, progress=None):
     all_text=''
     active_body=body
     while True:
+        check_cancelled()
         emit({'message':'Menghubungi API; menunggu teks pertama…','preview':all_text,'phase':'loading'})
         req=urllib.request.Request(url,data=json.dumps(active_body,ensure_ascii=False).encode(),
             headers={'Content-Type':'application/json','Accept':'text/event-stream',**headers})
@@ -514,6 +537,7 @@ def _stream_cloud(url, body, headers, provider, progress=None):
         try:
             with response:
                 for item in _sse_events(response):
+                    check_cancelled()
                     if item=='[DONE]': break
                     if item.get('error') or item.get('type')=='error':
                         raise RuntimeError('Layanan API melaporkan kesalahan saat streaming. Pratinjau belum final; coba lagi.')
@@ -682,6 +706,7 @@ Langsung mulai isi ringkasan tanpa pengantar atau atribusi penyedia/model. Untuk
     chunks=_utf8_chunks(text,chunk_limit)
     notes=[]
     for i,c in enumerate(chunks):
+        check_cancelled()
         stage=f'Bagian {i+1}/{len(chunks)}'
         progress({'stage':stage,'message':f'Membaca transkrip bagian {i+1}/{len(chunks)}','phase':'collecting','preview':'\n\n'.join(notes)})
         if len(chunks)==1:

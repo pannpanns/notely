@@ -181,21 +181,42 @@ class Service:
         jid=secrets.token_hex(7)
         if len(self.jobs)>80:
             for k in [k for k,j in self.jobs.items() if j['status']!='running'][:20]: self.jobs.pop(k,None)
-        self.jobs[jid]={'kind':kind,'status':'running','message':'Memulai...'}
+        cancel_event=threading.Event()
+        self.jobs[jid]={'kind':kind,'status':'running','message':'Memulai...','_cancel':cancel_event}
         def run():
             def update(x):
+                if cancel_event.is_set():
+                    raise RuntimeError('Ringkasan dibatalkan oleh pengguna.')
                 with self.lock:
                     if isinstance(x, dict):
                         self.jobs[jid].update(message=str(x.get('message', 'Mengunduh...'))[:180], progress=x)
                     else:
                         self.jobs[jid]['message']=str(x)[:180]
             try:
+                if kind=='summary':
+                    from providers import set_cancel_event
+                    set_cancel_event(cancel_event)
                 result=fn(update)
                 self.jobs[jid].update(status='done',message='Selesai',result=result,progress=None)
             except Exception as e:
-                self.jobs[jid].update(status='error',message=str(e)[:300])
+                msg=str(e)[:300]
+                if cancel_event.is_set():
+                    self.jobs[jid].update(status='cancelled',message='Dibatalkan oleh pengguna.',progress=None)
+                else:
+                    self.jobs[jid].update(status='error',message=msg)
+            finally:
+                if kind=='summary':
+                    from providers import set_cancel_event
+                    set_cancel_event(None)
         threading.Thread(target=run,daemon=True).start()
         return {'job':jid}
+    def cancel_summary(self):
+        with self.lock:
+            for jid,j in self.jobs.items():
+                if j['kind']=='summary' and j['status']=='running' and '_cancel' in j:
+                    j['_cancel'].set()
+                    return {'cancelled':True,'job':jid}
+        return {'cancelled':False}
     def transcribe_model(self,choice,gpu):
         if self.state!='idle':raise ValueError('Hentikan dan selesaikan rekaman terlebih dahulu.')
         return self.job('model',lambda progress:self._prep_model(choice,gpu,progress))
@@ -378,6 +399,7 @@ class Handler(BaseHTTPRequestHandler):
                     return {'rms':rms,'message': 'Suara terdeteksi dengan baik.' if rms>0.0006 else 'Audio hening. Periksa speaker dan perangkat rekaman.'}
                 out=svc.job('audio_test',test)
             elif path=='/summary':out=svc.summarize(args)
+            elif path=='/summary/cancel':out=svc.cancel_summary()
             elif path=='/reprocess':out=svc.reprocess(args)
             elif path=='/preferences':out={**preferences.public_settings(),'storageReady':svc.storage_ready,'storageError':svc.storage_error}
             elif path=='/credentials/save':

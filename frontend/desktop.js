@@ -133,6 +133,9 @@ async function poll(){
  if(engine.summaryJob&&s.jobs?.[engine.summaryJob]?.status==='error'){
   updateSummaryStream(s.jobs[engine.summaryJob]);const error=s.jobs[engine.summaryJob].message;engine.summaryJob='';state.summaryLoading=false;state.summaryError=error;refreshPage();alertError(error);
  }
+ if(engine.summaryJob&&s.jobs?.[engine.summaryJob]?.status==='cancelled'){
+  engine.summaryJob='';state.summaryLoading=false;engine.summaryPreview='';engine.summaryStream=null;refreshPage();toast('Ringkasan dibatalkan.');
+ }
  if(engine.cudaJob&&s.jobs?.[engine.cudaJob]){
   const j=s.jobs[engine.cudaJob]; const statusEl=document.getElementById('wizard-status');
   if(statusEl&&j.status==='running')statusEl.textContent='Menyiapkan NVIDIA: '+(j.message||'Mengunduh komponen…');
@@ -262,6 +265,13 @@ async function confirmRealSummary(){
   engine.summaryJob=result.job;engine.summarySession=m.id;engine.summaryStarted=Date.now();engine.summaryLastText=Date.now();engine.summaryPreview='';engine.summaryStream=null;state.summaryLoading=true;state.noteTab='summary';state.promptOpen=false;state.summaryError='';toast('AI sedang membuat ringkasan…');refreshPage();
  }catch(e){alertError(e);}finally{state.summarySubmitting=false;}
 }
+async function cancelSummary(){
+ if(!engine.summaryJob)return;
+ try{await api('/summary/cancel',{});
+  engine.summaryJob='';state.summaryLoading=false;engine.summaryPreview='';engine.summaryStream=null;
+  toast('Ringkasan dibatalkan.');refreshPage();
+ }catch(e){alertError(e);}
+}
 /* Safe read-only markdown renderer (keeps escaped HTML). */
 function summaryPaperReal(m){
  if(!m.realSummary){return `<div class="summary-empty"><div class="empty-icon">${icon('file')}</div><h3>Belum ada ringkasan</h3><p>Pilih AI lokal atau layanan API untuk merangkum transkrip ini.</p><button class="button accent" data-action="generate-summary" ${state.recording?'disabled':''}>${icon('spark')} Buat ringkasan AI</button></div>`;}
@@ -301,6 +311,7 @@ handleClick=function(action,id){
  if(action==='stop-demo')return stopRecording();
  if(action==='finish-partial')return savePartial();
  if(action==='generate-summary')return generateRealSummary();
+ if(action==='cancel-summary')return cancelSummary();
  if(action==='reprocess-audio')return reprocessAudio();
  if(action==='choose-storage')return chooseModelStorage().catch(alertError);
  if(action==='test-provider')return testProvider();
