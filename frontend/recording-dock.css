@@ -1,4 +1,4 @@
-.app .sidebar{position:relative;width:var(--sidebar-expanded,244px);min-width:var(--sidebar-expanded,244px);flex-shrink:0;transition:width .18s ease,min-width .18s ease}
+.app .sidebar{position:relative;width:var(--sidebar-expanded,272px);min-width:var(--sidebar-expanded,272px);flex-shrink:0;transition:width .18s ease,min-width .18s ease}
 .app .workspace{position:relative}.app .page{padding-bottom:108px}
 .sidebar-toggle{display:grid;place-items:center;width:32px;height:30px;border:1px solid #e1e8e3;border-radius:7px;background:#fff;color:#5c7468;margin-right:12px;flex-shrink:0}
 .app-strip>span:first-of-type{margin-right:auto}.sidebar-toggle:hover{background:#edf5f0}

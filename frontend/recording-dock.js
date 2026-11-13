@@ -1,5 +1,5 @@
 /* Recording controls and resizable navigation. Spectrum values come from PCM FFT. */
-const sidebarLayout={collapsed:safeStore.get('notelySidebarCollapsed')===true,width:Math.min(380,Math.max(220,Number(safeStore.get('notelySidebarWidth'))||244))};
+const sidebarLayout={collapsed:safeStore.get('notelySidebarCollapsed')===true,width:Math.min(380,Math.max(220,Number(safeStore.get('notelySidebarWidth'))||272))};
 let dockScale=1;
 const dockAudio={spectra:[],status:'idle',elapsed:0};
 function applySidebarLayout(){

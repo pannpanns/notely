@@ -458,7 +458,7 @@ def _stream_local_part(model, messages, progress=None, prefix=''):
             while True:
                 check_cancelled()
                 line=response.readline(1_000_001)
-                if not line:raise RuntimeError('Aliran AI lokal terputus sebelum selesai. Pratinjau belum merupakan ringkasan final. Silakan coba lagi.')
+                if not line:raise RuntimeError('Aliran AI lokal terputus sebelum selesai. Silakan coba lagi.')
                 if len(line)>1_000_000:raise RuntimeError('Respons AI lokal terlalu besar.')
                 if not line.strip():continue
                 item=json.loads(line)
@@ -717,12 +717,12 @@ Langsung mulai isi ringkasan tanpa pengantar atau atribusi penyedia/model. Untuk
         try:
             if use_long_mode:
                 progress({'stage':'Mode transkrip panjang',
-                          'message':'Transkrip melebihi batas aman satu permintaan. Memproses seluruh teks secara bertahap tanpa melewati bagian.',
+                          'message':'Transkrip panjang sedang diproses secara bertahap… (durasi panjang butuh waktu lebih lama)',
                           'phase':'collecting','preview':''})
                 result=_summarize_long_local(text, title, context, style, ask, progress)
             else:
                 progress({'stage':'Membaca transkrip',
-                          'message':'Seluruh transkrip muat dalam satu konteks. Menyusun ringkasan…',
+                          'message':'Membaca transkrip dan menyusun ringkasan…',
                           'phase':'loading','preview':''})
                 result=ask(prompt, stage_hint='Menyusun ringkasan')
             return f'# {title}\n\n'+clean_summary(result)+'\n'
@@ -734,7 +734,7 @@ Langsung mulai isi ringkasan tanpa pengantar atau atribusi penyedia/model. Untuk
     for i,c in enumerate(chunks):
         check_cancelled()
         stage=f'Bagian {i+1}/{len(chunks)}'
-        progress({'stage':stage,'message':f'Membaca transkrip bagian {i+1}/{len(chunks)}','phase':'collecting','preview':'\n\n'.join(notes)})
+        progress({'stage':stage,'message':f'Membaca transkrip bagian {i+1} dari {len(chunks)}…','phase':'collecting','preview':''})
         if len(chunks)==1:
             task=(f'Ikuti instruksi pengguna untuk ringkasan akhir: {style}\n'
                   'Sumber di bawah ini adalah seluruh transkrip. Buat satu ringkasan lengkap, bukan catatan parsial.\n')
@@ -752,7 +752,7 @@ Konteks tambahan dari pengguna: {context or 'tidak ada'}
 
 {task}Langsung mulai isi catatan. Tanpa kalimat pengantar atau atribusi penyedia/model. Sertakan timestamp jika relevan. Jangan menyalin seluruh transkrip. Pertahankan detail unik dan hubungan antaride.'''
         notes.append(ask(prompt,stage_hint=stage))
-        progress({'stage':f'Bagian {i+1}/{len(chunks)} selesai','message':f'{i+1} dari {len(chunks)} bagian sudah diproses.','phase':'collecting','preview':'\n\n'.join(notes)})
+        progress({'stage':f'Bagian {i+1}/{len(chunks)} selesai','message':f'{i+1} dari {len(chunks)} bagian selesai diproses.','phase':'collecting','preview':''})
 
     if len(notes)==1:
         result=notes[0]
@@ -775,7 +775,7 @@ Konteks tambahan dari pengguna: {context or 'tidak ada'}
             nextnotes=[]
             for i,group in enumerate(groups):
                 stage=f'Menggabungkan catatan {i+1}/{len(groups)}'
-                progress({'stage':stage,'message':f'Menyatukan kelompok catatan {i+1} dari {len(groups)}.','phase':'reducing','preview':'\n\n'.join(nextnotes)})
+                progress({'stage':stage,'message':f'Menyatukan kelompok catatan {i+1} dari {len(groups)}…','phase':'reducing','preview':''})
                 prompt=(
                     'Gabungkan catatan berikut agar bisa disatukan dengan kelompok lain. Pertahankan semua '
                     'topik berbeda serta fakta, angka, nama, tanggal, keputusan, tugas, dan kesimpulan unik. '

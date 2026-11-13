@@ -147,12 +147,17 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: python scripts/release_manifest.py
 
-      - name: Create draft GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
+      - name: Publish direct installer to GitHub Releases
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && format('Notely {0}', github.ref_name) || 'Notely Lite - Windows Installer (Langsung .exe)' }}
+          body: |
+            Unduh file installer **.exe** langsung di bawah ini pada bagian **Assets** (langsung dapat dijalankan tanpa perlu ekstrak file .zip).
+          files: |
+            src-tauri/target/release/bundle/nsis/*.exe
+          draft: false
+          prerelease: false
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $assets = Get-ChildItem src-tauri/target/release/bundle/nsis/* | Where-Object { $_.Extension -in '.exe', '.sig', '.json' } | ForEach-Object { $_.FullName }
-          gh release create $env:GITHUB_REF_NAME @assets --verify-tag --draft --title "Notely $env:GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
