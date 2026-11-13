@@ -1,7 +1,7 @@
-# Notely v1.1.3
+# Notely v1.1.4
 
 ## What's New
-- Sidebar & Slider: Ruang sidebar diperlebar dan slider scrollbar modern rapi tanpa tombol panah kaku.
-- Ringkasan AI: Teks langsung mengalir seketika begitu dihasilkan tanpa gangguan kotak pratinjau mentah atau teks disingkat.
-- Optimasi RAM: Memori otomatis dilepas setelah selesai proses sehingga RAM di Task Manager tetap kecil.
-- Pembaruan Otomatis: Update otomatis langsung dari aplikasi tanpa perlu download manual dari GitHub Actions.
+- Dialog Pembaruan Rapi: Tata letak teks, catatan rilis terstruktur, dan penempatan tombol update yang rapi dan nyaman.
+- Metrik Download: Indikator progress bar visual, kecepatan unduh (MB/s / KB/s), dan ukuran file saat update berlangsung.
+- AI Lokal Tanpa Batas: Menghapus batas kaku ringkasan agar AI mampu menjabarkan rekaman panjang secara mendalam dan menyeluruh.
+- Optimalisasi Build: Workflow GitHub Actions kini hanya berjalan satu kali secara efisien saat rilis baru.

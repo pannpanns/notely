@@ -3,7 +3,6 @@ name: Build Notely Lite Windows Installer
 on:
   workflow_dispatch:
   push:
-    branches: ['main']
     tags: ['v*']
 
 # Keep Python text IO consistent on Windows runners.
@@ -13,6 +12,10 @@ env:
 
 permissions:
   contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows-installer:
@@ -144,15 +147,15 @@ jobs:
           retention-days: 14
 
       - name: Generate updater manifest
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         run: python scripts/release_manifest.py
 
       - name: Publish direct installer to GitHub Releases
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.1.3' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && format('Notely {0}', github.ref_name) || 'Notely v1.1.3' }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ format('Notely {0}', github.ref_name) }}
           body: |
             Unduh file installer **.exe** langsung di bawah ini pada bagian **Assets** (langsung dapat dijalankan tanpa perlu ekstrak file .zip).
           files: |
