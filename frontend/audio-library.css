@@ -46,6 +46,8 @@
 .prompt-composer{position:relative;margin-top:9px}
 .tabbed-notes .prompt-composer textarea{margin-top:0;padding-right:58px;resize:vertical}
 .prompt-send{position:absolute;right:10px;bottom:10px;width:34px;height:34px;border:0;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#fff;cursor:pointer}
+.prompt-send.stop{background:var(--danger)}
+.prompt-send.stop:hover{background:#d64b55}
 .prompt-send svg{width:19px;height:19px}.prompt-send:disabled{opacity:.45;cursor:default}
 .recordings-page{max-width:1200px;margin:auto;padding:32px clamp(16px,3vw,40px)}
 .recordings-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.recordings-heading h1{font-size:25px}.recordings-heading p{margin-top:8px;color:#7c8b85;font-size:13px}

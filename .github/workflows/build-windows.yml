@@ -3,6 +3,7 @@ name: Build Notely Lite Windows Installer
 on:
   workflow_dispatch:
   push:
+    branches: ['main']
     tags: ['v*']
 
 # Keep Python text IO consistent on Windows runners.
