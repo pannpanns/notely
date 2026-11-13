@@ -23,6 +23,11 @@ function paintSummaryStream(){
  }
  if(live){
   const value=engine.summaryPreview||'';
+  const hasText=Boolean(value&&value.trim().length>0);
+  const loadingBox=document.getElementById('summary-loading-box')||document.querySelector('#summary-scroll .summary-empty');
+  if(loadingBox){
+   loadingBox.style.display=hasText?'none':'';
+  }
   if(state.summaryError){
    live.style.display='';
    document.getElementById('summary-scroll')?.classList.add('has-preview');
@@ -31,6 +36,7 @@ function paintSummaryStream(){
     live._streamText=value;
    }
   }else{
+   live.style.display=hasText?'':'none';
    if(live._streamText!==value){
     const scroll=document.getElementById('summary-scroll'),bottom=scroll&&scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight<70;
     live.innerHTML=value?renderSummaryMarkdown(value):'';

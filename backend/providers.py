@@ -31,7 +31,7 @@ URLS={
 # losslessly in context-sized chunks. Chunk sizes are adaptive for non-Latin text.
 LOCAL_CHUNK_TARGET_BYTES = 96_000
 LOCAL_REDUCE_GROUP_BYTES = 64_000
-LOCAL_PREVIEW_CHARS = 2_400
+LOCAL_PREVIEW_CHARS = 32_768
 
 # Threading event used to cancel a running summary job from the UI.
 _cancel_event = None
@@ -213,11 +213,7 @@ def _preview_excerpt(text, limit=LOCAL_PREVIEW_CHARS):
     text = str(text or '')
     if len(text) <= limit:
         return text
-    marker = '\n\n[… pratinjau dipersingkat …]\n\n'
-    available = max(0, limit - len(marker))
-    head = available // 2
-    tail = available - head
-    return text[:head] + marker + (text[-tail:] if tail else '')
+    return text[:limit]
 
 
 def _split_text_near_middle(text):
