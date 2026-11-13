@@ -8,7 +8,7 @@ if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProces
         Write-Output 'Cannot locate native 64-bit PowerShell for Notely cleanup.'
         exit 1
     }
-    & $nativeShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $PSCommandPath -InstallDir $InstallDir
+    & $nativeShell -NoProfile -NonInteractive -InputFormat None -ExecutionPolicy Bypass -File $PSCommandPath -InstallDir $InstallDir
     exit $LASTEXITCODE
 }
 $logPath = Join-Path $env:TEMP 'Notely-cleanup.log'

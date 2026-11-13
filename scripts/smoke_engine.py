@@ -72,9 +72,10 @@ def main():
                         if time.monotonic() >= deadline: raise
                         time.sleep(0.2)
                 script = Path(__file__).resolve().parents[1]/'src-tauri/windows/cleanup.ps1'
-                subprocess.run([str(Path(os.environ['WINDIR'])/'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'), '-NoProfile', '-NonInteractive',
+                subprocess.run([str(Path(os.environ['WINDIR'])/'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'),
+                                '-NoProfile', '-NonInteractive', '-InputFormat', 'None',
                                 '-ExecutionPolicy', 'Bypass', '-File', str(script),
-                                '-InstallDir', str(exe.parent)], check=True, timeout=40)
+                                '-InstallDir', str(exe.parent)], stdin=subprocess.DEVNULL, check=True, timeout=90)
                 orphan.wait(timeout=10)
                 print('32-bit PowerShell entry -> native path-scoped cleanup: PASS')
             finally:
