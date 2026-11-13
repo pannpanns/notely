@@ -175,7 +175,7 @@ def ensure(progress=lambda value:None, install=False):
         progress('Menjalankan mesin AI lokal…')
         with socket.socket() as s:
             s.bind(('127.0.0.1',0));port=s.getsockname()[1]
-        env=dict(os.environ,OLLAMA_HOST=f'127.0.0.1:{port}',OLLAMA_MODELS=str(Path(root)/'ollama'),OLLAMA_NO_CLOUD='1',OLLAMA_DEBUG='1')
+        env=dict(os.environ,OLLAMA_HOST=f'127.0.0.1:{port}',OLLAMA_MODELS=str(Path(root)/'ollama'),OLLAMA_NO_CLOUD='1',OLLAMA_DEBUG='1',OLLAMA_KEEP_ALIVE='2m',OLLAMA_NUM_PARALLEL='1')
         log_path=Path(executable).parent/'ollama.log'
         log_path.parent.mkdir(parents=True,exist_ok=True)
         try:

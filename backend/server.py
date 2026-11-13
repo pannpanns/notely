@@ -19,6 +19,22 @@ import preferences
 import managed_ollama
 from local_models import catalog, pull_model
 
+def trim_memory():
+    """Trim unused heap pages back to the Windows memory manager."""
+    import gc
+    gc.collect()
+    if sys.platform == 'win32':
+        try:
+            from ctypes import wintypes
+            k = ctypes.windll.kernel32
+            p = ctypes.windll.psapi
+            k.GetCurrentProcess.restype = wintypes.HANDLE
+            p.EmptyWorkingSet.argtypes = [wintypes.HANDLE]
+            p.EmptyWorkingSet.restype = wintypes.BOOL
+            p.EmptyWorkingSet(k.GetCurrentProcess())
+        except Exception:
+            pass
+
 class Service:
     def __init__(self,root):
         self.root=Path(root); self.root.mkdir(parents=True,exist_ok=True)
@@ -28,7 +44,23 @@ class Service:
         self.events=deque(maxlen=1000); self.serial=0
         self.spectra={}; self.jobs={}; self.state='idle'; self.active_session=None
         self.preview={}; self.backend='Belum diuji'; self.queue_status=(0,0);self.transcript_count=0
+        self.last_activity=time.monotonic()
+        threading.Thread(target=self._idle_cleaner, daemon=True, name='IdleCleaner').start()
         self.job('storage',lambda progress:self.prepare_storage(progress))
+    def _idle_cleaner(self):
+        while True:
+            time.sleep(20)
+            try:
+                with self.lock:
+                    is_idle = (self.state == 'idle') and not any(j.get('status') == 'running' for j in self.jobs.values())
+                    idle_secs = time.monotonic() - getattr(self, 'last_activity', 0)
+                if is_idle and idle_secs >= 60:
+                    with self.lock:
+                        if self.transcriber.model is not None:
+                            self.transcriber.release()
+                    trim_memory()
+            except Exception:
+                pass
     def prepare_storage(self,progress,folder=None):
         self.storage_ready=False;self.storage_error=''
         try:
@@ -54,6 +86,8 @@ class Service:
             if event=='finished':
                 self.state='idle'; self.active_session=str(value[0]);
                 value={'session':value[0].name,'warnings':value[2]}
+                self.last_activity=time.monotonic()
+                trim_memory()
             if event=='preview':
                 label,pid,start,txt=value
                 self.preview[label]={'id':pid,'start':start,'text':txt}
@@ -241,14 +275,21 @@ class Service:
         transcript=self.session(id)['transcript']
         title=read_json(p/'metadata.json',{}).get('judul','Rekaman')
         def work(progress):
-            if provider=='ollama':
-                self.require_storage()
-                self.transcriber.release()
-                managed_ollama.ensure(progress, install=True)
-                if model not in models_for('ollama'):pull_model(model,progress)
-            result=summarize(title,transcript,provider,model,key,endpoint,context,progress, bool(args.get('geminiFallback',True)),instructions=instructions,economy=args.get('economy') is True)
-            (p/'ringkasan_ai.md').write_text(result,encoding='utf-8')
-            return {'session':id,'summary':result}
+            try:
+                if provider=='ollama':
+                    self.require_storage()
+                    self.transcriber.release()
+                    managed_ollama.ensure(progress, install=True)
+                    if model not in models_for('ollama'):pull_model(model,progress)
+                result=summarize(title,transcript,provider,model,key,endpoint,context,progress, bool(args.get('geminiFallback',True)),instructions=instructions,economy=args.get('economy') is True)
+                (p/'ringkasan_ai.md').write_text(result,encoding='utf-8')
+                return {'session':id,'summary':result}
+            finally:
+                if provider=='ollama':
+                    from providers import unload_local_model
+                    unload_local_model(model)
+                self.last_activity=time.monotonic()
+                trim_memory()
         return self.job('summary',work)
     def import_audio(self,tmp,title,folder=''):
         with self.lock:
@@ -279,31 +320,36 @@ class Service:
         if any(j['kind']=='transcribe' and j['status']=='running' for j in self.jobs.values()):raise ValueError('Transkripsi lain masih berjalan.')
         return self.job('transcribe',lambda progress:self._reprocess(d,model,gpu,progress))
     def _reprocess(self,d,model,gpu,progress):
-        import soundfile as sf
-        import numpy as np
-        from engine.core import to_mono_16k, export_transcript
-        from engine.model_runtime import transcribe_options
-        from engine.text_quality import sanitize_hypothesis, accept_speech_segment
-        files=list(d.glob('audio_komputer.*')) or list(d.glob('audio_mikrofon.*'))
-        if not files:raise ValueError('Audio tidak ditemukan.')
-        progress('Menyiapkan model...')
-        whisper,backend,_=self.transcriber.get(model,gpu)
-        segments=[]
-        with sf.SoundFile(str(files[0])) as f:
-            sr=f.samplerate; block=max(1,int(sr*12)); pos=0
-            while True:
-                arr=f.read(block,dtype='float32',always_2d=True)
-                if not len(arr):break
-                audio=to_mono_16k(arr,sr)
-                results,_=whisper.transcribe(audio,**transcribe_options('id'))
-                for s in results:
-                    if not accept_speech_segment(s):continue
-                    txt,_=sanitize_hypothesis(s.text.strip())
-                    if txt:segments.append({'start':round(pos/sr+s.start,2),'end':round(pos/sr+s.end,2),'source':'Peserta (komputer)','text':txt})
-                pos+=len(arr)
-                progress(f'Memproses audio {nice_seconds(pos/sr)} / {nice_seconds(len(f)/sr)}')
-        export_transcript(d,segments)
-        return {'session':d.name,'count':len(segments)}
+        try:
+            import soundfile as sf
+            import numpy as np
+            from engine.core import to_mono_16k, export_transcript
+            from engine.model_runtime import transcribe_options
+            from engine.text_quality import sanitize_hypothesis, accept_speech_segment
+            files=list(d.glob('audio_komputer.*')) or list(d.glob('audio_mikrofon.*'))
+            if not files:raise ValueError('Audio tidak ditemukan.')
+            progress('Menyiapkan model...')
+            whisper,backend,_=self.transcriber.get(model,gpu)
+            segments=[]
+            with sf.SoundFile(str(files[0])) as f:
+                sr=f.samplerate; block=max(1,int(sr*12)); pos=0
+                while True:
+                    arr=f.read(block,dtype='float32',always_2d=True)
+                    if not len(arr):break
+                    audio=to_mono_16k(arr,sr)
+                    results,_=whisper.transcribe(audio,**transcribe_options('id'))
+                    for s in results:
+                        if not accept_speech_segment(s):continue
+                        txt,_=sanitize_hypothesis(s.text.strip())
+                        if txt:segments.append({'start':round(pos/sr+s.start,2),'end':round(pos/sr+s.end,2),'source':'Peserta (komputer)','text':txt})
+                    pos+=len(arr)
+                    progress(f'Memproses audio {nice_seconds(pos/sr)} / {nice_seconds(len(f)/sr)}')
+            export_transcript(d,segments)
+            return {'session':d.name,'count':len(segments)}
+        finally:
+            self.transcriber.release()
+            self.last_activity=time.monotonic()
+            trim_memory()
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass

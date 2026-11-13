@@ -139,6 +139,20 @@ def _continuation_prompt(text):
     )
 
 
+def unload_local_model(model):
+    """Immediately unload an Ollama model to free system RAM and VRAM."""
+    try:
+        req = urllib.request.Request(
+            ollama_base() + '/api/chat',
+            data=json.dumps({'model': model, 'keep_alive': 0}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=5) as resp:
+            resp.read()
+    except Exception:
+        pass
+
+
 def _stream_local(model, prompt, progress=None):
     """Generate locally and continue automatically whenever Ollama reaches its output-token limit."""
     check_cancelled()
@@ -435,7 +449,7 @@ def _stream_local_part(model, messages, progress=None, prefix=''):
     context_size=_local_context_size(messages)
     output_budget=min(4096,max(2048,context_size//2))
     req=urllib.request.Request(ollama_base()+'/api/chat',
-        data=json.dumps({'model':model,'stream':True,'think':False,
+        data=json.dumps({'model':model,'stream':True,'think':False,'keep_alive':'2m',
           'messages':messages,
           'options':{'temperature':.2,'num_ctx':context_size,'num_predict':output_budget}}).encode(),
         headers={'Content-Type':'application/json'})
@@ -700,17 +714,20 @@ Langsung mulai isi ringkasan tanpa pengantar atau atribusi penyedia/model. Untuk
             except ValueError:
                 use_long_mode = True
 
-        if use_long_mode:
-            progress({'stage':'Mode transkrip panjang',
-                      'message':'Transkrip melebihi batas aman satu permintaan. Memproses seluruh teks secara bertahap tanpa melewati bagian.',
-                      'phase':'collecting','preview':''})
-            result=_summarize_long_local(text, title, context, style, ask, progress)
-        else:
-            progress({'stage':'Membaca transkrip',
-                      'message':'Seluruh transkrip muat dalam satu konteks. Menyusun ringkasan…',
-                      'phase':'loading','preview':''})
-            result=ask(prompt, stage_hint='Menyusun ringkasan')
-        return f'# {title}\n\n'+clean_summary(result)+'\n'
+        try:
+            if use_long_mode:
+                progress({'stage':'Mode transkrip panjang',
+                          'message':'Transkrip melebihi batas aman satu permintaan. Memproses seluruh teks secara bertahap tanpa melewati bagian.',
+                          'phase':'collecting','preview':''})
+                result=_summarize_long_local(text, title, context, style, ask, progress)
+            else:
+                progress({'stage':'Membaca transkrip',
+                          'message':'Seluruh transkrip muat dalam satu konteks. Menyusun ringkasan…',
+                          'phase':'loading','preview':''})
+                result=ask(prompt, stage_hint='Menyusun ringkasan')
+            return f'# {title}\n\n'+clean_summary(result)+'\n'
+        finally:
+            unload_local_model(active)
     chunk_limit=11000
     chunks=_utf8_chunks(text,chunk_limit)
     notes=[]

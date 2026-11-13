@@ -150,7 +150,7 @@ class ModelManager:
             return instance, self.backend, warning
 
     def release(self):
-        """Release the cached Whisper model before Ollama uses a 6 GB RTX card.
+        """Release the cached Whisper model to minimize RAM and VRAM usage.
 
         Do not call while a recording or live transcription worker is active.
         """
@@ -158,5 +158,16 @@ class ModelManager:
         with self.lock:
             self.model = None
             self.identity = None
-            self.backend = None
         gc.collect()
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                from ctypes import wintypes
+                k = ctypes.windll.kernel32
+                p = ctypes.windll.psapi
+                k.GetCurrentProcess.restype = wintypes.HANDLE
+                p.EmptyWorkingSet.argtypes = [wintypes.HANDLE]
+                p.EmptyWorkingSet.restype = wintypes.BOOL
+                p.EmptyWorkingSet(k.GetCurrentProcess())
+            except Exception:
+                pass
