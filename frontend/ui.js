@@ -48,7 +48,7 @@ const models=[
  {id:'whisper-large',name:'Whisper Large-v3',group:'multi',size:'≈ 3,09 GB',speed:'Lebih lambat',quality:'Multibahasa',hint:'Untuk kualitas transkrip akhir saat perangkat cukup kuat.'}
 ];
 const providers={
- ollama:{name:'AI Lokal',desc:'Privat · Ollama',options:[['qwen3.5:4b','Qwen 3.5 · 4B · ≈3.4 GB'],['qwen3.5:2b','Qwen 3.5 (2B) · ≈2.7 GB'],['qwen2.5:3b','Qwen 2.5 · 3B · ≈1.9 GB'],['gemma3:4b','Gemma 3 · 4B · ≈3.3 GB'],['qwen2.5:1.5b','Qwen 2.5 · 1.5B · ≈1 GB']]},
+ ollama:{name:'AI Lokal',desc:'Privat · Ollama',options:[['qwen2.5:14b','Qwen 2.5 · 14B · ≈9.0 GB'],['deepseek-r1:14b','DeepSeek-R1 · 14B · ≈9.0 GB'],['gemma4:latest','Google Gemma 4 · E4B · ≈6.6 GB'],['qwen2.5:7b','Qwen 2.5 · 7B · ≈4.7 GB'],['deepseek-r1:8b','DeepSeek-R1 · 8B · ≈5.2 GB'],['gemma2:9b','Google Gemma 2 · 9B · ≈5.4 GB'],['llama3.1:8b','Meta Llama 3.1 · 8B · ≈4.9 GB'],['gemma4:e2b','Google Gemma 4 (E2B) · ≈4.6 GB'],['gemma3:4b','Google Gemma 3 · 4B · ≈3.4 GB'],['llama3.2:3b','Meta Llama 3.2 · 3B · ≈2.0 GB'],['qwen3.5:4b','Qwen 3.5 · 4B · ≈3.4 GB'],['qwen3.5:2b','Qwen 3.5 (2B) · ≈2.7 GB'],['qwen2.5:3b','Qwen 2.5 · 3B · ≈1.9 GB'],['qwen2.5:1.5b','Qwen 2.5 · 1.5B · ≈1 GB']]},
  gemini:{name:'Gemini',desc:'Google · Online',options:[['gemini-2.5-flash','Gemini 2.5 Flash — cepat dan seimbang'],['gemini-2.5-pro','Gemini 2.5 Pro — untuk pembahasan kompleks'],['gemini-2.5-flash-lite','Gemini 2.5 Flash-Lite — ringan']]},
  openai:{name:'OpenAI',desc:'API · Online',options:[['gpt-4.1-mini','GPT-4.1 mini'],['gpt-4.1','GPT-4.1'],['gpt-4o-mini','GPT-4o mini']]},
  claude:{name:'Claude',desc:'Anthropic · Online',options:[['claude-sonnet','Claude Sonnet'],['claude-haiku','Claude Haiku'],['claude-opus','Claude Opus']]},
@@ -80,7 +80,7 @@ function sidebar(){const active=state.page;return `<aside class="sidebar">
  <button class="sidebtn secondary" data-action="import-audio">${icon('upload')} Impor audio</button>
  <button class="sidebtn neutral tiny" data-action="page" data-id="settings">${icon('settings')} Pengaturan</button>
  <button class="sidebtn neutral tiny" data-action="about">${icon('info')} Tentang</button>
- <div class="version">Notely · Desktop 1.1.5</div></div></aside>`;}
+ <div class="version">Notely · Desktop 1.1.6</div></div></aside>`;}
 function meetingList(){const q=state.search.trim().toLowerCase();const filtered=meetings.filter(m=>(m.title+' '+m.rows.map(r=>r[1]).join(' ')).toLowerCase().includes(q));return filtered.length?filtered.slice().reverse().map(m=>`<button class="meeting-link ${state.page==='notes'&&state.selected===m.id?'active':''}" data-action="open-note" data-id="${esc(m.id)}">${icon('file')}<div><strong>${esc(m.title)}</strong><span>${esc(m.when)}${m.type==='Simulasi'?' · Demo':''}</span></div></button>`).join(''):`<div class="no-search">Tidak ada catatan yang cocok.</div>`;}
 function appStrip(){return `<div class="app-strip"><span><strong>Notely</strong> &nbsp; / &nbsp; Desktop</span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
 function render(){document.getElementById('root').innerHTML=`<div class="app">${sidebar()}<main class="workspace">${appStrip()}<div class="page" id="main-page">${renderPage()}</div></main></div>`;if(state.recording)updateTimer();}
@@ -182,7 +182,7 @@ case 'copy-transcript':copyText(transcriptText(getMeeting()));break;
 case 'copy-summary':copyText(document.querySelector('.summary-paper')?.innerText||'');break;
 case 'go-summary':state.page='settings';state.tab='summary';render();break;
 case 'template-menu':modal('Templat ringkasan','Gunakan Pengaturan → Ringkasan AI untuk memilih ringkasan materi, catatan transkripsi rekaman, atau ringkasan cepat.',[['Ke pengaturan','go-summary','accent'],['Kembali','close-modal','']]);break;
-case 'about':modal('Notely Desktop 1.1.5','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
+case 'about':modal('Notely Desktop 1.1.6','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
 case 'quick-menu':modal('Aksi cepat','Coba simulasi transkrip, buka catatan, atau atur model AI. Semua fitur mesin suara memerlukan backend pada tahap berikutnya.',[['Coba simulasi','start-demo','accent'],['Tutup','close-modal','']]);break;
 case 'ask-demo':modal('Coba tampilan saat merekam','Browser pratinjau ini tidak menangkap suara speaker, mikrofon, atau rekaman Anda. Untuk menguji tata letak, kita dapat menjalankan transkrip contoh yang muncul bertahap selama simulasi.',[['Batal','close-modal',''],['Mulai simulasi','start-demo','accent']]);break;
 case 'start-demo':beginDemo();break;

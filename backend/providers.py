@@ -11,7 +11,7 @@ import urllib.error
 import urllib.parse
 
 PROVIDERS = {
-    'ollama': {'name':'AI Lokal (Ollama)','models':['qwen3.5:4b','qwen3.5:2b','qwen2.5:3b','gemma3:4b','qwen2.5:1.5b']},
+    'ollama': {'name':'AI Lokal (Ollama)','models':['qwen2.5:14b','deepseek-r1:14b','gemma4:latest','qwen2.5:7b','deepseek-r1:8b','gemma2:9b','llama3.1:8b','gemma4:e2b','gemma3:4b','llama3.2:3b','qwen3.5:4b','qwen3.5:2b','qwen2.5:3b','qwen2.5:1.5b']},
     'gemini': {'name':'Google Gemini','models':['gemini-2.5-flash','gemini-2.5-pro','gemini-2.5-flash-lite']},
     'openai': {'name':'OpenAI','models':['gpt-4.1-mini','gpt-4.1','gpt-4o-mini']},
     'claude': {'name':'Anthropic Claude','models':['claude-sonnet-4-5','claude-haiku-4-5']},

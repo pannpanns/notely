@@ -14,8 +14,19 @@ from core import nice_seconds, sort_segments
 OLLAMA_URL = 'http://127.0.0.1:11434/api'
 GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 LOCAL_MODELS = {
-    'Qwen 2.5 3B — ringan (~2 GB)': 'qwen2.5:3b',
-    'Gemma 3 4B — sedang (~3 GB)': 'gemma3:4b',
+    'Qwen 2.5 14B — paling cerdas & detail (~9.0 GB)': 'qwen2.5:14b',
+    'DeepSeek-R1 14B — penalaran mutakhir (~9.0 GB)': 'deepseek-r1:14b',
+    'Google Gemma 4 — model mutakhir (~6.6 GB)': 'gemma4:latest',
+    'Qwen 2.5 7B — terbaik untuk teks panjang (~4.7 GB)': 'qwen2.5:7b',
+    'DeepSeek-R1 8B — penalaran efisien (~5.2 GB)': 'deepseek-r1:8b',
+    'Google Gemma 2 9B — unggulan (~5.4 GB)': 'gemma2:9b',
+    'Meta Llama 3.1 8B — komprehensif (~4.9 GB)': 'llama3.1:8b',
+    'Google Gemma 4 E2B — efisien & cepat (~4.6 GB)': 'gemma4:e2b',
+    'Google Gemma 3 4B — cerdas & mendalam (~3.4 GB)': 'gemma3:4b',
+    'Meta Llama 3.2 3B — cepat & ringan (~2.0 GB)': 'llama3.2:3b',
+    'Qwen 3.5 4B — seimbang (~3.4 GB)': 'qwen3.5:4b',
+    'Qwen 3.5 2B — hemat memori (~2.7 GB)': 'qwen3.5:2b',
+    'Qwen 2.5 3B — standar (~1.9 GB)': 'qwen2.5:3b',
     'Qwen 2.5 1.5B — sangat ringan (~1 GB)': 'qwen2.5:1.5b',
 }
 DEFAULT_GEMINI = 'gemini-2.5-flash'

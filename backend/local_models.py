@@ -8,11 +8,23 @@ from concurrent.futures import ThreadPoolExecutor
 
 BASE = 'http://127.0.0.1:11434/api'
 CATALOG = [
-    {'id': 'qwen3.5:4b', 'name': 'Qwen 3.5', 'tier': '4B', 'estimatedBytes': 3_400_000_000, 'description': 'Pilihan utama untuk merangkum materi dan rekaman.'},
-    {'id': 'qwen3.5:2b', 'name': 'Qwen 3.5 (2B)', 'tier': '2B', 'estimatedBytes': 2_700_000_000, 'description': 'Lebih ringan untuk perangkat dengan memori terbatas.'},
-    {'id': 'qwen2.5:3b', 'name': 'Qwen 2.5', 'tier': '3B', 'estimatedBytes': 1_900_000_000, 'description': 'Alternatif kompatibel untuk instalasi sebelumnya.'},
-    {'id': 'gemma3:4b', 'name': 'Gemma 3', 'tier': '4B', 'estimatedBytes': 3_300_000_000, 'description': 'Alternatif model lokal dari Google.'},
-    {'id': 'qwen2.5:1.5b', 'name': 'Qwen 2.5 (1.5B)', 'tier': '1.5B', 'estimatedBytes': 1_000_000_000, 'description': 'Model kecil untuk kebutuhan ringkasan sederhana.'},
+    # Flagship / Paling Cerdas (14B)
+    {'id': 'qwen2.5:14b', 'name': 'Qwen 2.5 (14B)', 'tier': '14B', 'category': 'flagship', 'ramRec': '16 GB+', 'vramRec': '8–12 GB', 'estimatedBytes': 8_990_000_000, 'description': 'Model cerdas kelas atas untuk analisis mendalam, pemahaman konteks luas, dan ringkasan sangat detail.'},
+    {'id': 'deepseek-r1:14b', 'name': 'DeepSeek-R1 (14B)', 'tier': '14B', 'category': 'flagship', 'ramRec': '16 GB+', 'vramRec': '8–12 GB', 'estimatedBytes': 8_990_000_000, 'description': 'Model penalaran (reasoning) mutakhir dengan pemikiran mendalam langkah-demi-langkah.'},
+    # Seimbang & Populer (7B–9B)
+    {'id': 'gemma4:latest', 'name': 'Google Gemma 4', 'tier': 'E4B', 'category': 'balanced', 'ramRec': '8–16 GB', 'vramRec': '6–8 GB', 'estimatedBytes': 6_580_000_000, 'description': 'Model generasi tercanggih Google Gemma 4 dengan kecerdasan dan penalaran mutakhir.'},
+    {'id': 'qwen2.5:7b', 'name': 'Qwen 2.5 (7B)', 'tier': '7B', 'category': 'balanced', 'ramRec': '8–16 GB', 'vramRec': '4–6 GB', 'estimatedBytes': 4_680_000_000, 'description': 'Model terbaik untuk bahasa Indonesia dan ringkasan rekaman panjang yang sangat rinci.'},
+    {'id': 'deepseek-r1:8b', 'name': 'DeepSeek-R1 (8B)', 'tier': '8B', 'category': 'balanced', 'ramRec': '8–16 GB', 'vramRec': '6–8 GB', 'estimatedBytes': 5_230_000_000, 'description': 'Model penalaran cerdas DeepSeek-R1 yang dioptimalkan untuk perangkat laptop dan PC harian.'},
+    {'id': 'gemma2:9b', 'name': 'Google Gemma 2 (9B)', 'tier': '9B', 'category': 'balanced', 'ramRec': '8–16 GB', 'vramRec': '6–8 GB', 'estimatedBytes': 5_440_000_000, 'description': 'Model unggulan Google dengan akurasi dan penalaran mendalam.'},
+    {'id': 'llama3.1:8b', 'name': 'Meta Llama 3.1 (8B)', 'tier': '8B', 'category': 'balanced', 'ramRec': '8–16 GB', 'vramRec': '6–8 GB', 'estimatedBytes': 4_920_000_000, 'description': 'Model komprehensif Meta untuk analisis materi dan pemahaman konteks luas.'},
+    # Ringan & Cepat (2B–4B)
+    {'id': 'gemma4:e2b', 'name': 'Google Gemma 4 (E2B)', 'tier': 'E2B', 'category': 'light', 'ramRec': '8 GB', 'vramRec': '4 GB / iGPU', 'estimatedBytes': 4_590_000_000, 'description': 'Versi efisien Google Gemma 4 untuk kinerja cepat dan hemat konsumsi daya laptop.'},
+    {'id': 'gemma3:4b', 'name': 'Google Gemma 3 (4B)', 'tier': '4B', 'category': 'light', 'ramRec': '8 GB', 'vramRec': '3–4 GB', 'estimatedBytes': 3_350_000_000, 'description': 'Model Google Gemma 3 yang sangat cerdas, penalaran tinggi, dan hemat ruang.'},
+    {'id': 'llama3.2:3b', 'name': 'Meta Llama 3.2 (3B)', 'tier': '3B', 'category': 'light', 'ramRec': '4–8 GB', 'vramRec': '2–4 GB', 'estimatedBytes': 2_020_000_000, 'description': 'Model generasi baru Meta: sangat cepat, cerdas, dan efisien untuk laptop.'},
+    {'id': 'qwen3.5:4b', 'name': 'Qwen 3.5 (4B)', 'tier': '4B', 'category': 'light', 'ramRec': '8 GB', 'vramRec': '3–4 GB', 'estimatedBytes': 3_400_000_000, 'description': 'Pilihan utama yang seimbang untuk merangkum materi dan rekaman harian.'},
+    {'id': 'qwen3.5:2b', 'name': 'Qwen 3.5 (2B)', 'tier': '2B', 'category': 'light', 'ramRec': '4–8 GB', 'vramRec': '2–3 GB', 'estimatedBytes': 2_700_000_000, 'description': 'Lebih hemat memori untuk laptop atau perangkat dengan RAM terbatas.'},
+    {'id': 'qwen2.5:3b', 'name': 'Qwen 2.5 (3B)', 'tier': '3B', 'category': 'light', 'ramRec': '4–8 GB', 'vramRec': '2 GB / iGPU', 'estimatedBytes': 1_900_000_000, 'description': 'Model stabil yang kompatibel untuk kebutuhan ringkasan standar.'},
+    {'id': 'qwen2.5:1.5b', 'name': 'Qwen 2.5 (1.5B)', 'tier': '1.5B', 'category': 'light', 'ramRec': '4 GB', 'vramRec': 'Terintegrasi / 1 GB+', 'estimatedBytes': 1_000_000_000, 'description': 'Model ultra-ringan (~1 GB) untuk perangkat dengan sumber daya paling minim.'},
 ]
 _cache = {}
 
@@ -59,7 +71,7 @@ def catalog():
         entries = list(pool.map(entry, CATALOG))
     for name, item in installed.items():
         if name not in {x['id'] for x in entries}:
-            entries.append(dict(id=name, name=name, tier='Lokal', description='Model terpasang di Ollama.', installed=True, sizeBytes=item.get('size', 0), sizeSource='installed'))
+            entries.append(dict(id=name, name=name, tier='Lokal', category='installed', ramRec='-', vramRec='-', description='Model terpasang di Ollama.', installed=True, sizeBytes=item.get('size', 0), sizeSource='installed'))
     return {'connected': connected, 'message': error, 'models': entries}
 
 
