@@ -52,15 +52,16 @@
 .update-notes-list{margin:0 0 8px;padding-left:18px}
 .update-notes-list li{margin:4px 0}
 .update-notes-list strong{color:#1a332a}
-.update-desc{font-size:12px;color:#697d74;line-height:1.5;margin:8px 0 4px}
-.update-progress-area{margin-top:14px;background:#f4f8f5;border:1px solid #e2ebe4;border-radius:10px;padding:12px 14px}
+.update-desc{font-size:12px;color:#677e73;line-height:1.55;margin:0;display:flex;align-items:flex-start;gap:7px}
+.update-footer{border-top:1px solid #e7eee9;padding-top:16px;display:flex;flex-direction:column;gap:14px}
+.update-progress-area{background:#f4f8f5;border:1px solid #dfe9e3;border-radius:10px;padding:12px 14px}
 .update-progress-track{height:8px;background:#d8e5dd;border-radius:999px;overflow:hidden}
 .update-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#18786c,#26a595);border-radius:999px;transition:width .25s ease-out}
 .update-progress-metrics{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:#244439;margin-top:8px;font-variant-numeric:tabular-nums}
-.update-status-msg{font-size:11.5px;color:#5c756b;margin-top:5px}
-.update-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:20px}
-.update-btn-later{height:38px;padding:0 16px;border-radius:8px;font-size:13px;font-weight:600;background:#f1f5f3;border:1px solid #d4dfd8;color:#445e53;cursor:pointer;transition:background .14s}
+.update-status-msg{font-size:11.5px;color:#5c756b;margin:6px 0 0}
+.update-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:2px;width:100%}
+.update-btn-later{height:38px;padding:0 18px;border-radius:9px;font-size:13px;font-weight:600;background:#f1f5f3;border:1px solid #d4dfd8;color:#445e53;cursor:pointer;transition:background .14s}
 .update-btn-later:hover{background:#e6ede8}
-.update-btn-install{height:38px;padding:0 20px;border-radius:8px;font-size:13px;font-weight:600;background:#18786c;border:none;color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(24,120,108,.28);transition:background .14s,box-shadow .14s}
+.update-btn-install{height:38px;padding:0 22px;border-radius:9px;font-size:13px;font-weight:600;background:#18786c;border:none;color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(24,120,108,.28);transition:background .14s,box-shadow .14s}
 .update-btn-install:hover{background:#13665c;box-shadow:0 4px 12px rgba(24,120,108,.35)}
 .update-btn-install:disabled,.update-btn-later:disabled{opacity:.5;cursor:not-allowed}
