@@ -13,7 +13,8 @@ from google_calendar import (
     get_tokens,
     save_tokens,
     get_status,
-    disconnect
+    disconnect,
+    import_credentials_json
 )
 
 class GoogleCalendarTests(unittest.TestCase):
@@ -56,6 +57,26 @@ class GoogleCalendarTests(unittest.TestCase):
             status3 = get_status(td)
             self.assertFalse(status3['connected'])
             self.assertEqual(status3['email'], '')
+
+    def test_import_credentials_json(self):
+        with tempfile.TemporaryDirectory() as td:
+            sample_gcp_json = {
+                "installed": {
+                    "client_id": "78910-xyz.apps.googleusercontent.com",
+                    "project_id": "notely-calendar",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "client_secret": "GOCSPX-secret123"
+                }
+            }
+            res = import_credentials_json(td, json.dumps(sample_gcp_json))
+            self.assertTrue(res['success'])
+            self.assertEqual(res['clientId'], "78910-xyz.apps.googleusercontent.com")
+            self.assertTrue(res['hasSecret'])
+
+            cfg = get_config(td)
+            self.assertEqual(cfg['clientId'], "78910-xyz.apps.googleusercontent.com")
+            self.assertEqual(cfg['clientSecret'], "GOCSPX-secret123")
 
     def test_sync_event_generation(self):
         from google_calendar import sync_event_to_google_calendar

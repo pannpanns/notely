@@ -409,6 +409,10 @@ class Handler(BaseHTTPRequestHandler):
             elif path=='/gcalendar/config':
                 from google_calendar import get_config
                 out={'config':get_config(svc.root)}
+            elif path=='/gcalendar/import-json':
+                from google_calendar import import_credentials_json
+                raw = q.get('json', [''])[0]
+                out = import_credentials_json(svc.root, raw)
             elif path=='/gcalendar/sync-all':
                 from google_calendar import sync_event_to_google_calendar
                 from deadlines import add_or_update_deadline, load_deadlines
@@ -609,6 +613,10 @@ class Handler(BaseHTTPRequestHandler):
                 if 'clientSecret' in args: cfg['clientSecret']=str(args['clientSecret']).strip()
                 save_config(svc.root,cfg)
                 out={'saved':True,'config':cfg}
+            elif path=='/gcalendar/import-json':
+                from google_calendar import import_credentials_json
+                content = args.get('json') or args.get('content') or args
+                out = import_credentials_json(svc.root, content)
             elif path=='/gcalendar/sync-event':
                 from google_calendar import sync_event_to_google_calendar
                 from deadlines import add_or_update_deadline, load_deadlines

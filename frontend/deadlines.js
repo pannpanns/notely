@@ -92,6 +92,152 @@ function closeGcalModal() {
   if (el) el.remove();
 }
 
+function openGcalCredsModal() {
+  renderGcalCredsModal();
+}
+
+function closeGcalCredsModal() {
+  const el = document.getElementById('gcal-creds-modal');
+  if (el) el.remove();
+}
+
+function renderGcalCredsModal() {
+  let modalEl = document.getElementById('gcal-creds-modal');
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'gcal-creds-modal';
+    modalEl.className = 'overlay';
+    document.body.appendChild(modalEl);
+  }
+
+  const clientId = state.gcalStatus.clientId || '';
+  const hasSecret = !!state.gcalStatus.hasCredentials;
+
+  modalEl.innerHTML = `<div class="gcal-creds-modal-card" onclick="event.stopPropagation()">
+    <div class="space-between" style="align-items:flex-start;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="gcal-icon-badge">${icon('google')}</div>
+        <div>
+          <h2 style="font-size:18px;font-weight:700;color:#183226;margin:0 0 2px">Konfigurasi Google OAuth 2.0</h2>
+          <span style="font-size:12px;color:#677d71">Otorisasi resmi Google Calendar untuk Aplikasi Desktop Notely</span>
+        </div>
+      </div>
+      <button class="dismiss" data-action="close-gcal-creds-modal" title="Tutup">×</button>
+    </div>
+
+    <p style="font-size:12.5px;color:#5a7264;line-height:1.55;margin:0 0 16px">
+      Google mewajibkan Client ID agar Notely dapat membuka halaman login &amp; izin ("Izinkan") di browser Anda secara resmi dan privat.
+    </p>
+
+    <!-- Dropzone JSON -->
+    <div class="gcal-drop-zone" id="gcal-creds-dropzone" onclick="document.getElementById('gcal-json-file-input').click()">
+      ${icon('folder')}
+      <strong>Tarik &amp; Lepas File Kredensial JSON di Sini</strong>
+      <p>atau klik untuk memilih file <code>client_secret_*.json</code> dari Google Cloud Console</p>
+      <input type="file" id="gcal-json-file-input" accept=".json" style="display:none" onchange="window.handleGcalJsonFileSelect(this)">
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0 14px">
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
+      <span style="font-size:11px;font-weight:600;color:#859a8d;text-transform:uppercase">atau masukkan manual</span>
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field" style="margin:0">
+        <label class="field-label" for="gcal-input-client-id" style="font-size:12px">OAuth Client ID (Desktop app) *</label>
+        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12px;height:36px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="field-label" for="gcal-input-client-secret" style="font-size:12px">Client Secret *</label>
+        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12px;height:36px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off">
+        <span class="field-help" style="font-size:11px">Client secret disimpan secara aman di komputer lokal Anda.</span>
+      </div>
+    </div>
+
+    <div class="gcal-creds-guide" style="margin-top:14px">
+      <strong>Panduan Ringkas Google Cloud Console:</strong>
+      <ol>
+        <li>Buka <a href="javascript:void(0)" onclick="openExternalUrl('https://console.cloud.google.com/apis/credentials')" style="color:#18786c;font-weight:600">Google Cloud Console: Credentials ↗</a></li>
+        <li>Buat Project baru, lalu aktifkan <strong>Google Calendar API</strong> di menu Library.</li>
+        <li>Klik <strong>+ Create Credentials</strong> &gt; <strong>OAuth client ID</strong> &gt; pilih jenis <strong>Desktop app</strong>.</li>
+        <li>Unduh file JSON dan tarik ke kotak di atas, atau salin Client ID &amp; Secret ke formulir ini.</li>
+      </ol>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid #e9f0eb">
+      <button class="button ghost" data-action="close-gcal-creds-modal">Batal</button>
+      <button class="button accent" data-action="save-gcal-creds-and-auth">${icon('google')} Simpan &amp; Lanjutkan Login</button>
+    </div>
+  </div>`;
+
+  setupGcalDropzone();
+}
+
+window.handleGcalJsonFileSelect = function(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  parseAndApplyGcalJsonFile(file);
+};
+
+function parseAndApplyGcalJsonFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const text = e.target.result;
+      const json = JSON.parse(text);
+      const creds = json.installed || json.web || json;
+      const cid = creds.client_id;
+      const csec = creds.client_secret;
+      if (!cid) {
+        throw Error("File JSON tidak memuat 'client_id' yang valid.");
+      }
+      const idInput = document.getElementById('gcal-input-client-id');
+      const secInput = document.getElementById('gcal-input-client-secret');
+      if (idInput) idInput.value = cid;
+      if (secInput && csec) secInput.value = csec;
+      toast('✓ File kredensial Google berhasil dibaca!');
+    } catch (err) {
+      alertError(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function setupGcalDropzone() {
+  const zone = document.getElementById('gcal-creds-dropzone');
+  if (!zone) return;
+  zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
+  zone.ondragleave = () => { zone.classList.remove('dragover'); };
+  zone.ondrop = (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) parseAndApplyGcalJsonFile(file);
+  };
+}
+
+async function saveGcalCredsAndAuth() {
+  const cid = document.getElementById('gcal-input-client-id')?.value?.trim();
+  const csec = document.getElementById('gcal-input-client-secret')?.value?.trim();
+  if (!cid) {
+    alertError(new Error("Masukkan Google OAuth Client ID terlebih dahulu."));
+    return;
+  }
+  try {
+    const payload = { clientId: cid };
+    if (csec) payload.clientSecret = csec;
+    await updateGcalConfig(payload);
+    state.gcalStatus.clientId = cid;
+    if (csec) state.gcalStatus.hasCredentials = true;
+    closeGcalCredsModal();
+    toast('Kredensial disimpan. Membuka login Google…');
+    startGcalAuth();
+  } catch (err) {
+    alertError(err);
+  }
+}
+
 function renderGcalModal() {
   let modalEl = document.getElementById('gcal-connect-modal');
   if (!modalEl) {
@@ -102,6 +248,7 @@ function renderGcalModal() {
   }
 
   const isConnected = state.gcalStatus.connected;
+  const hasCreds = !!(state.gcalStatus.hasCredentials || state.gcalStatus.clientId);
 
   modalEl.innerHTML = `<div class="gcal-modal-card" onclick="event.stopPropagation()">
     <div class="space-between" style="align-items:flex-start">
@@ -110,14 +257,14 @@ function renderGcalModal() {
     </div>
 
     ${isConnected ? `
-      <!-- Connected State (Privacy friendly, no bare email leak) -->
+      <!-- Connected State -->
       <h2 class="gcal-modal-title">✓ Google Calendar Terhubung!</h2>
-      <p class="gcal-modal-subtitle">Akun Anda kini aktif tersambung secara privat dengan Notely.</p>
+      <p class="gcal-modal-subtitle">Akun Anda kini aktif tersambung resmi via Google OAuth 2.0.</p>
 
       <div class="gcal-success-box">
         <div class="gcal-success-icon">✓</div>
         <strong>Sinkronisasi Otomatis Aktif</strong>
-        <p>Setiap tugas baru dari prompt teks atau screenshot pengumuman akan langsung otomatis masuk ke Google Calendar Anda tanpa perlu membuka browser lagi.</p>
+        <p>Setiap tugas baru dari prompt teks atau tangkapan layar akan langsung otomatis terjadwal di Google Calendar Anda.</p>
       </div>
 
       <div class="gcal-modal-footer" style="justify-content:flex-end">
@@ -125,56 +272,46 @@ function renderGcalModal() {
       </div>
     ` : state.gcalConnecting ? `
       <!-- Connecting State -->
-      <h2 class="gcal-modal-title">Menghubungkan ke Google Calendar…</h2>
-      <p class="gcal-modal-subtitle">Menyiapkan integrasi kalender untuk jadwal tugas Anda.</p>
+      <h2 class="gcal-modal-title">Menunggu Otorisasi di Browser…</h2>
+      <p class="gcal-modal-subtitle">Laman login Google resmi telah dibuka di browser Anda.</p>
 
       <div class="gcal-waiting-box">
         <div class="gcal-spinner"></div>
-        <strong>Menghubungkan Akun</strong>
-        <p>Laman Google Calendar dibuka di peramban web Anda. Notely akan otomatis terhubung seketika!</p>
+        <strong>Silakan Izinkan Akses Kalender</strong>
+        <p>Pilih akun Google Anda pada tab browser yang terbuka, lalu klik <strong>"Izinkan" / "Allow"</strong>. Notely akan otomatis terhubung seketika!</p>
       </div>
 
       <div class="gcal-modal-footer" style="justify-content:flex-end">
         <button class="button danger" data-action="cancel-gcal-auth">Batal</button>
       </div>
     ` : `
-      <!-- Initial Connect Prompt State (Clean, Simple, for Regular Consumers) -->
+      <!-- Initial Connect Prompt State -->
       <h2 class="gcal-modal-title">Sambungkan ke Google Calendar</h2>
-      <p class="gcal-modal-subtitle">Jadwalkan dan sinkronkan seluruh tenggat tugas Anda secara otomatis.</p>
+      <p class="gcal-modal-subtitle">Otomatis sinkronkan tenggat tugas Anda langsung ke Google Calendar via OAuth resmi.</p>
 
       <div class="gcal-benefits-list">
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('spark')}</span>
-          <div>Sinkronkan tugas otomatis langsung ke Google Calendar</div>
+          <div><strong>Otomatis dari Teks &amp; Screenshot:</strong> AI mengekstrak tugas dan langsung menjadwalkannya di Google Calendar.</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('bolt')}</span>
-          <div>Pengingat H-1 dan notifikasi tenggat waktu di semua perangkat</div>
+          <div><strong>Pengingat H-1 &amp; Jam Deadline:</strong> Dapatkan notifikasi pengingat otomatis di ponsel dan komputer Anda.</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('check')}</span>
-          <div>Praktis tanpa perlu konfigurasi teknis rumit</div>
+          <div><strong>Otorisasi Resmi OAuth 2.0:</strong> Terhubung aman dengan izin akses resmi dari Google.</div>
         </div>
       </div>
 
-      <div style="margin-bottom:12px">
-        <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth">
+      <div style="margin-bottom:10px">
+        <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth-flow">
           ${icon('google')} Sambungkan dengan Akun Google
         </button>
+        <button class="button ghost small" data-action="open-gcal-creds-modal" style="width:100%;font-size:12px;margin-top:8px">
+          ${icon('sliders')} ${hasCreds ? 'Ubah Kredensial OAuth (Client ID)' : 'Atur Client ID / File JSON'}
+        </button>
       </div>
-
-      <details style="margin-bottom:14px;font-size:12px;color:#6b8274;background:#f8faf9;border:1px solid #e2ede6;border-radius:8px;padding:10px 12px">
-        <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;user-select:none">
-          <span>⚙️ Kredensial Pribadi Google Cloud (Opsional)</span>
-        </summary>
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-          <span style="font-size:11.5px;color:#788e80;line-height:1.5">Untuk otorisasi latar belakang penuh, Anda dapat memasukkan OAuth Client ID (Desktop) milik sendiri. Bila dikosongkan, Notely akan menggunakan integrasi langsung bebas setup.</span>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="gcal-custom-client-id" class="textbox" style="font-size:12px;height:34px" placeholder="Contoh: 123...apps.googleusercontent.com" value="${esc(state.gcalStatus.clientId || '')}">
-            <button class="button small" data-action="save-gcal-client-id" style="white-space:nowrap">Simpan</button>
-          </div>
-        </div>
-      </details>
 
       <div class="gcal-modal-footer">
         <label class="gcal-dismiss-check">
@@ -197,74 +334,71 @@ function openExternalUrl(url) {
   } catch (e) {}
 }
 
-// Start Google Calendar authentication (Works seamlessly for consumer users without requiring client ID)
+// Start Google Calendar authentication via authentic Google OAuth 2.0
 async function startGcalAuth() {
+  if (!state.gcalStatus.hasCredentials && !state.gcalStatus.clientId) {
+    openGcalCredsModal();
+    return;
+  }
+
   state.gcalConnecting = true;
   renderGcalModal();
 
   try {
     if (typeof api === 'function' && engine.ready) {
       const res = await api('/gcalendar/auth-url', {});
-      if (res.authUrl) {
-        openExternalUrl(res.authUrl);
-        // If it's a real OAuth URL (accounts.google.com), poll until loopback receives tokens
-        if (res.authUrl.includes('accounts.google.com')) {
-          let attempts = 0;
-          if (window.__gcalPollTimer) clearInterval(window.__gcalPollTimer);
-          window.__gcalPollTimer = setInterval(async () => {
-            attempts++;
-            if (attempts > 50 || !state.gcalConnecting) {
-              clearInterval(window.__gcalPollTimer);
-              window.__gcalPollTimer = null;
-              if (state.gcalConnecting) {
-                state.gcalConnecting = false;
-                renderGcalModal();
-              }
-              return;
-            }
-            try {
-              const st = await api('/gcalendar/status');
-              if (st && st.connected && (st.mode === 'oauth' || st.email)) {
-                clearInterval(window.__gcalPollTimer);
-                window.__gcalPollTimer = null;
-                state.gcalConnecting = false;
-                state.gcalStatus = st;
-                safeStore.set('notelyGcalStatus', state.gcalStatus);
-                renderGcalModal();
-                refreshPage();
-                toast('✓ Google Calendar resmi tersambung via OAuth!');
-              }
-            } catch (e) {}
-          }, 1500);
+      if (!res.authUrl) {
+        throw Error(res.message || 'Gagal memulai otorisasi Google Calendar.');
+      }
+
+      openExternalUrl(res.authUrl);
+
+      // Poll until local loopback receives Google OAuth callback
+      let attempts = 0;
+      if (window.__gcalPollTimer) clearInterval(window.__gcalPollTimer);
+      window.__gcalPollTimer = setInterval(async () => {
+        attempts++;
+        if (attempts > 90 || !state.gcalConnecting) {
+          clearInterval(window.__gcalPollTimer);
+          window.__gcalPollTimer = null;
+          if (state.gcalConnecting) {
+            state.gcalConnecting = false;
+            renderGcalModal();
+          }
           return;
         }
-      }
-      // Direct mode fallback (activates immediately)
-      const st = await api('/gcalendar/status');
-      if (st && st.connected) {
-        state.gcalStatus = st;
-      } else {
-        state.gcalStatus.connected = true;
-        state.gcalStatus.mode = 'direct';
-        state.gcalStatus.email = 'Google Calendar Pribadi';
-      }
+        try {
+          const st = await api('/gcalendar/status');
+          if (st && st.connected && (st.mode === 'oauth' || st.email)) {
+            clearInterval(window.__gcalPollTimer);
+            window.__gcalPollTimer = null;
+            state.gcalConnecting = false;
+            state.gcalStatus = st;
+            safeStore.set('notelyGcalStatus', state.gcalStatus);
+            closeGcalModal();
+            refreshPage();
+            toast(`✓ Akun Google (${st.email || 'OAuth'}) resmi tersambung!`);
+          }
+        } catch (e) {}
+      }, 1500);
+      return;
     } else {
       // Prototype simulation fallback
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 800));
       state.gcalStatus = {
         connected: true,
-        mode: 'direct',
+        mode: 'oauth',
         email: 'user.mahasiswa@gmail.com',
         autoSync: true,
         hasCredentials: true,
         dismissPrompt: false
       };
+      state.gcalConnecting = false;
+      safeStore.set('notelyGcalStatus', state.gcalStatus);
+      renderGcalModal();
+      refreshPage();
+      toast('✓ Akun Google resmi tersambung (Mode Simulasi)!');
     }
-    state.gcalConnecting = false;
-    safeStore.set('notelyGcalStatus', state.gcalStatus);
-    renderGcalModal();
-    refreshPage();
-    toast('✓ Google Calendar berhasil tersambung!');
   } catch (err) {
     state.gcalConnecting = false;
     renderGcalModal();
@@ -689,71 +823,98 @@ function renderGcalSettingsCard() {
   const isAutoSync = state.gcalStatus.autoSync !== false;
   const showIndicator = state.settings.showGcalIndicator !== false;
   const displayEmail = state.showGcalEmail ? rawEmail : maskEmail(rawEmail);
+  const hasCreds = !!(state.gcalStatus.hasCredentials || state.gcalStatus.clientId);
 
-  return `<div class="setting-card">
-    <div class="space-between" style="align-items:flex-start;margin-bottom:12px">
-      <div>
-        <h3 class="section-title">Integrasi Google Calendar (Tenggat Tugas)</h3>
-        <p class="section-description" style="margin-bottom:0">Sinkronkan tenggat tugas dari prompt atau screenshot langsung ke Google Calendar.</p>
+  return `<div class="setting-card gcal-settings-card">
+    <!-- Card Header -->
+    <div class="gcal-card-header">
+      <div class="gcal-card-title-group">
+        <div class="gcal-icon-badge">${icon('google')}</div>
+        <div>
+          <h3 class="section-title">Integrasi Google Calendar</h3>
+          <p class="section-description">Otomatis sinkronkan tenggat tugas kuliah dan pengingat ke Google Calendar via OAuth 2.0 resmi.</p>
+        </div>
       </div>
-      <div class="gcal-status-badge-inline ${isConnected ? 'connected' : 'disconnected'}">
+      <div class="gcal-status-pill-badge ${isConnected ? 'connected' : 'disconnected'}">
         <span class="gcal-dot ${isConnected ? 'green' : 'red'}"></span>
-        <strong>${isConnected ? 'Tersambung' : 'Belum Tersambung'}</strong>
+        <span>${isConnected ? 'Tersambung (OAuth)' : 'Belum Terhubung'}</span>
       </div>
     </div>
 
-    <div class="setting-row" style="margin-bottom:14px;border-bottom:1px solid #eef3ef;padding-bottom:12px">
-      <div>
-        <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Tampilkan Indikator Status di Header</h4>
-        <p style="font-size:12px;color:#718579;margin:0">Tampilkan tombol status Google Calendar (hijau/merah) di bagian atas halaman Tenggat Tugas. Sembunyikan untuk tampilan yang lebih bersih.</p>
-      </div>
-      <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
-    </div>
+    ${!isConnected ? `
+      <!-- Disconnected: Hero Connection Box -->
+      <div class="gcal-connect-hero">
+        <div class="gcal-hero-content">
+          <h4>Sambungkan dengan Akun Google</h4>
+          <p>Notely menggunakan otorisasi <strong>Google OAuth 2.0</strong> resmi. Notely akan membuka halaman login Google di peramban web agar Anda dapat memberikan izin (klik <em>Izinkan</em>). Jadwal tugas baru dari prompt AI maupun screenshot akan langsung otomatis masuk ke Google Calendar ponsel dan komputer Anda.</p>
+          
+          <div class="gcal-hero-status-row">
+            ${hasCreds ? `
+              <span class="gcal-creds-ready">${icon('check')} Kredensial OAuth (Client ID) terpasang — Siap sambungkan</span>
+            ` : `
+              <span class="gcal-creds-missing">${icon('info')} Memerlukan Google OAuth Client ID (Aplikasi Desktop)</span>
+            `}
+          </div>
 
-    ${isConnected ? `
-      <div>
-        <div class="space-between" style="padding:12px 14px;background:#f7faf8;border-radius:9px;border:1px solid #e1ebe4;margin-bottom:14px">
-          <div>
-            <small style="font-size:11px;color:#6b8073;font-weight:700;text-transform:uppercase">Status Akun</small>
-            <div style="font-size:13.5px;font-weight:600;color:#1e352b;display:flex;align-items:center;gap:8px;margin-top:2px">
-              <span>${esc(displayEmail || 'Google Calendar Terintegrasi')}</span>
-              ${rawEmail ? `
-                <button class="button small ghost icon-only" data-action="toggle-mask-email" title="${state.showGcalEmail ? 'Sembunyikan email' : 'Tampilkan email'}" style="width:28px;height:28px">
-                  ${icon(state.showGcalEmail ? 'eyeoff' : 'eye')}
-                </button>
-              ` : ''}
+          <div class="gcal-hero-actions">
+            <button class="button accent" data-action="start-gcal-auth-flow">
+              ${icon('google')} Sambungkan dengan Akun Google
+            </button>
+            <button class="button ghost" data-action="open-gcal-creds-modal">
+              ${icon('sliders')} ${hasCreds ? 'Ubah Kredensial OAuth' : 'Setup Client ID / File JSON'}
+            </button>
+          </div>
+        </div>
+      </div>
+    ` : `
+      <!-- Connected: Account Management Box -->
+      <div class="gcal-connected-box">
+        <div class="space-between" style="align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="gcal-avatar-circle">${icon('google')}</div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#6b8273;text-transform:uppercase;letter-spacing:0.5px">Akun Google Terhubung</div>
+              <div style="font-size:14px;font-weight:650;color:#1d3429;display:flex;align-items:center;gap:8px;margin-top:2px">
+                <span>${esc(displayEmail || 'Akun Google Terhubung')}</span>
+                ${rawEmail ? `
+                  <button class="button small ghost icon-only" data-action="toggle-mask-email" title="${state.showGcalEmail ? 'Sembunyikan email' : 'Tampilkan email'}" style="width:26px;height:26px">
+                    ${icon(state.showGcalEmail ? 'eyeoff' : 'eye')}
+                  </button>
+                ` : ''}
+              </div>
+              <small style="font-size:11.5px;color:#248a56;font-weight:500">✓ Sinkronisasi aktif via Google Calendar API v3</small>
             </div>
           </div>
-          <button class="button small ghost danger-hover" style="color:var(--danger)" data-action="gcal-disconnect">
+          <button class="button small ghost danger-hover" data-action="gcal-disconnect" style="color:var(--danger)">
             ${icon('trash')} Putuskan Akun
           </button>
         </div>
 
-        <div class="setting-row" style="margin-bottom:14px">
+        <div class="setting-row" style="padding-top:12px;border-top:1px solid #e7ede9">
           <div>
             <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Sinkronisasi Otomatis Tugas Baru</h4>
-            <p style="font-size:12px;color:#718579;margin:0">Setiap tugas yang diekstrak AI atau dibuat manual langsung dikirim ke Google Calendar di latar belakang.</p>
+            <p style="font-size:12px;color:#718579;margin:0">Setiap tugas baru dari prompt AI, tangkapan layar, atau tambah manual langsung dikirim ke kalender.</p>
           </div>
           <input type="checkbox" class="switch" ${isAutoSync ? 'checked' : ''} data-action="toggle-gcal-autosync" aria-label="Auto sync">
         </div>
 
-        <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #eef3ef">
+        <div style="display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #e7ede9;flex-wrap:wrap">
           <button class="button small" data-action="gcal-sync-all">${icon('bolt')} Sinkronkan Semua Tugas Sekarang</button>
           <button class="button small ghost" data-action="page" data-id="deadlines">${icon('calendar')} Buka Tenggat Tugas</button>
         </div>
       </div>
-    ` : `
-      <div>
-        <p style="font-size:12.5px;color:#677d70;line-height:1.6;margin-bottom:14px">
-          Hubungkan akun Google Calendar Anda agar tugas kuliah, proyek, dan deadline dapat otomatis tersinkron lengkap dengan notifikasi pengingat ke ponsel & laptop Anda.
-        </p>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button class="button accent small" data-action="open-gcal-connect-modal">
-            ${icon('google')} Sambungkan Google Calendar
-          </button>
-        </div>
-      </div>
     `}
+
+    <!-- Display Settings Sub-Row -->
+    <div class="hr" style="margin:20px 0 16px"></div>
+
+    <div class="setting-row">
+      <div>
+        <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Tampilkan Indikator Status di Header</h4>
+        <p style="font-size:12px;color:#718579;margin:0">Tampilkan pill status Google Calendar di bagian atas halaman Tenggat Tugas.</p>
+      </div>
+      <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
+    </div>
   </div>`;
 }
 
@@ -1218,6 +1379,28 @@ handleClick = function(action, id) {
   if (action === 'open-gcal-connect-modal') {
     state.gcalMenuOpen = false;
     openGcalConnectModal(true);
+    return;
+  }
+  if (action === 'start-gcal-auth-flow') {
+    if (!state.gcalStatus.hasCredentials && !state.gcalStatus.clientId) {
+      closeGcalModal();
+      openGcalCredsModal();
+    } else {
+      startGcalAuth();
+    }
+    return;
+  }
+  if (action === 'open-gcal-creds-modal') {
+    closeGcalModal();
+    openGcalCredsModal();
+    return;
+  }
+  if (action === 'close-gcal-creds-modal') {
+    closeGcalCredsModal();
+    return;
+  }
+  if (action === 'save-gcal-creds-and-auth') {
+    saveGcalCredsAndAuth();
     return;
   }
   if (action === 'close-gcal-modal') {

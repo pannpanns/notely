@@ -66,13 +66,15 @@ def save_tokens(data_root: str | Path, tokens: dict):
 def get_status(data_root: str | Path) -> dict:
     config = get_config(data_root)
     tokens = get_tokens(data_root)
-    connected = bool(tokens.get('refresh_token') or tokens.get('access_token') or tokens.get('connected'))
+    # Real connection requires actual OAuth tokens
+    connected = bool(tokens.get('refresh_token') or (tokens.get('mode') == 'oauth' and tokens.get('access_token')))
+    has_credentials = bool(config.get('clientId') and config.get('clientSecret'))
     return {
         'connected': connected,
         'email': tokens.get('email', ''),
-        'mode': tokens.get('mode', 'oauth' if tokens.get('refresh_token') else 'direct'),
+        'mode': 'oauth' if connected else 'none',
         'autoSync': config.get('autoSync', True),
-        'hasCredentials': bool(config.get('clientId') and config.get('clientSecret')),
+        'hasCredentials': has_credentials,
         'clientId': config.get('clientId', ''),
         'dismissPrompt': config.get('dismissPrompt', False)
     }
@@ -133,6 +135,29 @@ def _fetch_user_email(access_token: str) -> str:
     except Exception:
         return ''
 
+def import_credentials_json(data_root: str | Path, content: str | dict) -> dict:
+    """Import and save Google OAuth credentials from a downloaded client_secret_*.json file."""
+    if isinstance(content, str):
+        data = json.loads(content)
+    else:
+        data = content
+    creds = data.get('installed') or data.get('web') or data
+    client_id = str(creds.get('client_id', '')).strip()
+    client_secret = str(creds.get('client_secret', '')).strip()
+    if not client_id:
+        raise ValueError("File JSON tidak memuat 'client_id' Google OAuth yang valid.")
+
+    config = get_config(data_root)
+    config['clientId'] = client_id
+    if client_secret:
+        config['clientSecret'] = client_secret
+    save_config(data_root, config)
+    return {
+        'success': True,
+        'clientId': client_id,
+        'hasSecret': bool(client_secret)
+    }
+
 def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: str = '') -> str:
     """Start local loopback server and return Google OAuth authorization URL."""
     global _loopback_server, _loopback_thread
@@ -147,21 +172,7 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
     c_id = config.get('clientId') or DEFAULT_CLIENT_ID
     c_sec = config.get('clientSecret') or DEFAULT_CLIENT_SECRET
     if not c_id:
-        # Fallback for regular consumer users without custom GCP developer setup.
-        # Seamlessly activate Google Calendar integration without errors.
-        save_tokens(data_root, {
-            'connected': True,
-            'mode': 'direct',
-            'email': 'Google Calendar Pribadi',
-            'connected_at': datetime.datetime.now().isoformat()
-        })
-        url = "https://calendar.google.com"
-        try:
-            import webbrowser
-            webbrowser.open(url)
-        except Exception:
-            pass
-        return url
+        raise ValueError("Google OAuth Client ID belum dikonfigurasi. Masukkan Client ID & Secret Google Cloud Anda terlebih dahulu.")
 
     with _auth_state_lock:
         if _loopback_server:
@@ -201,11 +212,15 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
                             token_data = json.loads(t_resp.read().decode('utf-8'))
 
                         access_token = token_data.get('access_token', '')
+                        refresh_token = token_data.get('refresh_token', '')
+                        existing = get_tokens(data_root)
+                        if not refresh_token and existing.get('refresh_token'):
+                            refresh_token = existing['refresh_token']
                         email = _fetch_user_email(access_token) if access_token else ''
 
                         save_tokens(data_root, {
                             'access_token': access_token,
-                            'refresh_token': token_data.get('refresh_token', ''),
+                            'refresh_token': refresh_token,
                             'expires_at': int(time.time()) + int(token_data.get('expires_in', 3600)),
                             'email': email,
                             'mode': 'oauth',
@@ -215,15 +230,15 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
 
                         html = """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Notely — Google Calendar</title>
                         <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f6f9f7;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
-                        .card{background:#fff;padding:36px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);text-align:center;max-width:440px;}
-                        .icon{width:64px;height:64px;border-radius:50%;background:#e8f5ee;color:#18786c;display:grid;place-items:center;margin:0 auto 16px;font-size:32px;}
-                        h2{color:#1a3328;margin:0 0 8px;}p{color:#64786d;font-size:14px;line-height:1.6;margin:0 0 20px;}
+                        .card{background:#fff;padding:40px 36px;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.07);text-align:center;max-width:440px;border:1px solid #e2ebe6;}
+                        .icon{width:64px;height:64px;border-radius:50%;background:#e8f5ee;color:#18786c;display:grid;place-items:center;margin:0 auto 16px;font-size:30px;font-weight:bold;}
+                        h2{color:#1a3328;margin:0 0 8px;font-size:22px;}p{color:#64786d;font-size:14px;line-height:1.6;margin:0 0 20px;}
                         .btn{background:#18786c;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block;}
                         </style></head><body>
                         <div class="card"><div class="icon">✓</div><h2>Berhasil Terhubung!</h2>
-                        <p>Notely kini terhubung langsung dengan Google Calendar Anda. Jadwal tugas akan otomatis disinkronkan.</p>
+                        <p>Notely kini terhubung resmi dengan Google Calendar Anda. Jadwal tenggat tugas akan otomatis tersinkron.</p>
                         <a href="javascript:window.close()" class="btn">Tutup Halaman Ini</a></div>
-                        <script>setTimeout(() => window.close(), 3000);</script></body></html>"""
+                        <script>setTimeout(() => { try { window.close(); } catch(e){} }, 2000);</script></body></html>"""
                         self.send_response(200)
                         self.send_header('Content-Type', 'text/html; charset=utf-8')
                         self.end_headers()
@@ -325,21 +340,40 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
             method = 'PATCH' if (existing_gcal_id and not str(existing_gcal_id).startswith('direct_')) else 'POST'
             url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events/{existing_gcal_id}" if method == 'PATCH' else "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(event_body).encode('utf-8'),
-                headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-                method=method
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                res = json.loads(resp.read().decode('utf-8'))
-            return {
-                'success': True,
-                'gcal_event_id': res.get('id', ''),
-                'htmlLink': res.get('htmlLink', web_url)
-            }
-        except Exception:
-            pass
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(event_body).encode('utf-8'),
+                    headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+                    method=method
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    res = json.loads(resp.read().decode('utf-8'))
+                return {
+                    'success': True,
+                    'gcal_event_id': res.get('id', ''),
+                    'htmlLink': res.get('htmlLink', web_url)
+                }
+            except urllib.error.HTTPError as he:
+                if he.code == 404 and method == 'PATCH':
+                    # Fallback to creating a new event if the previous ID was deleted
+                    post_req = urllib.request.Request(
+                        "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+                        data=json.dumps(event_body).encode('utf-8'),
+                        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+                        method='POST'
+                    )
+                    with urllib.request.urlopen(post_req, timeout=15) as p_resp:
+                        res = json.loads(p_resp.read().decode('utf-8'))
+                    return {
+                        'success': True,
+                        'gcal_event_id': res.get('id', ''),
+                        'htmlLink': res.get('htmlLink', web_url)
+                    }
+                err_text = he.read().decode('utf-8', errors='ignore')
+                raise RuntimeError(f"Google Calendar API Error (HTTP {he.code}): {err_text or str(he)}")
+        except Exception as exc:
+            raise RuntimeError(f"Gagal sinkronisasi Google Calendar: {exc}")
 
     # Direct mode without API key / consumer mode
     event_id = item.get('gcal_event_id') or f"direct_{int(time.time()*1000)}"
