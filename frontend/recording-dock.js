@@ -81,7 +81,7 @@ render();
 function applyDockScale(){
  const dock=document.getElementById('recording-dock');if(!dock)return;
  const summary=state.page==='notes'&&state.noteTab==='summary';
- const hideDock=summary||state.page==='settings';
+ const hideDock=summary||state.page==='settings'||state.page==='deadlines';
  dock.hidden=hideDock;
  if(hideDock){document.querySelector('.page')?.style.setProperty('padding-bottom','0px');return;}
  const width=dock.parentElement.clientWidth;

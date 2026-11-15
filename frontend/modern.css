@@ -130,17 +130,27 @@
 .urgent-text{color:#c44238}
 .deadlines-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 
-.deadlines-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;background:#f8faf9;padding:9px 12px;border-radius:12px;border:1px solid #e5ece7}
-.deadlines-search-wrap{position:relative;display:flex;align-items:center;min-width:240px;flex:1}
+/* Deadlines Toolbar: Clean, 2-tier flexible layout */
+.deadlines-toolbar{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;background:#f8faf9;padding:12px 14px;border-radius:14px;border:1px solid #e4ece6}
+.deadlines-toolbar-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.deadlines-search-wrap{position:relative;display:flex;align-items:center;min-width:240px;max-width:340px;flex:1}
 .deadlines-search-wrap svg{position:absolute;left:11px;width:15px;height:15px;color:#85968d;pointer-events:none}
-.deadlines-search-wrap input{width:100%;height:35px;background:#fff;border:1px solid #dbe4de;border-radius:8px;padding:0 30px 0 34px;font-size:12.5px;color:#243a30;outline:none;transition:border-color .15s}
-.deadlines-search-wrap input:focus{border-color:#18786c}
+.deadlines-search-wrap input{width:100%;height:36px;background:#fff;border:1px solid #dce5df;border-radius:8px;padding:0 30px 0 34px;font-size:12.5px;color:#243a30;outline:none;transition:border-color .15s}
+.deadlines-search-wrap input:focus{border-color:#18786c;box-shadow:0 0 0 2px rgba(24,120,108,.12)}
 .search-clear{position:absolute;right:8px;background:none;border:none;font-size:16px;color:#8a9990;cursor:pointer;padding:0 4px}
 
-.deadline-filter-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.filter-pill{background:#fff;border:1px solid #dce5df;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:550;color:#5a6e62;cursor:pointer;transition:all .14s ease}
+.deadline-filter-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-top:1px solid #e8efe9;padding-top:10px}
+.filter-pill{background:#fff;border:1px solid #dce5df;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:550;color:#53675a;cursor:pointer;transition:all .14s ease}
 .filter-pill:hover{border-color:#18786c;color:#18786c}
 .filter-pill.active{background:#18786c;border-color:#18786c;color:#fff}
+
+/* Dedicated Beautiful Empty State */
+.deadline-empty-box{background:#fcfdfc;border:1px dashed #ceddd3;border-radius:16px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-top:10px}
+.deadline-empty-icon{width:56px;height:56px;border-radius:16px;background:#eff7f3;color:#18786c;display:grid;place-items:center;margin-bottom:4px}
+.deadline-empty-icon svg{width:28px;height:28px}
+.deadline-empty-box h3{font-size:16px;font-weight:700;color:#1a3328;margin:0}
+.deadline-empty-box p{font-size:13px;color:#6d8376;max-width:440px;line-height:1.6;margin:0 0 8px}
+.deadline-empty-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
 
 /* Calendar View */
 .calendar-wrapper{background:#fff;border:1px solid #dfe7e2;border-radius:15px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,.02)}
@@ -343,6 +353,13 @@
  .card-actions-area{grid-column:1/-1;justify-content:flex-end;border-top:1px solid #edf2ee;padding-top:10px;margin-top:4px}
  .extracted-item-grid{grid-template-columns:1fr}
  .calendar-cell{min-height:70px;padding:4px}
+}
+
+/* Hide floating recording dock on deadlines page */
+.page:has(.deadlines-page) ~ #recording-dock,
+body:has(.deadlines-page) #recording-dock,
+#recording-dock.dock-hidden-deadlines {
+  display: none !important;
 }
 
 

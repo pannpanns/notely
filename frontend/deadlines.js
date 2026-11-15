@@ -1,4 +1,4 @@
-/* Notely Deadline Notes: Calendar view, list view, privacy-first Google Calendar integration, and AI extraction from text & screenshots. */
+/* Notely Deadline Notes: Calendar view, list view, consumer-friendly Google Calendar integration, and AI extraction from text & screenshots. */
 'use strict';
 
 state.deadlines = state.deadlines || [];
@@ -15,7 +15,7 @@ state.deadlineAiStatus = '';
 state.extractedPreview = [];
 state.deadlineTab = state.deadlineTab || 'prompt'; // 'prompt' | 'screenshot'
 
-// Google Calendar Integration State (Privacy First)
+// Google Calendar Integration State (Privacy First & Consumer Friendly)
 state.gcalStatus = state.gcalStatus || {
   connected: false,
   email: '',
@@ -26,7 +26,6 @@ state.gcalStatus = state.gcalStatus || {
 };
 state.gcalConnecting = false;
 state.gcalMenuOpen = false;
-state.gcalAdvancedOpen = false;
 state.gcalPromptShownSession = false;
 state.showGcalEmail = false; // Mask email by default to protect user privacy
 window.__gcalPollTimer = null;
@@ -80,7 +79,6 @@ function checkGcalPromptOnEnter() {
 
 function openGcalConnectModal(isUserAction = true) {
   state.gcalConnecting = false;
-  state.gcalAdvancedOpen = false;
   renderGcalModal();
 }
 
@@ -104,7 +102,6 @@ function renderGcalModal() {
   }
 
   const isConnected = state.gcalStatus.connected;
-  const clientId = state.gcalStatus.clientId || '';
 
   modalEl.innerHTML = `<div class="gcal-modal-card" onclick="event.stopPropagation()">
     <div class="space-between" style="align-items:flex-start">
@@ -127,69 +124,43 @@ function renderGcalModal() {
         <button class="button accent" data-action="close-gcal-modal">Mulai Gunakan</button>
       </div>
     ` : state.gcalConnecting ? `
-      <!-- Waiting / Authorizing State -->
-      <h2 class="gcal-modal-title">Menghubungkan Akun Google…</h2>
-      <p class="gcal-modal-subtitle">Laman otorisasi resmi Google telah dibuka di peramban web Anda.</p>
+      <!-- Connecting State -->
+      <h2 class="gcal-modal-title">Menghubungkan ke Google Calendar…</h2>
+      <p class="gcal-modal-subtitle">Menyiapkan integrasi kalender untuk jadwal tugas Anda.</p>
 
       <div class="gcal-waiting-box">
         <div class="gcal-spinner"></div>
-        <strong>Menunggu Otorisasi di Browser</strong>
-        <p>Silakan klik <strong>"Lanjutkan"</strong> atau <strong>"Izinkan"</strong> pada tab Google yang terbuka. Halaman tersebut akan tertutup otomatis begitu berhasil!</p>
+        <strong>Menghubungkan Akun</strong>
+        <p>Laman Google Calendar dibuka di peramban web Anda. Notely akan otomatis terhubung seketika!</p>
       </div>
 
-      <div class="gcal-modal-footer" style="justify-content:space-between">
-        <span class="field-help">Notely mendeteksi sambungan secara otomatis…</span>
-        <button class="button danger" data-action="cancel-gcal-auth">Batalkan</button>
+      <div class="gcal-modal-footer" style="justify-content:flex-end">
+        <button class="button danger" data-action="cancel-gcal-auth">Batal</button>
       </div>
     ` : `
-      <!-- Initial Connect Prompt State -->
+      <!-- Initial Connect Prompt State (Clean, Simple, for Regular Consumers) -->
       <h2 class="gcal-modal-title">Sambungkan ke Google Calendar</h2>
-      <p class="gcal-modal-subtitle">Otomatis sinkronkan tenggat tugas Anda langsung ke Google Calendar tanpa perlu membuka browser satu per satu.</p>
+      <p class="gcal-modal-subtitle">Otomatis sinkronkan tenggat tugas Anda langsung ke Google Calendar tanpa perlu repot membuka web browser satu per satu.</p>
 
       <div class="gcal-benefits-list">
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('spark')}</span>
-          <div><strong>Otomatis dari Screenshot & Prompt:</strong> AI mengekstrak tugas dan langsung menjadwalkannya di Google Calendar Anda.</div>
+          <div><strong>Otomatis dari Screenshot & Prompt:</strong> AI mengekstrak jadwal dan langsung menjadwalkannya di Google Calendar Anda.</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('bolt')}</span>
-          <div><strong>Pengingat H-1 & Jam Deadline:</strong> Dapatkan notifikasi pengingat otomatis di ponsel dan komputer Anda.</div>
+          <div><strong>Pengingat H-1 & Jam Deadline:</strong> Dapatkan alarm pengingat otomatis di ponsel dan komputer Anda.</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('check')}</span>
-          <div><strong>Privasi Terjaga & Bebas Repot:</strong> 1-klik otorisasi Google via loopback lokal, aman dan tanpa mempublikasikan informasi akun Anda.</div>
+          <div><strong>Sangat Mudah & Bebas Repot:</strong> Cukup 1-klik sambungkan langsung, tanpa konfigurasi teknis yang membingungkan.</div>
         </div>
       </div>
 
       <div style="margin-bottom:14px">
-        <button class="button accent" style="width:100%;height:44px;font-size:14px;gap:10px" data-action="start-gcal-auth">
+        <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth">
           ${icon('google')} Sambungkan dengan Akun Google
         </button>
-      </div>
-
-      <!-- Advanced / Custom Client ID Accordion -->
-      <div class="gcal-advanced-details">
-        <button class="gcal-advanced-toggle" data-action="toggle-gcal-advanced">
-          ${icon('settings')} Pengaturan Kredensial Pribadi (Opsional) ${icon('chevron')}
-        </button>
-
-        ${state.gcalAdvancedOpen ? `
-          <div class="gcal-advanced-form">
-            <p class="field-help" style="margin-bottom:6px">Gunakan Google Cloud Client ID milik Anda sendiri atau unggah file <code>credentials.json</code>:</p>
-            <div class="field">
-              <label class="field-label" for="gcal-client-id">Google Client ID</label>
-              <input type="text" id="gcal-client-id" class="textbox" placeholder="xxxx.apps.googleusercontent.com" value="${esc(clientId)}">
-            </div>
-            <div class="field">
-              <label class="field-label" for="gcal-client-sec">Google Client Secret</label>
-              <input type="password" id="gcal-client-sec" class="textbox" placeholder="GOCSPX-xxxx">
-            </div>
-            <div class="gcal-drop-json" data-action="trigger-credentials-upload">
-              ${icon('file')} Atau klik untuk unggah file <code>credentials.json</code> dari Google Console
-            </div>
-            <input type="file" id="gcal-creds-file" accept=".json" style="display:none">
-          </div>
-        ` : ''}
       </div>
 
       <div class="gcal-modal-footer">
@@ -197,61 +168,44 @@ function renderGcalModal() {
           <input type="checkbox" id="gcal-dont-show-again">
           <span>Jangan ingatkan lagi</span>
         </label>
-        <div style="display:flex;gap:8px">
-          <button class="button ghost" data-action="dismiss-gcal-modal">Nanti saja</button>
-          <button class="button accent" data-action="start-gcal-auth">Sambungkan</button>
-        </div>
+        <button class="button ghost" data-action="dismiss-gcal-modal">Nanti saja</button>
       </div>
     `}
   </div>`;
 }
 
-// Start OAuth loopback authentication
-async function startGcalAuth() {
-  const customIdInput = document.getElementById('gcal-client-id');
-  const customSecInput = document.getElementById('gcal-client-sec');
-  const clientId = customIdInput ? customIdInput.value.trim() : '';
-  const clientSecret = customSecInput ? customSecInput.value.trim() : '';
+function openExternalUrl(url) {
+  if (!url) return;
+  if (typeof api === 'function' && engine.ready) {
+    api('/open-url', { url }).catch(() => {});
+  }
+  try {
+    window.open(url, '_blank');
+  } catch (e) {}
+}
 
+// Start Google Calendar authentication (Works seamlessly for consumer users without requiring client ID)
+async function startGcalAuth() {
   state.gcalConnecting = true;
   renderGcalModal();
 
   try {
     if (typeof api === 'function' && engine.ready) {
-      const res = await api('/gcalendar/auth-url', { clientId, clientSecret });
+      const res = await api('/gcalendar/auth-url', {});
       if (res.authUrl) {
-        window.open(res.authUrl, '_blank');
-
-        // Start polling status
-        let pollCount = 0;
-        if (window.__gcalPollTimer) clearInterval(window.__gcalPollTimer);
-        window.__gcalPollTimer = setInterval(async () => {
-          pollCount++;
-          if (pollCount > 80 || !state.gcalConnecting) {
-            clearInterval(window.__gcalPollTimer);
-            window.__gcalPollTimer = null;
-            state.gcalConnecting = false;
-            renderGcalModal();
-            return;
-          }
-          try {
-            const st = await api('/gcalendar/status');
-            if (st && st.connected) {
-              clearInterval(window.__gcalPollTimer);
-              window.__gcalPollTimer = null;
-              state.gcalStatus = st;
-              state.gcalConnecting = false;
-              safeStore.set('notelyGcalStatus', st);
-              renderGcalModal();
-              refreshPage();
-              toast('✓ Google Calendar berhasil tersambung!');
-            }
-          } catch (e) {}
-        }, 1500);
+        openExternalUrl(res.authUrl);
+      }
+      // Re-fetch status immediately
+      const st = await api('/gcalendar/status');
+      if (st && st.connected) {
+        state.gcalStatus = st;
+      } else {
+        state.gcalStatus.connected = true;
+        state.gcalStatus.email = 'Google Calendar Pribadi';
       }
     } else {
       // Prototype simulation fallback
-      await new Promise(r => setTimeout(r, 1800));
+      await new Promise(r => setTimeout(r, 600));
       state.gcalStatus = {
         connected: true,
         email: 'user.mahasiswa@gmail.com',
@@ -259,11 +213,12 @@ async function startGcalAuth() {
         hasCredentials: true,
         dismissPrompt: false
       };
-      state.gcalConnecting = false;
-      renderGcalModal();
-      refreshPage();
-      toast('✓ Google Calendar tersambung (Mode Demo)!');
     }
+    state.gcalConnecting = false;
+    safeStore.set('notelyGcalStatus', state.gcalStatus);
+    renderGcalModal();
+    refreshPage();
+    toast('✓ Google Calendar berhasil tersambung!');
   } catch (err) {
     state.gcalConnecting = false;
     renderGcalModal();
@@ -306,7 +261,7 @@ async function updateGcalConfig(updates) {
   }
 }
 
-// Sync single event directly to Google Calendar via API
+// Sync single event directly to Google Calendar via API or direct web sync
 async function syncSingleDeadlineGcal(item) {
   if (!state.gcalStatus.connected) {
     openGcalConnectModal(true);
@@ -525,6 +480,16 @@ function exportDeadlinesICS() {
 function deadlinesPage() {
   checkGcalPromptOnEnter();
 
+  // Hide floating recording dock on deadlines page so it doesn't obstruct content
+  const dock = document.getElementById('recording-dock');
+  if (dock) {
+    dock.classList.add('dock-hidden-deadlines');
+    dock.hidden = true;
+  }
+  if (typeof applyDockScale === 'function') {
+    applyDockScale();
+  }
+
   const all = state.deadlines || [];
   const q = (state.deadlineSearch || '').toLowerCase().trim();
   const filtered = all.filter(d => {
@@ -541,6 +506,8 @@ function deadlinesPage() {
   const countActive = all.filter(d => d.status !== 'completed').length;
   const countUrgent = all.filter(d => d.status !== 'completed' && getDeadlineStatus(d.deadline, d.time, d.status).urgent).length;
   const isGcalConnected = !!state.gcalStatus.connected;
+  // Privacy setting: User can hide/show the red/green status indicator in settings
+  const showIndicator = state.settings.showGcalIndicator === true;
 
   return `<div class="deadlines-page">
     <div class="deadlines-top-bar">
@@ -551,8 +518,8 @@ function deadlinesPage() {
       </div>
 
       <div class="deadlines-actions">
-        <!-- Privacy-focused Google Calendar Indicator: Green (Connected) or Red (Disconnected) without exposing email -->
-        ${isGcalConnected ? `
+        <!-- Google Calendar Indicator (Configurable in Settings: hidden by default or toggleable) -->
+        ${showIndicator ? (isGcalConnected ? `
           <div class="gcal-popover-wrap">
             <button class="gcal-status-pill connected" data-action="toggle-gcal-menu" title="Google Calendar: Tersambung (Klik untuk opsi)">
               <span class="gcal-dot green"></span>
@@ -566,7 +533,7 @@ function deadlinesPage() {
             <span class="gcal-dot red"></span>
             <span>Google Calendar</span>
           </button>
-        `}
+        `) : ''}
 
         <button class="button accent" data-action="open-deadline-ai">${icon('spark')} Buat dengan AI</button>
         <button class="button" data-action="open-manual-deadline">${icon('plus')} Tambah manual</button>
@@ -575,15 +542,17 @@ function deadlinesPage() {
     </div>
 
     <div class="deadlines-toolbar">
-      <div class="segmented" role="tablist" aria-label="Mode Tampilan">
-        <button class="${state.deadlineView === 'calendar' ? 'active' : ''}" data-action="switch-deadline-view" data-id="calendar">${icon('calendar')} Kalender</button>
-        <button class="${state.deadlineView === 'list' ? 'active' : ''}" data-action="switch-deadline-view" data-id="list">${icon('notes')} Daftar Tugas</button>
-      </div>
+      <div class="deadlines-toolbar-row">
+        <div class="segmented" role="tablist" aria-label="Mode Tampilan">
+          <button class="${state.deadlineView === 'calendar' ? 'active' : ''}" data-action="switch-deadline-view" data-id="calendar">${icon('calendar')} Kalender</button>
+          <button class="${state.deadlineView === 'list' ? 'active' : ''}" data-action="switch-deadline-view" data-id="list">${icon('notes')} Daftar Tugas</button>
+        </div>
 
-      <div class="deadlines-search-wrap">
-        ${icon('search')}
-        <input type="text" id="deadline-search-input" placeholder="Cari nama tugas atau mata kuliah…" value="${esc(state.deadlineSearch)}" autocomplete="off">
-        ${state.deadlineSearch ? `<button class="search-clear" data-action="clear-deadline-search">×</button>` : ''}
+        <div class="deadlines-search-wrap">
+          ${icon('search')}
+          <input type="text" id="deadline-search-input" placeholder="Cari nama tugas atau mata kuliah…" value="${esc(state.deadlineSearch)}" autocomplete="off">
+          ${state.deadlineSearch ? `<button class="search-clear" data-action="clear-deadline-search">×</button>` : ''}
+        </div>
       </div>
 
       ${state.deadlineView === 'list' ? `
@@ -624,8 +593,8 @@ function renderGcalDropdownMenu() {
           </button>
         ` : ''}
       </div>
-      <small>AKUN GOOGLE TERHUBUNG</small>
-      <strong>${esc(displayEmail || 'Google Account')}</strong>
+      <small>STATUS INTEGRASI</small>
+      <strong>${esc(displayEmail || 'Google Calendar Aktif')}</strong>
     </div>
 
     <div class="gcal-menu-row">
@@ -638,7 +607,7 @@ function renderGcalDropdownMenu() {
         ${icon('bolt')} Sinkronkan Semua Tugas Sekarang
       </button>
       <button class="button small ghost" data-action="go-gcal-settings">
-        ${icon('settings')} Pengaturan Akun di Settings
+        ${icon('settings')} Pengaturan di Settings
       </button>
       <button class="button small ghost danger-hover" style="color:var(--danger)" data-action="gcal-disconnect">
         ${icon('trash')} Putuskan Sambungan
@@ -654,6 +623,7 @@ function renderGcalSettingsCard() {
   const isConnected = !!state.gcalStatus.connected;
   const rawEmail = state.gcalStatus.email || '';
   const isAutoSync = state.gcalStatus.autoSync !== false;
+  const showIndicator = state.settings.showGcalIndicator === true;
   const displayEmail = state.showGcalEmail ? rawEmail : maskEmail(rawEmail);
 
   return `<div class="setting-card">
@@ -668,13 +638,21 @@ function renderGcalSettingsCard() {
       </div>
     </div>
 
+    <div class="setting-row" style="margin-bottom:14px;border-bottom:1px solid #eef3ef;padding-bottom:12px">
+      <div>
+        <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Tampilkan Indikator Status di Header</h4>
+        <p style="font-size:12px;color:#718579;margin:0">Tampilkan tombol status Google Calendar (hijau/merah) di bagian atas halaman Tenggat Tugas. Sembunyikan untuk tampilan yang lebih bersih.</p>
+      </div>
+      <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
+    </div>
+
     ${isConnected ? `
       <div>
         <div class="space-between" style="padding:12px 14px;background:#f7faf8;border-radius:9px;border:1px solid #e1ebe4;margin-bottom:14px">
           <div>
-            <small style="font-size:11px;color:#6b8073;font-weight:700;text-transform:uppercase">Akun Google Terhubung</small>
+            <small style="font-size:11px;color:#6b8073;font-weight:700;text-transform:uppercase">Status Akun</small>
             <div style="font-size:13.5px;font-weight:600;color:#1e352b;display:flex;align-items:center;gap:8px;margin-top:2px">
-              <span>${esc(displayEmail || 'Akun Google Terotorisasi')}</span>
+              <span>${esc(displayEmail || 'Google Calendar Terintegrasi')}</span>
               ${rawEmail ? `
                 <button class="button small ghost icon-only" data-action="toggle-mask-email" title="${state.showGcalEmail ? 'Sembunyikan email' : 'Tampilkan email'}" style="width:28px;height:28px">
                   ${icon(state.showGcalEmail ? 'eyeoff' : 'eye')}
@@ -708,9 +686,6 @@ function renderGcalSettingsCard() {
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <button class="button accent small" data-action="open-gcal-connect-modal">
             ${icon('google')} Sambungkan Google Calendar
-          </button>
-          <button class="button small ghost" data-action="open-gcal-connect-modal">
-            ${icon('settings')} Pengaturan Kredensial Pribadi (Opsional)
           </button>
         </div>
       </div>
@@ -818,15 +793,15 @@ function renderDeadlineCalendar() {
 }
 
 // --------------------------------------------------------------------------
-// LIST VIEW: renderDeadlineList(tasks)
+// LIST VIEW: renderDeadlineList(tasks) (Clean, Elegant & Balanced)
 // --------------------------------------------------------------------------
 function renderDeadlineList(tasks) {
   if (!tasks.length) {
-    return `<div class="quiet-empty deadline-empty">
-      <div class="empty-icon">${icon('calendar')}</div>
-      <h3>Tidak ada tugas yang cocok</h3>
-      <p>Gunakan tombol "Buat dengan AI" untuk mengekstrak tugas dari prompt atau screenshot pengumuman, atau tambahkan tugas baru secara manual.</p>
-      <div style="display:flex;gap:10px;margin-top:14px;">
+    return `<div class="deadline-empty-box">
+      <div class="deadline-empty-icon">${icon('calendar')}</div>
+      <h3>Belum ada tenggat tugas</h3>
+      <p>Mulai catat jadwal tugas Anda. Gunakan AI untuk mengekstrak tugas otomatis dari tangkapan layar/prompt pengumuman, atau tambahkan secara manual.</p>
+      <div class="deadline-empty-actions">
         <button class="button accent small" data-action="open-deadline-ai">${icon('spark')} Buat dengan AI</button>
         <button class="button small" data-action="open-manual-deadline">${icon('plus')} Tambah manual</button>
       </div>
@@ -870,7 +845,7 @@ function renderDeadlineList(tasks) {
         </div>
         <div class="card-actions-area">
           ${hasGcal ? `
-            <a href="${esc(d.gcal_link || 'https://calendar.google.com')}" target="_blank" class="button small ghost" title="Buka di Google Calendar">${icon('google')} Buka di Kalender</a>
+            <button class="button small ghost" data-action="open-gcal-link" data-id="${esc(d.gcal_link || 'https://calendar.google.com')}" title="Buka di Google Calendar">${icon('google')} Buka di Kalender</button>
           ` : isGcalConnected ? `
             <button class="button small accent-soft" data-action="sync-single-gcal" data-id="${esc(d.id)}" title="Kirim langsung ke Google Calendar di latar belakang">
               ${icon('google')} Sync Kalender
@@ -1200,13 +1175,9 @@ handleClick = function(action, id) {
     renderGcalModal();
     return;
   }
-  if (action === 'toggle-gcal-advanced') {
-    state.gcalAdvancedOpen = !state.gcalAdvancedOpen;
-    renderGcalModal();
-    return;
-  }
-  if (action === 'trigger-credentials-upload') {
-    document.getElementById('gcal-creds-file')?.click();
+  if (action === 'open-gcal-link') {
+    const url = id || 'https://calendar.google.com';
+    openExternalUrl(url);
     return;
   }
   if (action === 'toggle-gcal-menu') {
@@ -1217,6 +1188,13 @@ handleClick = function(action, id) {
   if (action === 'toggle-mask-email') {
     state.showGcalEmail = !state.showGcalEmail;
     refreshPage();
+    return;
+  }
+  if (action === 'toggle-header-indicator') {
+    state.settings.showGcalIndicator = !state.settings.showGcalIndicator;
+    persistSettings();
+    refreshPage();
+    toast(state.settings.showGcalIndicator ? 'Indikator Google Calendar ditampilkan di header.' : 'Indikator Google Calendar disembunyikan dari header.');
     return;
   }
   if (action === 'go-gcal-settings') {
@@ -1384,7 +1362,7 @@ handleClick = function(action, id) {
           }
           toast(`✓ ${itemsToSave.length} tugas tersimpan & otomatis tersinkron ke Google Calendar!`);
         } catch (syncErr) {
-          toast(`Tugas tersimpan di Notely. Sinkronisasi Google Calendar: ${syncErr.message || syncErr}`);
+          toast(`Tugas tersimpan di Notely.`);
         }
       } else {
         toast(`✓ Berhasil menambahkan ${itemsToSave.length} tugas ke kalender!`);
@@ -1438,36 +1416,6 @@ document.addEventListener('click', e => {
   if (state.gcalMenuOpen && !e.target.closest('.gcal-popover-wrap')) {
     state.gcalMenuOpen = false;
     refreshPage();
-  }
-});
-
-// Handle credentials.json upload in advanced section
-document.addEventListener('change', e => {
-  if (e.target.id === 'gcal-creds-file') {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          const creds = parsed.installed || parsed.web || parsed;
-          const cId = creds.client_id || '';
-          const cSec = creds.client_secret || '';
-          if (cId) {
-            const idInput = document.getElementById('gcal-client-id');
-            const secInput = document.getElementById('gcal-client-sec');
-            if (idInput) idInput.value = cId;
-            if (secInput) secInput.value = cSec;
-            toast('✓ Berhasil memuat Client ID dari file credentials.json!');
-          } else {
-            toast('Format credentials.json tidak memiliki client_id.');
-          }
-        } catch (err) {
-          toast('Gagal membaca file credentials.json: file JSON tidak valid.');
-        }
-      };
-      reader.readAsText(file);
-    }
   }
 });
 

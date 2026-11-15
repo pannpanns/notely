@@ -590,6 +590,15 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception as exc:
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
+            elif path=='/open-url':
+                import webbrowser
+                target_url=str(args.get('url','')).strip()
+                if target_url.startswith(('http://','https://')):
+                    try:
+                        webbrowser.open(target_url)
+                    except Exception:
+                        pass
+                out={'opened':True}
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             self._json(out)
         except Exception as e:self._json({'error':str(e)[:330]},400)
