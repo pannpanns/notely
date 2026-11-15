@@ -114,19 +114,19 @@ function renderGcalCredsModal() {
   const hasSecret = !!state.gcalStatus.hasCredentials;
 
   modalEl.innerHTML = `<div class="gcal-creds-modal-card" onclick="event.stopPropagation()">
-    <div class="space-between" style="align-items:flex-start;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:12px">
+    <div class="space-between" style="align-items:flex-start;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
         <div class="gcal-icon-badge">${icon('google')}</div>
         <div>
-          <h2 style="font-size:18px;font-weight:700;color:#183226;margin:0 0 2px">Konfigurasi Google OAuth 2.0</h2>
-          <span style="font-size:12px;color:#677d71">Otorisasi resmi Google Calendar untuk Aplikasi Desktop Notely</span>
+          <h2 style="font-size:18.5px;font-weight:700;color:#183226;margin:0 0 3px">Konfigurasi Google OAuth 2.0</h2>
+          <span style="font-size:12.5px;color:#677d71">Otorisasi resmi Google Calendar untuk Aplikasi Notely</span>
         </div>
       </div>
       <button class="dismiss" data-action="close-gcal-creds-modal" title="Tutup">×</button>
     </div>
 
-    <p style="font-size:12.5px;color:#5a7264;line-height:1.55;margin:0 0 16px">
-      Google mewajibkan Client ID agar Notely dapat membuka halaman login &amp; izin ("Izinkan") di browser Anda secara resmi dan privat.
+    <p style="font-size:13px;color:#576f62;line-height:1.6;margin:0 0 20px">
+      Google mewajibkan Client ID aplikasi agar Notely dapat membuka halaman login &amp; izin ("Izinkan") di peramban secara resmi dan aman.
     </p>
 
     <!-- Dropzone JSON -->
@@ -134,28 +134,28 @@ function renderGcalCredsModal() {
       ${icon('folder')}
       <strong>Tarik &amp; Lepas File Kredensial JSON di Sini</strong>
       <p>atau klik untuk memilih file <code>client_secret_*.json</code> dari Google Cloud Console</p>
-      <input type="file" id="gcal-json-file-input" accept=".json" style="display:none" onchange="window.handleGcalJsonFileSelect(this)">
+    </div>
+    <input type="file" id="gcal-json-file-input" accept=".json" style="position:fixed;top:-1000px;left:-1000px;opacity:0;pointer-events:none;width:0;height:0" onchange="window.handleGcalJsonFileSelect(this)">
+
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 16px">
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
+      <span style="font-size:11.5px;font-weight:600;color:#859a8d;text-transform:uppercase;letter-spacing:0.5px">atau masukkan manual</span>
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:10px;margin:16px 0 14px">
-      <div style="flex:1;height:1px;background:#e2ebe5"></div>
-      <span style="font-size:11px;font-weight:600;color:#859a8d;text-transform:uppercase">atau masukkan manual</span>
-      <div style="flex:1;height:1px;background:#e2ebe5"></div>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
       <div class="field" style="margin:0">
-        <label class="field-label" for="gcal-input-client-id" style="font-size:12px">OAuth Client ID (Desktop app) *</label>
-        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12px;height:36px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}">
+        <label class="field-label" for="gcal-input-client-id" style="font-size:12.5px;margin-bottom:6px">OAuth Client ID (Desktop app) *</label>
+        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12.5px;height:38px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}">
       </div>
       <div class="field" style="margin:0">
-        <label class="field-label" for="gcal-input-client-secret" style="font-size:12px">Client Secret *</label>
-        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12px;height:36px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off">
-        <span class="field-help" style="font-size:11px">Client secret disimpan secara aman di komputer lokal Anda.</span>
+        <label class="field-label" for="gcal-input-client-secret" style="font-size:12.5px;margin-bottom:6px">Client Secret *</label>
+        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12.5px;height:38px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off">
+        <span class="field-help" style="font-size:11.5px;margin-top:4px">Client secret tersimpan aman di komputer lokal Anda.</span>
       </div>
     </div>
 
-    <div class="gcal-creds-guide" style="margin-top:14px">
+    <div class="gcal-creds-guide" style="margin-bottom:24px">
       <strong>Panduan Ringkas Google Cloud Console:</strong>
       <ol>
         <li>Buka <a href="javascript:void(0)" onclick="openExternalUrl('https://console.cloud.google.com/apis/credentials')" style="color:#18786c;font-weight:600">Google Cloud Console: Credentials ↗</a></li>
@@ -165,9 +165,9 @@ function renderGcalCredsModal() {
       </ol>
     </div>
 
-    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid #e9f0eb">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding-top:16px;border-top:1px solid #e9f0eb">
       <button class="button ghost" data-action="close-gcal-creds-modal">Batal</button>
-      <button class="button accent" data-action="save-gcal-creds-and-auth">${icon('google')} Simpan &amp; Lanjutkan Login</button>
+      <button class="button accent" data-action="save-gcal-creds-and-auth" style="height:38px">${icon('google')} Simpan &amp; Lanjutkan Login</button>
     </div>
   </div>`;
 
@@ -304,12 +304,9 @@ function renderGcalModal() {
         </div>
       </div>
 
-      <div style="margin-bottom:10px">
+      <div style="margin-bottom:14px">
         <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth-flow">
           ${icon('google')} Sambungkan dengan Akun Google
-        </button>
-        <button class="button ghost small" data-action="open-gcal-creds-modal" style="width:100%;font-size:12px;margin-top:8px">
-          ${icon('sliders')} ${hasCreds ? 'Ubah Kredensial OAuth (Client ID)' : 'Atur Client ID / File JSON'}
         </button>
       </div>
 
@@ -846,22 +843,11 @@ function renderGcalSettingsCard() {
       <div class="gcal-connect-hero">
         <div class="gcal-hero-content">
           <h4>Sambungkan dengan Akun Google</h4>
-          <p>Notely menggunakan otorisasi <strong>Google OAuth 2.0</strong> resmi. Notely akan membuka halaman login Google di peramban web agar Anda dapat memberikan izin (klik <em>Izinkan</em>). Jadwal tugas baru dari prompt AI maupun screenshot akan langsung otomatis masuk ke Google Calendar ponsel dan komputer Anda.</p>
-          
-          <div class="gcal-hero-status-row">
-            ${hasCreds ? `
-              <span class="gcal-creds-ready">${icon('check')} Kredensial OAuth (Client ID) terpasang — Siap sambungkan</span>
-            ` : `
-              <span class="gcal-creds-missing">${icon('info')} Memerlukan Google OAuth Client ID (Aplikasi Desktop)</span>
-            `}
-          </div>
+          <p>Notely menggunakan otorisasi resmi <strong>Google OAuth 2.0</strong>. Cukup klik tombol di bawah, masuk dengan akun Google Anda di peramban, lalu klik <em>Izinkan</em>. Jadwal tugas baru dari prompt AI maupun screenshot akan langsung otomatis terjadwal di Google Calendar ponsel dan komputer Anda.</p>
 
           <div class="gcal-hero-actions">
-            <button class="button accent" data-action="start-gcal-auth-flow">
+            <button class="button accent" data-action="start-gcal-auth-flow" style="font-size:13.5px;padding:10px 22px">
               ${icon('google')} Sambungkan dengan Akun Google
-            </button>
-            <button class="button ghost" data-action="open-gcal-creds-modal">
-              ${icon('sliders')} ${hasCreds ? 'Ubah Kredensial OAuth' : 'Setup Client ID / File JSON'}
             </button>
           </div>
         </div>

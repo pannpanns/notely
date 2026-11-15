@@ -359,47 +359,59 @@
 .gcal-drop-json:hover{border-color:#18786c;background:#f3f8f5}
 
 .gcal-modal-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+/* Modal Backdrop Overlay (Spacious, Blur, Centered) */
+.overlay{position:fixed;inset:0;background:rgba(15,32,24,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:1000;padding:28px;box-sizing:border-box;animation:fade-in .18s ease-out}
+
+/* Setting Cards: Spacious, Breathable, Generous Margins & Padding */
+.setting-card{background:#fff;border:1px solid #e1e8e3;border-radius:16px;padding:28px 32px;margin-bottom:24px;box-shadow:0 2px 8px rgba(18,45,33,.03);box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.setting-card:last-child{margin-bottom:0}
+.setting-card .section-title{font-size:16.5px;font-weight:650;color:#1a3328;margin:0 0 6px}
+.setting-card .section-description{font-size:13px;color:#647b6e;line-height:1.6;margin:0 0 16px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.setting-row h4,.setting-row h3{font-size:13.5px;font-weight:650;color:#20362b;margin:0 0 4px}
+.setting-row p{font-size:12.5px;color:#6a8073;line-height:1.55;margin:0}
+
 .gcal-dismiss-check{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#788e81;cursor:pointer;user-select:none}
 .gcal-dismiss-check input{accent-color:#18786c}
 
 /* Modern Google Calendar Settings Card & OAuth Modal */
-.gcal-settings-card{padding:24px}
-.gcal-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
-.gcal-card-title-group{display:flex;align-items:flex-start;gap:14px}
-.gcal-icon-badge{width:44px;height:44px;border-radius:12px;background:#edf5ef;display:grid;place-items:center;color:#18786c;flex-shrink:0}
-.gcal-icon-badge svg{width:22px;height:22px}
-.gcal-card-title-group .section-title{margin:0 0 4px;font-size:16px;font-weight:650;color:#1c3327}
-.gcal-card-title-group .section-description{margin:0;font-size:12.5px;color:#6a8073;line-height:1.5}
-.gcal-status-pill-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.gcal-settings-card{padding:28px 32px}
+.gcal-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}
+.gcal-card-title-group{display:flex;align-items:flex-start;gap:16px}
+.gcal-icon-badge{width:46px;height:46px;border-radius:14px;background:#edf5ef;display:grid;place-items:center;color:#18786c;flex-shrink:0}
+.gcal-icon-badge svg{width:24px;height:24px}
+.gcal-card-title-group .section-title{margin:0 0 6px;font-size:17px;font-weight:650;color:#1c3327}
+.gcal-card-title-group .section-description{margin:0;font-size:13px;color:#6a8073;line-height:1.55}
+.gcal-status-pill-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0}
 .gcal-status-pill-badge.connected{background:#eaf6ee;color:#18683b;border:1px solid #c8e8d3}
 .gcal-status-pill-badge.disconnected{background:#fdf5f5;color:#9c2e2e;border:1px solid #f6d2d2}
 
 /* Connect Hero Box */
-.gcal-connect-hero{background:#f7faf8;border:1px solid #dce8e0;border-radius:14px;padding:22px 24px;margin-bottom:18px}
-.gcal-hero-content h4{font-size:14.5px;font-weight:650;color:#1b3528;margin:0 0 6px}
-.gcal-hero-content p{font-size:12.5px;color:#5d7466;line-height:1.6;margin:0 0 14px}
-.gcal-hero-status-row{margin-bottom:16px}
-.gcal-creds-ready{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1d7747;background:#e9f6ee;padding:4px 10px;border-radius:6px}
-.gcal-creds-ready svg{width:14px;height:14px}
-.gcal-creds-missing{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#62796c;background:#edf2ee;padding:4px 10px;border-radius:6px}
-.gcal-creds-missing svg{width:14px;height:14px}
-.gcal-hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gcal-connect-hero{background:#f7faf8;border:1px solid #dce8e0;border-radius:16px;padding:26px 28px;margin-bottom:20px}
+.gcal-hero-content h4{font-size:15px;font-weight:650;color:#1b3528;margin:0 0 8px}
+.gcal-hero-content p{font-size:13px;color:#576f62;line-height:1.65;margin:0 0 16px}
+.gcal-hero-status-row{margin-bottom:18px}
+.gcal-creds-ready{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#1d7747;background:#e9f6ee;padding:6px 12px;border-radius:8px}
+.gcal-creds-ready svg{width:15px;height:15px}
+.gcal-creds-missing{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:#5f786b;background:#edf2ee;padding:6px 12px;border-radius:8px}
+.gcal-creds-missing svg{width:15px;height:15px}
+.gcal-hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 
 /* Connected Account Box */
-.gcal-connected-box{background:#f9fbf9;border:1px solid #dce8e0;border-radius:14px;padding:20px 22px;margin-bottom:18px}
-.gcal-avatar-circle{width:40px;height:40px;border-radius:10px;background:#e8f3ec;color:#18786c;display:grid;place-items:center;flex-shrink:0}
-.gcal-avatar-circle svg{width:20px;height:20px}
+.gcal-connected-box{background:#f9fbf9;border:1px solid #dce8e0;border-radius:16px;padding:24px 26px;margin-bottom:20px}
+.gcal-avatar-circle{width:44px;height:44px;border-radius:12px;background:#e8f3ec;color:#18786c;display:grid;place-items:center;flex-shrink:0}
+.gcal-avatar-circle svg{width:22px;height:22px}
 
-/* Credential Setup Modal */
-.gcal-creds-modal-card{max-width:540px;width:100%;background:#fff;border-radius:18px;padding:28px;box-shadow:0 20px 60px rgba(18,45,33,.16);position:relative;animation:scale-in .18s ease}
-.gcal-drop-zone{border:2px dashed #b9d4c4;border-radius:12px;padding:20px 16px;text-align:center;background:#f7faf8;cursor:pointer;transition:all .15s ease}
+/* Credential Setup Modal: Spacious, Uncluttered, Elegant */
+.gcal-creds-modal-card{max-width:580px;width:100%;background:#fff;border-radius:20px;padding:36px;box-shadow:0 24px 64px rgba(18,45,33,.18);position:relative;animation:scale-in .18s ease;box-sizing:border-box}
+.gcal-drop-zone{border:2px dashed #b9d4c4;border-radius:14px;padding:26px 20px;text-align:center;background:#f7faf8;cursor:pointer;transition:all .15s ease}
 .gcal-drop-zone:hover,.gcal-drop-zone.dragover{border-color:#18786c;background:#edf7f1}
-.gcal-drop-zone svg{width:28px;height:28px;color:#18786c;margin-bottom:6px}
-.gcal-drop-zone strong{display:block;font-size:13px;color:#1f372a}
-.gcal-drop-zone p{font-size:11.5px;color:#6a8274;margin:4px 0 0}
-.gcal-creds-guide{background:#f5f8f6;border:1px solid #e1ebe4;border-radius:10px;padding:12px 14px;font-size:12px;color:#486152;line-height:1.6}
-.gcal-creds-guide ol{margin:6px 0 0;padding-left:20px}
-.gcal-creds-guide li{margin-bottom:3px}
+.gcal-drop-zone svg{width:32px;height:32px;color:#18786c;margin-bottom:8px}
+.gcal-drop-zone strong{display:block;font-size:13.5px;color:#1f372a}
+.gcal-drop-zone p{font-size:12px;color:#6a8274;margin:6px 0 0}
+.gcal-creds-guide{background:#f6f9f7;border:1px solid #dde7e1;border-radius:12px;padding:16px 20px;font-size:12.5px;color:#456050;line-height:1.7}
+.gcal-creds-guide ol{margin:8px 0 0;padding-left:20px}
+.gcal-creds-guide li{margin-bottom:4px}
 
 @media(max-width:800px){
  .deadlines-page{padding:20px 16px 40px}
