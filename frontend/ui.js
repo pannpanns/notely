@@ -23,6 +23,11 @@ const paths={
   audio:'<path d="M8 7v10m4-14v18m4-14v10M4 10v4m16-4v4"/>',
   more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+  google:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
   bolt:'<path d="m13 2-9 12h7l-1 8 10-12h-7z"/>',
   cpu:'<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4"/>',
   eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -75,16 +80,17 @@ function sidebar(){const active=state.page;return `<aside class="sidebar">
  <div class="sidebar-scroll"><button class="navlink ${active==='home'?'active':''}" data-action="page" data-id="home">${icon('home')} Beranda</button>
  <button class="navlink ${active==='notes'?'active':''}" data-action="page" data-id="notes">${icon('notes')} Catatan Rekaman</button>
  <button class="navlink ${active==='recordings'?'active':''}" data-action="page" data-id="recordings">${icon('folder')} Semua rekaman</button>
+ <button class="navlink ${active==='deadlines'?'active':''}" data-action="page" data-id="deadlines">${icon('calendar')} Tenggat Tugas</button>
  <div class="list-label">Riwayat rekaman</div><div id="meeting-list">${meetingList()}</div></div>
  <div class="sidebar-bottom"><button class="sidebtn primary" data-action="${state.recording?'stop-demo':'ask-demo'}">${icon(state.recording?'stop':'mic')} ${state.recording?'Hentikan & simpan':'Mulai rekam'}</button>
  <button class="sidebtn secondary" data-action="import-audio">${icon('upload')} Impor audio</button>
  <button class="sidebtn neutral tiny" data-action="page" data-id="settings">${icon('settings')} Pengaturan</button>
  <button class="sidebtn neutral tiny" data-action="about">${icon('info')} Tentang</button>
- <div class="version">Notely · Desktop 1.1.6</div></div></aside>`;}
+ <div class="version">Notely · Desktop 1.1.7</div></div></aside>`;}
 function meetingList(){const q=state.search.trim().toLowerCase();const filtered=meetings.filter(m=>(m.title+' '+m.rows.map(r=>r[1]).join(' ')).toLowerCase().includes(q));return filtered.length?filtered.slice().reverse().map(m=>`<button class="meeting-link ${state.page==='notes'&&state.selected===m.id?'active':''}" data-action="open-note" data-id="${esc(m.id)}">${icon('file')}<div><strong>${esc(m.title)}</strong><span>${esc(m.when)}${m.type==='Simulasi'?' · Demo':''}</span></div></button>`).join(''):`<div class="no-search">Tidak ada catatan yang cocok.</div>`;}
 function appStrip(){return `<div class="app-strip"><span><strong>Notely</strong> &nbsp; / &nbsp; Desktop</span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
 function render(){document.getElementById('root').innerHTML=`<div class="app">${sidebar()}<main class="workspace">${appStrip()}<div class="page" id="main-page">${renderPage()}</div></main></div>`;if(state.recording)updateTimer();}
-function renderPage(){if(state.page==='recordings')return recordingsPage();if(state.page==='home')return homePage();if(state.page==='notes')return notesPage();return settingsPage();}
+function renderPage(){if(state.page==='recordings')return recordingsPage();if(state.page==='home')return homePage();if(state.page==='notes')return notesPage();if(state.page==='deadlines')return deadlinesPage();return settingsPage();}
 function homePage(){return `<div class="home"><div class="home-tools"><button class="button" data-action="change-home-language">${icon('globe')} ${state.settings.language==='id'?'Indonesia':'English'} ${icon('chevron')}</button></div>
 <div class="home-center"><h1>${state.recording?'Transkripsi sedang berjalan':'Selamat datang di Notely'}</h1><p>${state.recording?'Buka Catatan Rekaman untuk membaca transkrip saat rekaman berlangsung.':'Rekam pembicaraan, baca transkrip langsung, dan rangkum hal penting.'}</p>${state.recording?'<div class="live-pill"><span class="pulse"></span> REKAMAN BERLANGSUNG</div>':''}</div>
 <div class="home-action"><button class="circle-rec" data-action="${state.recording?'stop-demo':'ask-demo'}" aria-label="${state.recording?'Hentikan & simpan':'Mulai rekaman'}">${icon(state.recording?'stop':'mic')}</button><button class="morebtn" data-action="quick-menu" aria-label="Pilihan cepat">${icon('more')}</button></div></div>`;}
@@ -95,7 +101,8 @@ function toggle(id,label,description,checked){return `<div class="setting-card">
 function generalTab(){return `<h2 class="section-title">Preferensi aplikasi</h2><p class="section-description">Sesuaikan preferensi Anda.</p>
 ${toggle('notify','Notifikasi perekaman','Tampilkan pemberitahuan ketika perekaman dimulai atau selesai.',state.settings.notify)}
 <div class="setting-card"><h3 class="section-title">Bahasa aplikasi</h3><p class="section-description">Bahasa antarmuka Notely.</p><div class="field" style="max-width:350px"><select class="control-select" data-setting="language"><option value="id" ${state.settings.language==='id'?'selected':''}>Indonesia</option><option value="en" ${state.settings.language==='en'?'selected':''}>English (pratinjau belum diterjemahkan)</option></select></div></div>
-<div class="setting-card"><h3 class="section-title">Lokasi penyimpanan</h3><p class="section-description">Rekaman dan transkrip disimpan di Documents/Notely.</p><button class="button" data-action="desktop-only">${icon('folder')} Lihat pengaturan folder</button></div>`;}
+<div class="setting-card"><h3 class="section-title">Lokasi penyimpanan</h3><p class="section-description">Rekaman dan transkrip disimpan di Documents/Notely.</p><button class="button" data-action="desktop-only">${icon('folder')} Lihat pengaturan folder</button></div>
+${typeof renderGcalSettingsCard === 'function' ? renderGcalSettingsCard() : ''}`;}
 function recordingTab(){return `<h2 class="section-title">Pengaturan perekaman</h2><p class="section-description">Perangkat audio dan pengelolaan file rekaman.</p>
 ${toggle('saveAudio','Simpan rekaman suara','Simpan audio bersama catatan.',state.settings.saveAudio)}
 ${toggle('livePreview','Teks sementara saat berbicara','Tampilkan teks prediksi sebelum satu potongan selesai. Fitur ini memakai CPU/GPU tambahan. Nonaktifkan untuk perekaman yang lebih ringan.',state.settings.livePreview)}
@@ -182,7 +189,7 @@ case 'copy-transcript':copyText(transcriptText(getMeeting()));break;
 case 'copy-summary':copyText(document.querySelector('.summary-paper')?.innerText||'');break;
 case 'go-summary':state.page='settings';state.tab='summary';render();break;
 case 'template-menu':modal('Templat ringkasan','Gunakan Pengaturan → Ringkasan AI untuk memilih ringkasan materi, catatan transkripsi rekaman, atau ringkasan cepat.',[['Ke pengaturan','go-summary','accent'],['Kembali','close-modal','']]);break;
-case 'about':modal('Notely Desktop 1.1.6','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
+case 'about':modal('Notely Desktop 1.1.7','Antarmuka ini bisa diuji secara offline. Transkrip, rekaman, dan ringkasan dalam contoh adalah data simulasi. Perekaman suara Windows, CUDA, unduhan model, dan permintaan API tidak aktif dalam HTML ini.',[['Tutup','close-modal','']]);break;
 case 'quick-menu':modal('Aksi cepat','Coba simulasi transkrip, buka catatan, atau atur model AI. Semua fitur mesin suara memerlukan backend pada tahap berikutnya.',[['Coba simulasi','start-demo','accent'],['Tutup','close-modal','']]);break;
 case 'ask-demo':modal('Coba tampilan saat merekam','Browser pratinjau ini tidak menangkap suara speaker, mikrofon, atau rekaman Anda. Untuk menguji tata letak, kita dapat menjalankan transkrip contoh yang muncul bertahap selama simulasi.',[['Batal','close-modal',''],['Mulai simulasi','start-demo','accent']]);break;
 case 'start-demo':beginDemo();break;

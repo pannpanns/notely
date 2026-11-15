@@ -391,6 +391,12 @@ class Handler(BaseHTTPRequestHandler):
                 try:managed_ollama.ensure()
                 except RuntimeError as exc:out={'running':False,'processor':'unknown','message':str(exc),'nvidia':managed_ollama.nvidia_status(),'models':[]}
                 else:out=managed_ollama.diagnostics()
+            elif path=='/deadlines':
+                from deadlines import load_deadlines
+                out={'deadlines':load_deadlines(svc.root)}
+            elif path=='/gcalendar/status':
+                from google_calendar import get_status
+                out=get_status(svc.root)
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             return self._json(out)
         except Exception as e:self._json({'error':str(e)[:300]},400)
@@ -422,7 +428,8 @@ class Handler(BaseHTTPRequestHandler):
                 finally:
                     if tmp:Path(tmp).unlink(missing_ok=True)
                 return self._json(result)
-            if n>2*1024*1024:return self._json({'error':'Permintaan JSON terlalu besar.'},413)
+            max_json = 25*1024*1024 if path=='/deadlines/extract' else 2*1024*1024
+            if n>max_json:return self._json({'error':'Permintaan JSON terlalu besar.'},413)
             args=json.loads(self.rfile.read(n) or b'{}')
             if path in ('/start','/model/prepare','/cuda/prepare','/reprocess','/ollama/pull','/ollama/catalog','/ollama/delete','/ollama/status','/ollama/gpu-test','/provider/test'):
                 svc.require_storage()
@@ -504,6 +511,85 @@ class Handler(BaseHTTPRequestHandler):
                 if len(txt)>2_000_000:raise ValueError('Teks terlalu panjang.')
                 (d/'transkrip_edit.txt').write_text(txt,encoding='utf-8')
                 out={'saved':True}
+            elif path=='/deadlines/save':
+                from deadlines import add_or_update_deadline
+                out={'deadline':add_or_update_deadline(svc.root,args.get('item') or args)}
+            elif path=='/deadlines/batch':
+                from deadlines import add_or_update_deadline
+                saved=[add_or_update_deadline(svc.root,x) for x in (args.get('items') or [])]
+                out={'saved':len(saved),'deadlines':saved}
+            elif path=='/deadlines/delete':
+                from deadlines import delete_deadline
+                out={'deleted':delete_deadline(svc.root,args.get('id',''))}
+            elif path=='/deadlines/toggle':
+                from deadlines import toggle_deadline_status
+                out={'deadline':toggle_deadline_status(svc.root,args.get('id',''))}
+            elif path=='/deadlines/extract':
+                from deadlines import extract_deadlines
+                p_text=str(args.get('prompt',''))
+                p_img=str(args.get('image',''))
+                p_prov=str(args.get('provider') or 'ollama')
+                p_mod=str(args.get('model') or '')
+                p_key=str(args.get('apiKey',''))
+                p_end=str(args.get('endpoint',''))
+                def run_ext(update):
+                    update({'message':'Menganalisis teks & gambar tugas…'})
+                    return extract_deadlines(p_text,p_img,p_prov,p_mod,p_key,p_end,update)
+                out=svc.job('deadline_extract',run_ext)
+            elif path=='/gcalendar/auth-url':
+                from google_calendar import start_oauth_flow
+                c_id=str(args.get('clientId',''))
+                c_sec=str(args.get('clientSecret',''))
+                url=start_oauth_flow(svc.root,c_id,c_sec)
+                out={'authUrl':url}
+            elif path=='/gcalendar/disconnect':
+                from google_calendar import disconnect
+                disconnect(svc.root)
+                out={'disconnected':True}
+            elif path=='/gcalendar/config':
+                from google_calendar import get_config, save_config
+                cfg=get_config(svc.root)
+                if 'autoSync' in args: cfg['autoSync']=bool(args['autoSync'])
+                if 'dismissPrompt' in args: cfg['dismissPrompt']=bool(args['dismissPrompt'])
+                if 'clientId' in args: cfg['clientId']=str(args['clientId']).strip()
+                if 'clientSecret' in args: cfg['clientSecret']=str(args['clientSecret']).strip()
+                save_config(svc.root,cfg)
+                out={'saved':True,'config':cfg}
+            elif path=='/gcalendar/sync-event':
+                from google_calendar import sync_event_to_google_calendar
+                from deadlines import add_or_update_deadline, load_deadlines
+                d_id=args.get('id','')
+                deadlines=load_deadlines(svc.root)
+                item=next((d for d in deadlines if d.get('id')==d_id),None) or args.get('item')
+                if not item:raise ValueError('Tugas tidak ditemukan.')
+                res=sync_event_to_google_calendar(svc.root,item)
+                if res.get('gcal_event_id'):
+                    item['gcal_event_id']=res['gcal_event_id']
+                    item['gcal_link']=res.get('htmlLink','')
+                    import datetime
+                    item['gcal_synced_at']=datetime.datetime.now().isoformat()
+                    add_or_update_deadline(svc.root,item)
+                out={'synced':True,'item':item,'gcal':res}
+            elif path=='/gcalendar/sync-all':
+                from google_calendar import sync_event_to_google_calendar
+                from deadlines import add_or_update_deadline, load_deadlines
+                deadlines=load_deadlines(svc.root)
+                synced_count=0
+                errors=[]
+                import datetime
+                for d in deadlines:
+                    if d.get('status')=='completed':continue
+                    try:
+                        res=sync_event_to_google_calendar(svc.root,d)
+                        if res.get('gcal_event_id'):
+                            d['gcal_event_id']=res['gcal_event_id']
+                            d['gcal_link']=res.get('htmlLink','')
+                            d['gcal_synced_at']=datetime.datetime.now().isoformat()
+                            add_or_update_deadline(svc.root,d)
+                            synced_count+=1
+                    except Exception as exc:
+                        errors.append(f"{d.get('title')}: {str(exc)}")
+                out={'synced':synced_count,'total':len(deadlines),'errors':errors}
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             self._json(out)
         except Exception as e:self._json({'error':str(e)[:330]},400)
