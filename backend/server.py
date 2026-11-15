@@ -397,6 +397,60 @@ class Handler(BaseHTTPRequestHandler):
             elif path=='/gcalendar/status':
                 from google_calendar import get_status
                 out=get_status(svc.root)
+            elif path=='/gcalendar/auth-url':
+                from google_calendar import start_oauth_flow
+                c_id=str(q.get('clientId',[''])[0])
+                c_sec=str(q.get('clientSecret',[''])[0])
+                out={'authUrl':start_oauth_flow(svc.root,c_id,c_sec)}
+            elif path=='/gcalendar/disconnect':
+                from google_calendar import disconnect
+                disconnect(svc.root)
+                out={'disconnected':True}
+            elif path=='/gcalendar/config':
+                from google_calendar import get_config
+                out={'config':get_config(svc.root)}
+            elif path=='/gcalendar/sync-all':
+                from google_calendar import sync_event_to_google_calendar
+                from deadlines import add_or_update_deadline, load_deadlines
+                deadlines=load_deadlines(svc.root)
+                synced_count=0
+                errors=[]
+                import datetime
+                for d in deadlines:
+                    if d.get('status')=='completed':continue
+                    try:
+                        res=sync_event_to_google_calendar(svc.root,d)
+                        if res.get('gcal_event_id'):
+                            d['gcal_event_id']=res['gcal_event_id']
+                            d['gcal_link']=res.get('htmlLink','')
+                            d['gcal_synced_at']=datetime.datetime.now().isoformat()
+                            add_or_update_deadline(svc.root,d)
+                            synced_count+=1
+                    except Exception as exc:
+                        errors.append(f"{d.get('title')}: {str(exc)}")
+                out={'synced':synced_count,'total':len(deadlines),'errors':errors}
+            elif path=='/open-url':
+                import webbrowser
+                target_url=str(q.get('url',[''])[0]).strip()
+                if target_url.startswith(('http://','https://')):
+                    try:webbrowser.open(target_url)
+                    except Exception:pass
+                out={'opened':True}
+            elif path=='/preferences':
+                out={**preferences.public_settings(),'storageReady':svc.storage_ready,'storageError':svc.storage_error}
+            elif path=='/transcription/catalog':
+                from engine.model_runtime import MODEL_IDS
+                from engine.model_download import metadata
+                from concurrent.futures import ThreadPoolExecutor
+                def describe(item):
+                    name,model=item
+                    try:return {'name':name,**metadata(model)}
+                    except Exception:return {'name':name,'sizeBytes':None}
+                with ThreadPoolExecutor(max_workers=6) as pool:
+                    out={'models':list(pool.map(describe,MODEL_IDS.items()))}
+            elif path=='/ollama/catalog':
+                try:managed_ollama.ensure();out=catalog()
+                except RuntimeError as exc:out={'connected':False,'message':str(exc),'models':[dict(m,installed=False,sizeBytes=m['estimatedBytes'],sizeSource='estimate') for m in __import__('local_models').CATALOG]}
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             return self._json(out)
         except Exception as e:self._json({'error':str(e)[:300]},400)
@@ -599,6 +653,12 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:
                         pass
                 out={'opened':True}
+            elif path=='/deadlines':
+                from deadlines import load_deadlines
+                out={'deadlines':load_deadlines(svc.root)}
+            elif path=='/gcalendar/status':
+                from google_calendar import get_status
+                out=get_status(svc.root)
             else:return self._json({'error':'Rute tidak ditemukan.'},404)
             self._json(out)
         except Exception as e:self._json({'error':str(e)[:330]},400)

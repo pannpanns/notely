@@ -276,7 +276,7 @@ async function startGcalAuth() {
 async function disconnectGcal() {
   try {
     if (typeof api === 'function' && engine.ready) {
-      await api('/gcalendar/disconnect');
+      await api('/gcalendar/disconnect', {});
     }
     state.gcalStatus.connected = false;
     state.gcalStatus.email = '';
@@ -367,7 +367,7 @@ async function syncAllDeadlinesGcal() {
   try {
     toast('Menyinkronkan semua tugas aktif ke Google Calendar…');
     if (typeof api === 'function' && engine.ready) {
-      const res = await api('/gcalendar/sync-all');
+      const res = await api('/gcalendar/sync-all', {});
       await loadDeadlinesData();
       toast(`✓ Berhasil menyinkronkan ${res.synced || 0} tugas ke Google Calendar!`);
     } else {
@@ -1433,7 +1433,7 @@ handleClick = function(action, id) {
         toast(`Menyimpan ${itemsToSave.length} tugas & menyinkronkan langsung ke Google Calendar…`);
         try {
           if (typeof api === 'function' && engine.ready) {
-            await api('/gcalendar/sync-all');
+            await api('/gcalendar/sync-all', {});
             await loadDeadlinesData();
           }
           toast(`✓ ${itemsToSave.length} tugas tersimpan & otomatis tersinkron ke Google Calendar!`);

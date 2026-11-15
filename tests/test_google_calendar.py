@@ -57,5 +57,24 @@ class GoogleCalendarTests(unittest.TestCase):
             self.assertFalse(status3['connected'])
             self.assertEqual(status3['email'], '')
 
+    def test_sync_event_generation(self):
+        from google_calendar import sync_event_to_google_calendar
+        with tempfile.TemporaryDirectory() as td:
+            item = {
+                'id': 'dl_test_1',
+                'title': 'Tugas Praktikum Jaringan Komputer',
+                'course': 'Jarkom',
+                'deadline': '2026-11-20',
+                'time': '23:59',
+                'description': 'Laporan bab 3 format PDF',
+                'priority': 'tinggi'
+            }
+            res = sync_event_to_google_calendar(td, item)
+            self.assertTrue(res['success'])
+            self.assertTrue(res['gcal_event_id'].startswith('direct_'))
+            self.assertIn('calendar.google.com/calendar/render', res['htmlLink'])
+            self.assertIn('Tugas%20Praktikum', res['htmlLink'])
+
+
 if __name__ == '__main__':
     unittest.main()
