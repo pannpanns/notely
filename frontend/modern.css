@@ -378,4 +378,66 @@ body:has(.deadlines-page) #recording-dock,
   display: none !important;
 }
 
+/* Centered Settings Layout (Calm, Unified & Elegant) */
+.settings {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fbfdfc;
+  overflow: hidden;
+}
+.settings-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fbfdfc;
+  scrollbar-color: #cbd5d0 transparent;
+  scrollbar-width: thin;
+}
+.settings-inner {
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px 70px;
+  box-sizing: border-box;
+}
+.settings-inner .top-heading {
+  height: 76px;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+.settings-inner .tabs {
+  height: 52px;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  gap: 12px;
+}
+.settings-inner .settings-body {
+  max-width: 100%;
+  margin: 0;
+  padding: 26px 0 60px;
+}
+@media(max-width: 1100px) {
+  .settings-inner {
+    padding: 0 24px 60px;
+  }
+}
+@media(max-width: 800px) {
+  .settings-inner {
+    padding: 0 16px 50px;
+  }
+  .settings-inner .top-heading {
+    height: 68px;
+  }
+  .settings-inner .tabs {
+    height: 48px;
+  }
+}
+
+
 

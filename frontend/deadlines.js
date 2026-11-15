@@ -157,11 +157,24 @@ function renderGcalModal() {
         </div>
       </div>
 
-      <div style="margin-bottom:14px">
+      <div style="margin-bottom:12px">
         <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth">
           ${icon('google')} Sambungkan dengan Akun Google
         </button>
       </div>
+
+      <details style="margin-bottom:14px;font-size:12px;color:#6b8274;background:#f8faf9;border:1px solid #e2ede6;border-radius:8px;padding:10px 12px">
+        <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;user-select:none">
+          <span>⚙️ Kredensial Pribadi Google Cloud (Opsional)</span>
+        </summary>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:11.5px;color:#788e80;line-height:1.5">Untuk otorisasi latar belakang penuh, Anda dapat memasukkan OAuth Client ID (Desktop) milik sendiri. Bila dikosongkan, Notely akan menggunakan integrasi langsung bebas setup.</span>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="gcal-custom-client-id" class="textbox" style="font-size:12px;height:34px" placeholder="Contoh: 123...apps.googleusercontent.com" value="${esc(state.gcalStatus.clientId || '')}">
+            <button class="button small" data-action="save-gcal-client-id" style="white-space:nowrap">Simpan</button>
+          </div>
+        </div>
+      </details>
 
       <div class="gcal-modal-footer">
         <label class="gcal-dismiss-check">
@@ -194,13 +207,45 @@ async function startGcalAuth() {
       const res = await api('/gcalendar/auth-url', {});
       if (res.authUrl) {
         openExternalUrl(res.authUrl);
+        // If it's a real OAuth URL (accounts.google.com), poll until loopback receives tokens
+        if (res.authUrl.includes('accounts.google.com')) {
+          let attempts = 0;
+          if (window.__gcalPollTimer) clearInterval(window.__gcalPollTimer);
+          window.__gcalPollTimer = setInterval(async () => {
+            attempts++;
+            if (attempts > 50 || !state.gcalConnecting) {
+              clearInterval(window.__gcalPollTimer);
+              window.__gcalPollTimer = null;
+              if (state.gcalConnecting) {
+                state.gcalConnecting = false;
+                renderGcalModal();
+              }
+              return;
+            }
+            try {
+              const st = await api('/gcalendar/status');
+              if (st && st.connected && (st.mode === 'oauth' || st.email)) {
+                clearInterval(window.__gcalPollTimer);
+                window.__gcalPollTimer = null;
+                state.gcalConnecting = false;
+                state.gcalStatus = st;
+                safeStore.set('notelyGcalStatus', state.gcalStatus);
+                renderGcalModal();
+                refreshPage();
+                toast('✓ Google Calendar resmi tersambung via OAuth!');
+              }
+            } catch (e) {}
+          }, 1500);
+          return;
+        }
       }
-      // Re-fetch status immediately
+      // Direct mode fallback (activates immediately)
       const st = await api('/gcalendar/status');
       if (st && st.connected) {
         state.gcalStatus = st;
       } else {
         state.gcalStatus.connected = true;
+        state.gcalStatus.mode = 'direct';
         state.gcalStatus.email = 'Google Calendar Pribadi';
       }
     } else {
@@ -208,6 +253,7 @@ async function startGcalAuth() {
       await new Promise(r => setTimeout(r, 600));
       state.gcalStatus = {
         connected: true,
+        mode: 'direct',
         email: 'user.mahasiswa@gmail.com',
         autoSync: true,
         hasCredentials: true,
@@ -234,6 +280,7 @@ async function disconnectGcal() {
     }
     state.gcalStatus.connected = false;
     state.gcalStatus.email = '';
+    state.gcalStatus.mode = 'direct';
     state.gcalMenuOpen = false;
     safeStore.set('notelyGcalStatus', state.gcalStatus);
     toast('Google Calendar berhasil diputuskan.');
@@ -283,6 +330,18 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
         refreshPage();
       }
       targetLink = res.gcal?.htmlLink || finalItem.gcal_link || targetLink;
+
+      const isOauth = state.gcalStatus.mode === 'oauth' || (res.gcal?.gcal_event_id && !String(res.gcal.gcal_event_id).startsWith('direct_'));
+      if (isOauth) {
+        toast(`✓ "${item.title}" berhasil disinkronkan langsung ke Google Calendar Anda!`);
+      } else {
+        if (autoOpen && targetLink) {
+          openExternalUrl(targetLink);
+          toast(`📅 Google Calendar dibuka — Klik "Simpan" di Google Calendar untuk memasukkan tugas ini!`);
+        } else {
+          toast(`✓ Jadwal "${item.title}" tersimpan untuk Google Calendar.`);
+        }
+      }
     } else {
       item.gcal_event_id = 'demo_event_' + Date.now();
       item.gcal_link = 'https://calendar.google.com';
@@ -291,14 +350,7 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
       if (idx !== -1) state.deadlines[idx] = item;
       safeStore.set('notelyDeadlines', state.deadlines);
       refreshPage();
-      targetLink = item.gcal_link;
-    }
-
-    if (autoOpen && targetLink) {
-      openExternalUrl(targetLink);
-      toast(`✓ Membuka Google Calendar untuk menyimpan "${item.title}"…`);
-    } else {
-      toast(`✓ "${item.title}" berhasil disinkronkan ke Google Calendar!`);
+      toast(`✓ "${item.title}" berhasil disinkronkan ke Google Calendar (Demo)!`);
     }
   } catch (err) {
     alertError(err);
@@ -519,7 +571,7 @@ function deadlinesPage() {
   const countUrgent = all.filter(d => d.status !== 'completed' && getDeadlineStatus(d.deadline, d.time, d.status).urgent).length;
   const isGcalConnected = !!state.gcalStatus.connected;
   // Privacy setting: User can hide/show the red/green status indicator in settings
-  const showIndicator = state.settings.showGcalIndicator === true;
+  const showIndicator = state.settings.showGcalIndicator !== false;
 
   return `<div class="deadlines-page">
     <div class="deadlines-top-bar">
@@ -635,7 +687,7 @@ function renderGcalSettingsCard() {
   const isConnected = !!state.gcalStatus.connected;
   const rawEmail = state.gcalStatus.email || '';
   const isAutoSync = state.gcalStatus.autoSync !== false;
-  const showIndicator = state.settings.showGcalIndicator === true;
+  const showIndicator = state.settings.showGcalIndicator !== false;
   const displayEmail = state.showGcalEmail ? rawEmail : maskEmail(rawEmail);
 
   return `<div class="setting-card">
@@ -1226,6 +1278,12 @@ handleClick = function(action, id) {
     const isNowAuto = !state.gcalStatus.autoSync;
     updateGcalConfig({ autoSync: isNowAuto });
     toast(isNowAuto ? 'Sinkronisasi otomatis Google Calendar diaktifkan.' : 'Sinkronisasi otomatis dinonaktifkan.');
+    return;
+  }
+  if (action === 'save-gcal-client-id') {
+    const val = document.getElementById('gcal-custom-client-id')?.value?.trim();
+    updateGcalConfig({ clientId: val || '' });
+    toast(val ? 'Client ID Google disimpan. Klik "Sambungkan dengan Akun Google" untuk otorisasi.' : 'Client ID Google dikosongkan (Mode Cepat aktif).');
     return;
   }
   if (action === 'gcal-disconnect') {

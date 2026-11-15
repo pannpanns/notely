@@ -208,6 +208,8 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
                             'refresh_token': token_data.get('refresh_token', ''),
                             'expires_at': int(time.time()) + int(token_data.get('expires_in', 3600)),
                             'email': email,
+                            'mode': 'oauth',
+                            'connected': True,
                             'connected_at': datetime.datetime.now().isoformat()
                         })
 
