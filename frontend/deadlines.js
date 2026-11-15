@@ -140,20 +140,20 @@ function renderGcalModal() {
     ` : `
       <!-- Initial Connect Prompt State (Clean, Simple, for Regular Consumers) -->
       <h2 class="gcal-modal-title">Sambungkan ke Google Calendar</h2>
-      <p class="gcal-modal-subtitle">Otomatis sinkronkan tenggat tugas Anda langsung ke Google Calendar tanpa perlu repot membuka web browser satu per satu.</p>
+      <p class="gcal-modal-subtitle">Jadwalkan dan sinkronkan seluruh tenggat tugas Anda secara otomatis.</p>
 
       <div class="gcal-benefits-list">
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('spark')}</span>
-          <div><strong>Otomatis dari Screenshot & Prompt:</strong> AI mengekstrak jadwal dan langsung menjadwalkannya di Google Calendar Anda.</div>
+          <div>Sinkronkan tugas otomatis langsung ke Google Calendar</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('bolt')}</span>
-          <div><strong>Pengingat H-1 & Jam Deadline:</strong> Dapatkan alarm pengingat otomatis di ponsel dan komputer Anda.</div>
+          <div>Pengingat H-1 dan notifikasi tenggat waktu di semua perangkat</div>
         </div>
         <div class="gcal-benefit-item">
           <span class="benefit-icon">${icon('check')}</span>
-          <div><strong>Sangat Mudah & Bebas Repot:</strong> Cukup 1-klik sambungkan langsung, tanpa konfigurasi teknis yang membingungkan.</div>
+          <div>Praktis tanpa perlu konfigurasi teknis rumit</div>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ async function updateGcalConfig(updates) {
 }
 
 // Sync single event directly to Google Calendar via API or direct web sync
-async function syncSingleDeadlineGcal(item) {
+async function syncSingleDeadlineGcal(item, autoOpen = true) {
   if (!state.gcalStatus.connected) {
     openGcalConnectModal(true);
     return;
@@ -270,14 +270,19 @@ async function syncSingleDeadlineGcal(item) {
 
   try {
     toast(`Menyinkronkan "${item.title}" ke Google Calendar…`);
+    let finalItem = item;
+    let targetLink = item.gcal_link || '';
+
     if (typeof api === 'function' && engine.ready) {
       const res = await api('/gcalendar/sync-event', { id: item.id, item });
       if (res.item) {
+        finalItem = res.item;
         const idx = state.deadlines.findIndex(d => d.id === item.id);
         if (idx !== -1) state.deadlines[idx] = res.item;
         safeStore.set('notelyDeadlines', state.deadlines);
         refreshPage();
       }
+      targetLink = res.gcal?.htmlLink || finalItem.gcal_link || targetLink;
     } else {
       item.gcal_event_id = 'demo_event_' + Date.now();
       item.gcal_link = 'https://calendar.google.com';
@@ -286,8 +291,15 @@ async function syncSingleDeadlineGcal(item) {
       if (idx !== -1) state.deadlines[idx] = item;
       safeStore.set('notelyDeadlines', state.deadlines);
       refreshPage();
+      targetLink = item.gcal_link;
     }
-    toast(`✓ "${item.title}" berhasil disinkronkan ke Google Calendar!`);
+
+    if (autoOpen && targetLink) {
+      openExternalUrl(targetLink);
+      toast(`✓ Membuka Google Calendar untuk menyimpan "${item.title}"…`);
+    } else {
+      toast(`✓ "${item.title}" berhasil disinkronkan ke Google Calendar!`);
+    }
   } catch (err) {
     alertError(err);
   }
@@ -898,9 +910,11 @@ function renderDateDetailsModal(dateStr) {
               ${t.description ? `<p class="task-desc-compact">${esc(t.description)}</p>` : ''}
             </div>
             <div class="cal-modal-task-actions">
-              ${!hasGcal ? `
-                <button class="button small accent-soft icon-only" data-action="sync-single-gcal" data-id="${esc(t.id)}" title="Sinkronkan ke Google Calendar">${icon('google')}</button>
-              ` : ''}
+              ${hasGcal ? `
+                <button class="button small ghost icon-only" data-action="open-gcal-link" data-id="${esc(t.gcal_link || 'https://calendar.google.com')}" title="Buka di Google Calendar">${icon('google')}</button>
+              ` : `
+                <button class="button small accent-soft icon-only" data-action="sync-single-gcal" data-id="${esc(t.id)}" title="Simpan ke Google Calendar">${icon('google')}</button>
+              `}
               <button class="button small ghost icon-only" data-action="delete-deadline" data-id="${esc(t.id)}" title="Hapus">${icon('trash')}</button>
             </div>
           </div>`;
@@ -957,7 +971,7 @@ function renderAiModal() {
     <!-- Direct Sync Banner (Privacy friendly: Green indicator without showing email) -->
     <div class="gcal-privacy-banner ${isGcalConnected ? 'connected' : 'disconnected'}">
       <span class="gcal-dot ${isGcalConnected ? 'green' : 'red'}"></span>
-      <span>${isGcalConnected ? 'Google Calendar aktif — Tugas akan langsung disinkronkan otomatis tanpa buka browser.' : 'Google Calendar belum tersambung.'}</span>
+      <span>${isGcalConnected ? 'Google Calendar terhubung — Jadwal akan otomatis tersinkron.' : 'Google Calendar belum terhubung.'}</span>
       ${!isGcalConnected ? '<button class="button small ghost" style="padding:2px 8px;height:24px" data-action="open-gcal-connect-modal">Sambungkan</button>' : ''}
     </div>
 
@@ -992,13 +1006,13 @@ function renderAiModal() {
           ` : `
             <div class="dropzone-hint">
               <div class="dropzone-icon">${icon('image')}</div>
-              <strong>Klik untuk memilih screenshot, atau drag & drop di sini</strong>
-              <p>Bisa juga langsung <strong>tekan Ctrl+V</strong> untuk menempelkan hasil screenshot clipboard!</p>
-              <span class="dropzone-types">Format: PNG, JPG, WEBP (Didukung OCR Windows Bawaan Instan)</span>
+              <strong>Pilih atau seret gambar ke sini</strong>
+              <p>Bisa juga tempel gambar langsung dengan <b>Ctrl + V</b></p>
+              <span class="dropzone-types">Format: PNG, JPG, JPEG, WEBP</span>
             </div>
           `}
         </div>
-        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
         <div style="margin-top:12px">
           <label class="field-label" for="ai-extra-prompt">Catatan / Instruksi tambahan (opsional):</label>
           <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil hanya tugas minggu ini' atau 'Tandai prioritas tinggi'..." value="${esc(state.deadlineAiPrompt)}">
@@ -1006,10 +1020,10 @@ function renderAiModal() {
       </div>`}
 
       ${state.deadlineAiLoading ? `
-      <div class="ai-processing-box">
-        <span class="working-orbit">${icon('spark')}</span>
-        <strong>Sedang memproses dengan ${providerLabel}…</strong>
-        <p>${esc(state.deadlineAiStatus || 'Membaca data dan menyusun jadwal tugas…')}</p>
+      <div class="ai-processing-box" id="ai-processing-box">
+        <div class="calm-spinner"></div>
+        <strong>Sedang menganalisis jadwal…</strong>
+        <p id="ai-status-text">${esc(state.deadlineAiStatus || 'Membaca dan menyusun jadwal tugas…')}</p>
       </div>` : ''}
 
       ${state.extractedPreview.length ? `
@@ -1039,7 +1053,7 @@ function renderAiModal() {
 
     <div class="modal-footer-row">
       <div class="ai-provider-badge">
-        ${icon('cpu')} Diproses: <strong>${providerLabel}</strong>
+        ${icon(prov === 'ollama' ? 'cpu' : 'globe')} Model: <strong>${prov === 'ollama' ? 'AI Lokal' : 'AI Online'}</strong>
       </div>
       <div style="display:flex;gap:8px">
         <button class="button" data-action="close-ai-modal">Batal</button>
@@ -1110,6 +1124,10 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
       <label class="field-label" for="manual-dl-desc">Deskripsi & Catatan Tambahan</label>
       <textarea id="manual-dl-desc" class="textbox" style="height:75px;resize:vertical" placeholder="Format file PDF, link pengumpulan, atau catatan penting...">${esc(item.description)}</textarea>
     </div>
+    <label class="manual-form-gcal-sync">
+      <input type="checkbox" id="manual-sync-gcal" ${state.gcalStatus.connected ? 'checked' : ''}>
+      <span>Simpan & buka jadwal di Google Calendar</span>
+    </label>
   </div>`;
 
   modal(isEdit ? 'Edit Tenggat Tugas' : 'Tambah Tenggat Tugas Baru', content, [
@@ -1400,10 +1418,14 @@ handleClick = function(action, id) {
       description: document.getElementById('manual-dl-desc')?.value.trim() || '',
       status: 'pending'
     };
-    persistDeadline(item).then(() => {
+    const shouldSyncGcal = document.getElementById('manual-sync-gcal')?.checked;
+    persistDeadline(item).then(savedItem => {
       closeModal();
       toast('Tenggat tugas berhasil disimpan.');
       refreshPage();
+      if (shouldSyncGcal && savedItem) {
+        syncSingleDeadlineGcal(savedItem, true);
+      }
     });
     return;
   }
@@ -1504,7 +1526,8 @@ async function runDeadlineAiExtraction() {
         if (!job) break;
         if (job.status === 'running') {
           state.deadlineAiStatus = job.message || 'Menganalisis jadwal tugas…';
-          renderAiModal();
+          const p = document.getElementById('ai-status-text');
+          if (p) p.textContent = state.deadlineAiStatus;
         } else if (job.status === 'done') {
           finished = true;
           const result = job.result || {};

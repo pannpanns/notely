@@ -94,11 +94,12 @@ Hari ini adalah: {ref_date_str}
 Tahun saat ini: {now.year}
 
 [PETUNJUK PENENTUAN TANGGAL]
-- Jika teks menyebutkan tanggal tanpa tahun (misal "28 November" atau "tgl 5 depan"), asumsikan tahun {now.year}.
-- Jika menyebutkan hari relatif seperti "besok", "lusa", "jumat depan", "senin ini", hitung tanggal pastinya berdasarkan referensi hari ini ({ref_date_str}).
-- Format tanggal HARUS selalu 'YYYY-MM-DD' (contoh: '2026-11-28').
-- Jika jam pengumpulan tidak disebutkan secara eksplisit, gunakan default jam '23:59'. Format jam HARUS 'HH:MM' (24 jam).
-- Tentukan prioritas: 'tinggi' (urgent/bobot besar/ujian), 'sedang' (tugas reguler), atau 'rendah' (tugas bacaan/opsional).
+- Jika teks menyebutkan tanggal tanpa tahun (misal "28 November" atau "tgl 5 depan"), gunakan tahun {now.year}.
+- Jika menyebutkan hari relatif seperti "3 hari lagi", "besok", "lusa", "jumat depan", "senin depan", hitung tanggal pastinya berdasarkan referensi hari ini ({ref_date_str}).
+  * Contoh: jika hari ini {ref_date_str}, maka "3 hari lagi" adalah {(now + datetime.timedelta(days=3)).strftime('%Y-%m-%d')}.
+- Format tanggal HARUS selalu 'YYYY-MM-DD'.
+- Jika jam pengumpulan tidak disebutkan secara eksplisit, gunakan default jam '23:59'. Format jam HARUS 'HH:MM'.
+- Tentukan prioritas: 'tinggi' (ujian/kuis/bobot besar/mendesak), 'sedang' (tugas reguler/laporan), atau 'rendah' (tugas bacaan/opsional).
 
 [DATA SUMBER DARI PENGGUNA / SCREENSHOT]
 {source_text}
@@ -106,20 +107,175 @@ Tahun saat ini: {now.year}
 [INSTRUKSI TAMBAHAN PENGGUNA]
 {user_prompt or 'Ekstrak semua deadline tugas yang tercantum pada teks sumber di atas.'}
 
-[FORMAT KELUARAN WAJIB]
-Keluarkan HANYA array JSON murni tanpa pengantar, tanpa penutup, tanpa markdown ```json.
-Contoh format:
+[CONTOH FORMAT KELUARAN]
+Keluarkan HANYA array JSON murni tanpa pengantar dan tanpa penutup:
 [
   {{
-    "title": "Nama Tugas atau Judul Kegiatan",
-    "course": "Mata Kuliah / Mata Pelajaran / Kategori",
-    "deadline": "YYYY-MM-DD",
-    "time": "HH:MM",
-    "description": "Rincian tugas, format file yang diminta, atau catatan penting",
-    "priority": "tinggi" | "sedang" | "rendah"
+    "title": "Laporan Praktikum Fisika",
+    "course": "Fisika",
+    "deadline": "{(now + datetime.timedelta(days=3)).strftime('%Y-%m-%d')}",
+    "time": "23:59",
+    "description": "Laporan praktikum fisika",
+    "priority": "sedang"
   }}
 ]
-Jika tidak ditemukan tugas atau deadline apapun dalam teks, keluarkan array kosong: []"""
+Jika tidak ada deadline apapun, keluarkan: []"""
+
+INDONESIAN_MONTHS = {
+    'januari': 1, 'jan': 1, 'februari': 2, 'feb': 2, 'maret': 3, 'mar': 3,
+    'april': 4, 'apr': 4, 'mei': 5, 'juni': 6, 'jun': 6, 'juli': 7, 'jul': 7,
+    'agustus': 8, 'agu': 8, 'agst': 8, 'september': 9, 'sep': 9, 'sept': 9,
+    'oktober': 10, 'okt': 10, 'november': 11, 'nov': 11, 'desember': 12, 'des': 12
+}
+
+INDONESIAN_DAYS = {
+    'senin': 0, 'selasa': 1, 'rabu': 2, 'kamis': 3,
+    'jumat': 4, "jum'at": 4, 'sabtu': 5, 'minggu': 6, 'ahad': 6
+}
+
+def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -> list[dict]:
+    """Deterministic fallback parser for Indonesian task & deadline expressions."""
+    if not text or not text.strip():
+        return []
+    if ref_date is None:
+        ref_date = datetime.date.today()
+
+    normalized = text.replace('\r\n', '\n')
+    lines = re.split(r'[\n;]+|(?<=[^0-9])\s*[-*•]\s*', normalized)
+    chunks = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        parts = re.split(r',\s*(?=(?:tugas|kuis|revisi|laporan|ujian|pr|presentasi|proyek|makalah|resume|uas|uts)\b)|(?<=[a-zA-Z0-9])\s+dan\s+(?=(?:tugas|kuis|revisi|laporan|ujian|pr|presentasi|proyek|makalah|resume|uas|uts)\b)', line, flags=re.IGNORECASE)
+        for p in parts:
+            p = p.strip()
+            if p:
+                chunks.append(p)
+
+    results = []
+    for chunk in chunks:
+        c_lower = chunk.lower()
+
+        # Check date cues
+        has_time_cue = bool(re.search(r'\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|besok|lusa|minggu|senin|selasa|rabu|kamis|jumat|sabtu|tanggal|tgl|\d{1,2}/\d{1,2})\b', c_lower))
+        if not has_time_cue and len(chunks) > 1:
+            if not re.match(r'^(tugas|kuis|revisi|laporan|ujian|pr|presentasi|proyek|makalah|resume)\b', c_lower):
+                continue
+
+        # 1. Parse Date
+        target_date = None
+        m_rel_day = re.search(r'(\d+)\s*hari\s*lagi', c_lower)
+        if m_rel_day:
+            target_date = ref_date + datetime.timedelta(days=int(m_rel_day.group(1)))
+
+        if not target_date:
+            m_rel_week = re.search(r'(\d+)\s*minggu\s*lagi', c_lower)
+            if m_rel_week:
+                target_date = ref_date + datetime.timedelta(weeks=int(m_rel_week.group(1)))
+
+        if not target_date:
+            if re.search(r'\bbesok\b', c_lower):
+                target_date = ref_date + datetime.timedelta(days=1)
+            elif re.search(r'\blusa\b', c_lower):
+                target_date = ref_date + datetime.timedelta(days=2)
+            elif re.search(r'\bminggu\s*depan\b', c_lower) and not any(d in c_lower for d in INDONESIAN_DAYS):
+                target_date = ref_date + datetime.timedelta(days=7)
+
+        if not target_date:
+            for day_name, day_idx in INDONESIAN_DAYS.items():
+                if re.search(rf'\b{day_name}\b', c_lower):
+                    cur_idx = ref_date.weekday()
+                    days_ahead = (day_idx - cur_idx) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                    elif 'depan' in c_lower and days_ahead < 3:
+                        days_ahead += 7
+                    target_date = ref_date + datetime.timedelta(days=days_ahead)
+                    break
+
+        if not target_date:
+            m_date = re.search(r'(?:tanggal|tgl)?\s*(\d{1,2})\s*([a-zA-Z]+)?(?:\s*(\d{4}))?', c_lower)
+            if m_date and (re.search(r'(?:tanggal|tgl)', c_lower) or m_date.group(2) in INDONESIAN_MONTHS):
+                d = int(m_date.group(1))
+                m_name = m_date.group(2)
+                month = INDONESIAN_MONTHS.get(m_name, ref_date.month) if m_name else ref_date.month
+                year = int(m_date.group(3)) if m_date.group(3) else ref_date.year
+                try:
+                    target_date = datetime.date(year, month, d)
+                except Exception:
+                    pass
+
+        if not target_date:
+            m_slash = re.search(r'(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?', c_lower)
+            if m_slash:
+                d = int(m_slash.group(1))
+                m = int(m_slash.group(2))
+                y = int(m_slash.group(3)) if m_slash.group(3) else ref_date.year
+                if y < 100:
+                    y += 2000
+                try:
+                    target_date = datetime.date(y, m, d)
+                except Exception:
+                    pass
+
+        if not target_date:
+            target_date = ref_date + datetime.timedelta(days=1)
+
+        # 2. Parse Time
+        target_time = '23:59'
+        m_time = re.search(r'(?:jam|pukul)?\s*(\d{1,2})[:.](\d{2})', c_lower)
+        if m_time:
+            h = int(m_time.group(1))
+            mi = int(m_time.group(2))
+            if 0 <= h <= 23 and 0 <= mi <= 59:
+                target_time = f'{h:02d}:{mi:02d}'
+        else:
+            m_hour = re.search(r'(?:jam|pukul)\s*(\d{1,2})\s*(malam|siang|pagi|sore)?', c_lower)
+            if m_hour:
+                h = int(m_hour.group(1))
+                period = m_hour.group(2) or ''
+                if 'malam' in period and h < 12:
+                    h += 12
+                elif 'siang' in period and h < 12 and h != 12:
+                    h += 12
+                elif 'sore' in period and h < 12:
+                    h += 12
+                target_time = f'{h:02d}:00'
+
+        # 3. Clean Title & Course
+        clean_title = re.sub(r'(?i)\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|lagi|besok|lusa|depan|senin|selasa|rabu|kamis|jumat|sabtu|minggu|tanggal|tgl|\d{1,2}[:.]\d{2}|\d+\s*hari)\b.*$', '', chunk).strip()
+        clean_title = re.sub(r'[,:\-–]+$', '', clean_title).strip()
+        if not clean_title or len(clean_title) < 3:
+            clean_title = chunk[:40].strip()
+
+        title_formatted = ' '.join(w.capitalize() if not w.isupper() else w for w in clean_title.split())
+
+        course = 'Umum'
+        for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen']:
+            if kw in c_lower:
+                course = kw.title() if kw not in ('pbo', 'ai', 'pr') else kw.upper()
+                break
+
+        priority = 'sedang'
+        if any(w in c_lower for w in ['kuis', 'ujian', 'uts', 'uas', 'proyek', 'final', 'penting', 'urgent', 'mendesak']):
+            priority = 'tinggi'
+        elif any(w in c_lower for w in ['bacaan', 'opsional', 'santai', 'ringan']):
+            priority = 'rendah'
+
+        results.append({
+            'id': f'dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}',
+            'title': title_formatted,
+            'course': course,
+            'deadline': target_date.strftime('%Y-%m-%d'),
+            'time': target_time,
+            'description': chunk.strip(),
+            'priority': priority,
+            'status': 'pending',
+            'created_at': datetime.datetime.now().isoformat()
+        })
+
+    return results
 
 def _clean_json_output(raw_text: str) -> list[dict]:
     text = raw_text.strip()
@@ -219,6 +375,11 @@ def extract_deadlines(
             unload_local_model(model)
 
     items = _clean_json_output(raw_response)
+    if not items:
+        # Fallback to deterministic heuristic Indonesian deadline extractor
+        combined_text = f"{prompt}\n{ocr_text}\n{raw_response}".strip()
+        items = extract_deadlines_heuristically(combined_text)
+
     return {
         'deadlines': items,
         'ocrText': ocr_text,

@@ -14,7 +14,8 @@ from deadlines import (
     delete_deadline,
     toggle_deadline_status,
     _clean_json_output,
-    build_extraction_prompt
+    build_extraction_prompt,
+    extract_deadlines_heuristically
 )
 
 class DeadlinesTests(unittest.TestCase):
@@ -93,6 +94,32 @@ class DeadlinesTests(unittest.TestCase):
         self.assertIn("Tugas dikumpul besok", prompt)
         self.assertIn("Cari tugas fisika", prompt)
         self.assertIn("YYYY-MM-DD", prompt)
+
+    def test_heuristic_extractor_user_prompt(self):
+        import datetime
+        ref = datetime.date(2026, 11, 15)
+        text = "Laporan praktikum fisika deadline 3 hari lagi jam 23:59, revisi proposal senin depan"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0]['title'], 'Laporan Praktikum Fisika')
+        self.assertEqual(items[0]['course'], 'Fisika')
+        self.assertEqual(items[0]['deadline'], '2026-11-18')
+        self.assertEqual(items[0]['time'], '23:59')
+        self.assertEqual(items[1]['title'], 'Revisi Proposal')
+        self.assertEqual(items[1]['deadline'], '2026-11-23')
+
+    def test_heuristic_extractor_dates_and_course(self):
+        import datetime
+        ref = datetime.date(2026, 11, 15)
+        text = "Tugas makalah Kecerdasan Buatan dikumpul jumat depan jam 12:00, kuis Basis Data tanggal 25 jam 10:00"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 2)
+        self.assertIn('Kecerdasan Buatan', items[0]['title'])
+        self.assertEqual(items[0]['time'], '12:00')
+        self.assertEqual(items[0]['deadline'], '2026-11-20')
+        self.assertIn('Basis Data', items[1]['title'])
+        self.assertEqual(items[1]['time'], '10:00')
+        self.assertEqual(items[1]['deadline'], '2026-11-25')
 
 if __name__ == '__main__':
     unittest.main()
