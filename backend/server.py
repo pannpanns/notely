@@ -445,7 +445,8 @@ class Handler(BaseHTTPRequestHandler):
                             webbrowser.open(target_url)
                     except Exception:
                         try:
-                            subprocess.Popen(['explorer.exe', target_url])
+                            escaped = target_url.replace("'", "''")
+                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-Command', f"Start-Process '{escaped}'"], shell=False)
                         except Exception:
                             pass
                 out={'opened':True}
@@ -674,7 +675,8 @@ class Handler(BaseHTTPRequestHandler):
                             webbrowser.open(target_url)
                     except Exception:
                         try:
-                            subprocess.Popen(['explorer.exe', target_url])
+                            escaped = target_url.replace("'", "''")
+                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-Command', f"Start-Process '{escaped}'"], shell=False)
                         except Exception:
                             pass
                 out={'opened':True}

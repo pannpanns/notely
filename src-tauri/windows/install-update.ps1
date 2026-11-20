@@ -8,10 +8,13 @@ try {
     # Wait for Notely and its engine to release installed files.
     Wait-Process -Id $AppPid -Timeout 60 -ErrorAction SilentlyContinue
     if (Get-Process -Id $AppPid -ErrorAction SilentlyContinue) { throw 'Notely masih berjalan.' }
-    # NSIS requires /D to be the last argument, with no surrounding quotes.
-    # No silent switch: the user sees and completes the installer.
-    $process = Start-Process -FilePath $Installer -ArgumentList ('/D=' + $InstallDir) -PassThru -Wait
+    # NSIS /S performs a silent in-place upgrade, directly overwriting installed files without uninstall dialogs
+    $process = Start-Process -FilePath $Installer -ArgumentList ('/S', '/D=' + $InstallDir) -PassThru -Wait
     if ($process.ExitCode -ne 0) { throw "Installer selesai dengan kode $($process.ExitCode)." }
+    $notelyExe = Join-Path $InstallDir 'Notely.exe'
+    if (Test-Path -LiteralPath $notelyExe) {
+        Start-Process -FilePath $notelyExe
+    }
 } catch {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null

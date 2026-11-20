@@ -25,7 +25,21 @@ fn open_browser_url(url: String) -> Result<(), String> {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("URL tidak valid.".to_string());
     }
-    std::process::Command::new("explorer.exe").arg(&url).spawn().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let escaped = url.replace('\'', "''");
+        let script = format!("Start-Process '{}'", escaped);
+        std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .creation_flags(0x08000000)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::process::Command::new("xdg-open").arg(&url).spawn().map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -39,7 +53,20 @@ fn open_provider_help(provider: String) -> Result<(), String> {
         "openrouter" => "https://openrouter.ai/settings/keys",
         _ => return Err("Penyedia tidak dikenal.".to_string()),
     };
-    std::process::Command::new("explorer.exe").arg(url).spawn().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let script = format!("Start-Process '{}'", url);
+        std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .creation_flags(0x08000000)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::process::Command::new("xdg-open").arg(url).spawn().map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 

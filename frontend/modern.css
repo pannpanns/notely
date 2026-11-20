@@ -702,12 +702,26 @@
 }
 
 /* Web Mode Box in Settings */
-.gcal-web-mode-box {
-  background: #f8faf9;
-  border: 1px solid #dbe8e0;
+.gcal-web-mode-box, .gcal-clean-panel {
+  background: #fbfdfc;
+  border: 1px solid #dce8e0;
   border-radius: 16px;
   padding: 24px 26px;
   margin-bottom: 20px;
+}
+.gcal-clean-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.gcal-clean-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid #edf4ef;
 }
 .gcal-status-pill.web-mode {
   background: #f0f7fb;
@@ -736,6 +750,7 @@
 .gcal-card-title-group .section-description{margin:0;font-size:13px;color:#6a8073;line-height:1.55}
 .gcal-status-pill-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0}
 .gcal-status-pill-badge.connected{background:#eaf6ee;color:#18683b;border:1px solid #c8e8d3}
+.gcal-status-pill-badge.web-active{background:#edf7f2;color:#1b6845;border:1px solid #c7e5d3}
 .gcal-status-pill-badge.disconnected{background:#fdf5f5;color:#9c2e2e;border:1px solid #f6d2d2}
 
 /* Connect Hero Box */
