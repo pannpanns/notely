@@ -805,23 +805,36 @@
 .gcal-avatar-circle{width:44px;height:44px;border-radius:12px;background:#e8f3ec;color:#18786c;display:grid;place-items:center;flex-shrink:0}
 .gcal-avatar-circle svg{width:22px;height:22px}
 
-/* Credential Setup Modal: Spacious, Uncluttered, Elegant */
-.gcal-creds-modal-card{max-width:640px;width:100%;max-height:88vh;overflow-y:auto;background:#fff;border-radius:22px;padding:32px 36px 28px;box-shadow:0 24px 64px rgba(18,45,33,.22);position:relative;animation:scale-in .18s ease;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#cbd5d0 transparent}
-.gcal-creds-modal-card::-webkit-scrollbar{width:6px}
-.gcal-creds-modal-card::-webkit-scrollbar-thumb{background:#cbd5d0;border-radius:10px}
+/* Credential Setup Modal: Elegant, Spacious, and Clean */
+.gcal-creds-modal-card{max-width:620px;width:92vw;max-height:85vh;background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(18,45,33,.22);position:relative;animation:scale-in .18s ease;box-sizing:border-box;display:flex;flex-direction:column;padding:24px 28px 20px;overflow:hidden}
+.gcal-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0}
+.gcal-modal-body{flex:1;min-height:0;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:#cbd5d0 transparent;display:flex;flex-direction:column;gap:14px}
+.gcal-modal-body::-webkit-scrollbar{width:5px}
+.gcal-modal-body::-webkit-scrollbar-thumb{background:#cbd5d0;border-radius:10px}
+.gcal-modal-footer{flex-shrink:0;border-top:1px solid #e7efe9;padding-top:14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 
-.gcal-fast-alt-box{background:#edf7f2;border:1px solid #c8e4d4;border-radius:14px;padding:16px 18px;margin-bottom:20px}
-.gcal-drop-zone{border:2px dashed #b9d4c4;border-radius:14px;padding:26px 20px;text-align:center;background:#f7faf8;cursor:pointer;transition:all .15s ease}
+.gcal-slim-banner{background:#edf7f2;border:1px solid #cce5d7;border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.gcal-tabs-container{display:flex;background:#f1f5f2;padding:3px;border-radius:9px;gap:4px}
+.gcal-tab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 12px;border:0;background:transparent;border-radius:7px;color:#556e60;font-size:12px;font-weight:550;cursor:pointer;transition:all .14s ease}
+.gcal-tab-btn.active{background:#fff;color:#18786c;font-weight:650;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.gcal-tab-btn svg{width:15px;height:15px}
+
+.gcal-drop-zone{border:2px dashed #b9d4c4;border-radius:12px;padding:22px 18px;text-align:center;background:#f8fbf9;cursor:pointer;transition:all .15s ease}
 .gcal-drop-zone:hover,.gcal-drop-zone.dragover{border-color:#18786c;background:#edf7f1}
-.gcal-drop-zone svg{width:32px;height:32px;color:#18786c;margin-bottom:8px}
-.gcal-drop-zone strong{display:block;font-size:13.5px;color:#1f372a}
-.gcal-drop-zone p{font-size:12px;color:#6a8274;margin:6px 0 0}
+.gcal-drop-zone svg{width:28px;height:28px;color:#18786c;margin-bottom:6px}
+.gcal-drop-zone strong{display:block;font-size:13px;color:#1f372a}
+.gcal-drop-zone p{font-size:11.5px;color:#6a8274;margin:4px 0 0}
+.gcal-loaded-pill{display:inline-flex;align-items:center;gap:6px;background:#e4f4ec;color:#16653f;font-size:11.5px;padding:4px 10px;border-radius:6px;margin-top:10px}
 
-.gcal-creds-guide{background:#f6f9f7;border:1px solid #dde7e1;border-radius:14px;padding:18px 20px;font-size:12.5px;color:#456050;line-height:1.7}
-.gcal-guide-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #e7efe9;font-size:12.5px;color:#3b5346;line-height:1.6}
-.gcal-guide-step:last-child{border-bottom:0;padding-bottom:0}
-.gcal-guide-step .step-num{width:24px;height:24px;border-radius:50%;background:#e1efe7;color:#18786c;font-weight:700;font-size:11.5px;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
-.gcal-guide-step .step-content{flex:1;min-width:0}
+.gcal-manual-form{background:#fafcfb;border:1px solid #e5ede7;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+
+.gcal-guide-card{background:#f7faf8;border:1px solid #dfe9e2;border-radius:12px;padding:14px 16px}
+.gcal-guide-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.gcal-console-btn{border:1px solid #b7d6c5;color:#18786c;background:#fff;font-size:11.5px;font-weight:600;padding:3px 10px;height:28px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .14s ease}
+.gcal-console-btn:hover{background:#eef7f2;border-color:#18786c}
+.gcal-guide-list{margin:0;padding-left:20px;font-size:12px;color:#3b5346;line-height:1.65}
+.gcal-guide-list li{margin-bottom:4px}
+.gcal-guide-list li:last-child{margin-bottom:0}
 
 @media(max-width:800px){
  .deadlines-page{padding:14px 12px 30px}
@@ -830,7 +843,7 @@
  .card-actions-area{grid-column:1/-1;justify-content:flex-end;border-top:1px solid #edf2ee;padding-top:10px;margin-top:4px}
  .extracted-item-grid{grid-template-columns:1fr}
  .calendar-cell{min-height:70px;padding:4px}
- .gcal-creds-modal-card{padding:24px 20px}
+ .gcal-creds-modal-card{padding:18px 16px}
 }
 
 /* Ensure container has zero bottom padding on deadlines page so full height is used */

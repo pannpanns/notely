@@ -1,3 +1,11 @@
+Pembaruan Notely v1.2.8:
+• Sinkronisasi Presisi Zona Waktu Google Calendar (Timezone Auto-Lock): Menambahkan parameter zona waktu lokal sistem (`&ctz=`) secara otomatis ke URL Google Calendar (misal Asia/Makassar untuk WITA, Asia/Jakarta untuk WIB). Waktu acara pada Google Calendar kini 100% selaras dan terkunci mengikuti jam laptop pengguna tanpa bergeser. Waktu tenggat 23:59 juga dipertahankan secara presisi pada pukul 23:59 (bukan lagi otomatis menjadi acara sepanjang hari).
+• Redesain Bersih & Elegan Modal Kredensial Developer (Anti-Clutter Tabbed Layout): Merombak total tata letak modal kredensial menjadi sistem tab terpisah yang rapi:
+  1. Tab 'Unggah File JSON' (Rekomendasi): Area tarik-dan-lepas file yang bersih dengan badge konfirmasi instan saat file client_secret berhasil dibaca.
+  2. Tab 'Masukkan Manual': Formulir input Client ID dan Client Secret yang lega dan proporsional tanpa penumpukan elemen.
+• Tombol Aksi Selalu Terlihat (Fixed Footer): Tombol 'Batal' dan 'Simpan & Lanjutkan Login' kini dikunci permanen di bagian bawah modal (tidak lagi tenggelam atau terpotong ke bawah layar), sehingga pengguna dapat langsung menyimpan kapan saja.
+• Penyelarasan Tombol Console & Kartu Panduan: Tombol 'Buka Console Credentials ↗' kini menyatu rapi di sudut kanan atas kartu panduan singkat, dan teks pengingat Mode Cepat Web dibuat ramping serta tidak lagi mendominasi layar.
+
 Pembaruan Notely v1.2.7:
 • Perbaikan Kisi Kalender Bawah Terpotong (Fix Calendar Row Truncation): Memperbaiki struktur kisi kalender dengan memisahkan baris nama hari dan kisi tanggal ke elemen mandiri serta meniadakan margin/padding bawah berlebih pada kontainer halaman. Bulan dengan 6 minggu (seperti November 2026) kini tampil utuh 100% dari tanggal 1 hingga akhir tanpa ada angka atau sel yang terpotong di bagian bawah.
 • Perbaikan Tautan Google Cloud Console (100% Clickable): Memperbaiki link dan menambahkan tombol khusus `Buka Google Cloud Console: Credentials ↗` yang langsung membuka peramban resmi (Chrome/default) dengan aman dan andal melalui penanganan event native.

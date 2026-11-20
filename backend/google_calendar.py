@@ -316,26 +316,34 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
         h = min(23, int(parts[0]) + 1)
         end_time = f"{h:02d}{parts[1]}00"
         dates_param = f"{clean_date}T{clean_time}/{clean_date}T{end_time}"
+    elif time_str == '23:59':
+        dates_param = f"{clean_date}T230000/{clean_date}T235900"
     else:
         dt = datetime.datetime.strptime(deadline_date, '%Y-%m-%d')
         next_dt = dt + datetime.timedelta(days=1)
         dates_param = f"{clean_date}/{next_dt.strftime('%Y%m%d')}"
 
-    web_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote(summary)}&dates={dates_param}&details={urllib.parse.quote(desc)}"
+    now_local = datetime.datetime.now().astimezone()
+    tz_name = getattr(now_local.tzinfo, 'key', None) or 'Asia/Jakarta'
+
+    web_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote(summary)}&dates={dates_param}&ctz={urllib.parse.quote(tz_name)}&details={urllib.parse.quote(desc)}"
 
     # If OAuth tokens are available and preferred mode is not web, sync via Google Calendar API v3
     if (tokens.get('refresh_token') or tokens.get('access_token')) and config.get('preferredMode') != 'web':
         try:
             token = refresh_access_token_if_needed(data_root)
-            now_local = datetime.datetime.now().astimezone()
             tz_offset = now_local.strftime('%z') or "+07:00"
             tz_formatted = f"{tz_offset[:3]}:{tz_offset[3:]}" if len(tz_offset) >= 5 else "+07:00"
 
-            if time_str and time_str != '23:59':
-                start_dt = f"{deadline_date}T{time_str}:00{tz_formatted}"
-                parts = time_str.split(':')
-                h = min(23, int(parts[0]) + 1)
-                end_dt = f"{deadline_date}T{h:02d}:{parts[1]}:00{tz_formatted}"
+            if time_str:
+                if time_str == '23:59':
+                    start_dt = f"{deadline_date}T23:00:00{tz_formatted}"
+                    end_dt = f"{deadline_date}T23:59:00{tz_formatted}"
+                else:
+                    start_dt = f"{deadline_date}T{time_str}:00{tz_formatted}"
+                    parts = time_str.split(':')
+                    h = min(23, int(parts[0]) + 1)
+                    end_dt = f"{deadline_date}T{h:02d}:{parts[1]}:00{tz_formatted}"
                 event_body = {
                     'summary': summary,
                     'description': desc,
