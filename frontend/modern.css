@@ -164,8 +164,10 @@
 .cal-nav-btn.next svg{transform:rotate(-90deg)}
 
 .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
-.calendar-day-header{text-align:center;font-size:11.5px;font-weight:700;color:#7e9185;text-transform:uppercase;letter-spacing:.5px;padding:8px 0}
+.calendar-days-bar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 0 6px;text-align:center}
+.calendar-day-header{text-align:center;font-size:11.5px;font-weight:700;color:#7e9185;text-transform:uppercase;letter-spacing:.5px;padding:6px 0}
 .calendar-day-header.weekend{color:#98a79e}
+.calendar-cells-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 
 .calendar-cell{min-height:92px;background:#fafcfb;border:1px solid #e7efe9;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:background .15s,border-color .15s,transform .12s}
 .calendar-cell:hover{background:#f0f6f2;border-color:#b4cebf;transform:translateY(-1px)}
@@ -187,18 +189,40 @@
 /* Calendar View - Fixed height to viewport without scrollbar */
 .deadlines-page.calendar-view-fixed {
   height: 100%;
+  max-height: 100%;
   overflow: hidden;
-  padding: 16px 32px 14px;
+  padding: 10px 24px 14px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 .deadlines-page.calendar-view-fixed .deadlines-top-bar {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.deadlines-page.calendar-view-fixed .deadlines-title-area {
+  margin: 0;
+}
+.deadlines-page.calendar-view-fixed .deadlines-title-area .eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  margin-bottom: 2px;
+}
+.deadlines-page.calendar-view-fixed .deadlines-title-area h1 {
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+.deadlines-page.calendar-view-fixed .deadlines-title-area p {
+  font-size: 11px;
+  margin-top: 2px;
 }
 .deadlines-page.calendar-view-fixed .deadlines-toolbar {
-  margin-bottom: 8px;
-  padding: 8px 12px;
+  margin-bottom: 6px;
+  padding: 5px 12px;
   flex-shrink: 0;
 }
 .deadlines-page.calendar-view-fixed .deadlines-body {
@@ -213,48 +237,60 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 12px 16px 12px;
+  padding: 10px 14px 12px;
   margin-bottom: 0;
   overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #dfe7e2;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.02);
 }
 .deadlines-page.calendar-view-fixed .calendar-header-bar {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   flex-shrink: 0;
 }
 .deadlines-page.calendar-view-fixed .calendar-month-title h2 {
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e352b;
 }
-.deadlines-page.calendar-view-fixed .calendar-grid {
+.deadlines-page.calendar-view-fixed .calendar-days-bar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  padding: 0 0 3px;
+  flex-shrink: 0;
+}
+.deadlines-page.calendar-view-fixed .calendar-day-header {
+  padding: 2px 0 3px;
+  font-size: 10.5px;
+}
+.deadlines-page.calendar-view-fixed .calendar-cells-grid {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: auto repeat(var(--cal-rows, 5), minmax(0, 1fr));
   gap: 5px;
   overflow: hidden;
-}
-.deadlines-page.calendar-view-fixed .calendar-day-header {
-  padding: 3px 0 5px;
-  font-size: 11px;
 }
 .deadlines-page.calendar-view-fixed .calendar-cell {
   min-height: 0;
   height: 100%;
-  padding: 4px 6px;
+  padding: 3px 5px;
   overflow: hidden;
-  gap: 3px;
+  gap: 2px;
   box-sizing: border-box;
 }
 .deadlines-page.calendar-view-fixed .cell-top {
   line-height: 1;
 }
 .deadlines-page.calendar-view-fixed .day-number {
-  font-size: 11px;
+  font-size: 10.5px;
 }
 .deadlines-page.calendar-view-fixed .today-badge {
-  width: 19px;
-  height: 19px;
-  font-size: 10.5px;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
 }
 .deadlines-page.calendar-view-fixed .cell-task-pills {
   flex: 1;
@@ -265,13 +301,13 @@
   overflow: hidden;
 }
 .deadlines-page.calendar-view-fixed .task-pill {
-  font-size: 10px;
-  padding: 1.5px 5px;
+  font-size: 9.5px;
+  padding: 1px 4px;
   line-height: 1.25;
 }
 .deadlines-page.calendar-view-fixed .task-pill-more {
-  font-size: 9.5px;
-  line-height: 1.2;
+  font-size: 9px;
+  line-height: 1.15;
 }
 
 /* List View */
@@ -770,23 +806,40 @@
 .gcal-avatar-circle svg{width:22px;height:22px}
 
 /* Credential Setup Modal: Spacious, Uncluttered, Elegant */
-.gcal-creds-modal-card{max-width:580px;width:100%;background:#fff;border-radius:20px;padding:36px;box-shadow:0 24px 64px rgba(18,45,33,.18);position:relative;animation:scale-in .18s ease;box-sizing:border-box}
+.gcal-creds-modal-card{max-width:640px;width:100%;max-height:88vh;overflow-y:auto;background:#fff;border-radius:22px;padding:32px 36px 28px;box-shadow:0 24px 64px rgba(18,45,33,.22);position:relative;animation:scale-in .18s ease;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#cbd5d0 transparent}
+.gcal-creds-modal-card::-webkit-scrollbar{width:6px}
+.gcal-creds-modal-card::-webkit-scrollbar-thumb{background:#cbd5d0;border-radius:10px}
+
+.gcal-fast-alt-box{background:#edf7f2;border:1px solid #c8e4d4;border-radius:14px;padding:16px 18px;margin-bottom:20px}
 .gcal-drop-zone{border:2px dashed #b9d4c4;border-radius:14px;padding:26px 20px;text-align:center;background:#f7faf8;cursor:pointer;transition:all .15s ease}
 .gcal-drop-zone:hover,.gcal-drop-zone.dragover{border-color:#18786c;background:#edf7f1}
 .gcal-drop-zone svg{width:32px;height:32px;color:#18786c;margin-bottom:8px}
 .gcal-drop-zone strong{display:block;font-size:13.5px;color:#1f372a}
 .gcal-drop-zone p{font-size:12px;color:#6a8274;margin:6px 0 0}
-.gcal-creds-guide{background:#f6f9f7;border:1px solid #dde7e1;border-radius:12px;padding:16px 20px;font-size:12.5px;color:#456050;line-height:1.7}
-.gcal-creds-guide ol{margin:8px 0 0;padding-left:20px}
-.gcal-creds-guide li{margin-bottom:4px}
+
+.gcal-creds-guide{background:#f6f9f7;border:1px solid #dde7e1;border-radius:14px;padding:18px 20px;font-size:12.5px;color:#456050;line-height:1.7}
+.gcal-guide-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #e7efe9;font-size:12.5px;color:#3b5346;line-height:1.6}
+.gcal-guide-step:last-child{border-bottom:0;padding-bottom:0}
+.gcal-guide-step .step-num{width:24px;height:24px;border-radius:50%;background:#e1efe7;color:#18786c;font-weight:700;font-size:11.5px;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
+.gcal-guide-step .step-content{flex:1;min-width:0}
 
 @media(max-width:800px){
- .deadlines-page{padding:20px 16px 40px}
+ .deadlines-page{padding:14px 12px 30px}
  .deadlines-top-bar{flex-direction:column}
  .deadline-card{grid-template-columns:auto 1fr;gap:10px}
  .card-actions-area{grid-column:1/-1;justify-content:flex-end;border-top:1px solid #edf2ee;padding-top:10px;margin-top:4px}
  .extracted-item-grid{grid-template-columns:1fr}
  .calendar-cell{min-height:70px;padding:4px}
+ .gcal-creds-modal-card{padding:24px 20px}
+}
+
+/* Ensure container has zero bottom padding on deadlines page so full height is used */
+.app .page:has(.deadlines-page),
+.app .page:has(.deadlines-page.calendar-view-fixed),
+#main-page:has(.deadlines-page),
+.page:has(.deadlines-page) {
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Hide floating recording dock on deadlines page */

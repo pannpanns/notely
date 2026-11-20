@@ -209,66 +209,121 @@ function renderGcalCredsModal() {
   const hasSecret = !!state.gcalStatus.hasCredentials;
 
   modalEl.innerHTML = `<div class="gcal-creds-modal-card" onclick="event.stopPropagation()">
-    <div class="space-between" style="align-items:flex-start;margin-bottom:16px">
+    <div class="space-between" style="align-items:flex-start;margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:14px">
         <div class="gcal-icon-badge">${icon('google')}</div>
         <div>
-          <h2 style="font-size:18.5px;font-weight:700;color:#183226;margin:0 0 3px">Konfigurasi Google OAuth 2.0</h2>
-          <span style="font-size:12.5px;color:#677d71">Otorisasi resmi Google Calendar untuk Aplikasi Notely</span>
+          <h2 style="font-size:19px;font-weight:700;color:#183226;margin:0 0 3px">Konfigurasi Kredensial Google Cloud</h2>
+          <span style="font-size:12.5px;color:#677d71">Otorisasi resmi Google Calendar untuk Pengembang &amp; Pengguna Lanjutan</span>
         </div>
       </div>
       <button class="dismiss" data-action="close-gcal-creds-modal" title="Tutup">×</button>
     </div>
 
-    <p style="font-size:13px;color:#576f62;line-height:1.6;margin:0 0 20px">
-      Google mewajibkan Client ID aplikasi agar Notely dapat membuka halaman login &amp; izin ("Izinkan") di peramban secara resmi dan aman.
-    </p>
+    <!-- Escape Hatch: Fast Web Mode (Recommended for general users!) -->
+    <div class="gcal-fast-alt-box">
+      <div style="display:flex;align-items:flex-start;gap:13px">
+        <div style="width:36px;height:36px;border-radius:10px;background:#d8ede1;color:#18786c;display:grid;place-items:center;flex-shrink:0">
+          ${icon('globe')}
+        </div>
+        <div style="flex:1">
+          <strong style="font-size:13.5px;color:#173e2d;display:block;margin-bottom:4px">
+            Merasa langkah teknis Google Cloud di bawah ini rumit?
+          </strong>
+          <p style="font-size:12px;color:#436653;line-height:1.55;margin:0 0 10px">
+            Anda <strong>TIDAK WAJIB</strong> membuat project developer atau mengisi formulir ini! Cukup gunakan <strong>Mode Cepat Web</strong>: jadwal otomatis terbuka di tab browser Google Calendar dengan data terisi tanpa setup akun pengembang apapun.
+          </p>
+          <button type="button" class="button accent small" data-action="choose-gcal-web-mode" style="height:32px;padding:0 14px;font-weight:600">
+            ✓ Aktifkan Mode Cepat Web Saja (1-Klik Tanpa Ribet)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin:22px 0 16px">
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
+      <span style="font-size:11px;font-weight:700;color:#7a9485;text-transform:uppercase;letter-spacing:0.6px">Atau Masukkan Kredensial Developer Google Cloud</span>
+      <div style="flex:1;height:1px;background:#e2ebe5"></div>
+    </div>
 
     <!-- Dropzone JSON -->
     <div class="gcal-drop-zone" id="gcal-creds-dropzone" onclick="document.getElementById('gcal-json-file-input').click()">
       ${icon('folder')}
       <strong>Tarik &amp; Lepas File Kredensial JSON di Sini</strong>
-      <p>atau klik untuk memilih file <code>client_secret_*.json</code> dari Google Cloud Console</p>
+      <p>atau klik untuk memilih file <code>client_secret_*.json</code> yang diunduh dari Google Cloud Console</p>
     </div>
     <input type="file" id="gcal-json-file-input" accept=".json" hidden style="display:none !important;" onchange="window.handleGcalJsonFileSelect(this)">
 
-    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px">
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 16px">
       <div style="flex:1;height:1px;background:#e2ebe5"></div>
-      <span style="font-size:11.5px;font-weight:600;color:#859a8d;text-transform:uppercase;letter-spacing:0.5px">atau masukkan manual</span>
+      <span style="font-size:11px;font-weight:600;color:#859a8d;text-transform:uppercase;letter-spacing:0.5px">atau salin manual</span>
       <div style="flex:1;height:1px;background:#e2ebe5"></div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:18px">
+    <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:20px">
       <div class="field" style="margin:0">
-        <label class="field-label" for="gcal-input-client-id" style="font-size:12.5px;margin-bottom:6px">OAuth Client ID (Desktop app) *</label>
-        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12.5px;height:38px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}" autocomplete="off" spellcheck="false">
+        <label class="field-label" for="gcal-input-client-id" style="font-size:13px;font-weight:600;color:#1e352a;margin-bottom:6px">OAuth Client ID (Desktop app) *</label>
+        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12.5px;height:40px;border-radius:9px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}" autocomplete="off" spellcheck="false">
       </div>
       <div class="field" style="margin:0">
-        <label class="field-label" for="gcal-input-client-secret" style="font-size:12.5px;margin-bottom:6px">Client Secret *</label>
-        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12.5px;height:38px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off" spellcheck="false">
-        <span class="field-help" style="font-size:11.5px;margin-top:4px">Client secret tersimpan aman di komputer lokal Anda.</span>
+        <label class="field-label" for="gcal-input-client-secret" style="font-size:13px;font-weight:600;color:#1e352a;margin-bottom:6px">Client Secret *</label>
+        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12.5px;height:40px;border-radius:9px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off" spellcheck="false">
+        <span class="field-help" style="font-size:11.5px;color:#74897d;margin-top:4px">Client secret tersimpan aman di komputer lokal Anda (tidak diunggah ke internet).</span>
       </div>
     </div>
 
-    <!-- Notice if Error 403 occurs in testing mode -->
-    <div style="background:#fefbf4;border:1px solid #f2deba;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#775618;line-height:1.55">
-      <strong>💡 Muncul Pesan "Akses diblokir / Error 403: access_denied"?</strong><br>
-      Jika project Google Cloud Anda berstatus <em>Testing</em>, tambahkan email akun Google Anda ke menu <strong>Google Auth Platform &gt; Audience &gt; Test users</strong> di Google Cloud Console. Atau gunakan <strong>Mode Cepat Web</strong> untuk langsung menjadwalkan tanpa perlu izin pengembang.
-    </div>
-
+    <!-- Step by Step Guide with Working Button -->
     <div class="gcal-creds-guide" style="margin-bottom:20px">
-      <strong>Panduan Ringkas Google Cloud Console:</strong>
-      <ol>
-        <li>Buka <a href="javascript:void(0)" onclick="openExternalUrl('https://console.cloud.google.com/apis/credentials')" style="color:#18786c;font-weight:600">Google Cloud Console: Credentials ↗</a></li>
-        <li>Buat Project baru, lalu aktifkan <strong>Google Calendar API</strong> di menu Library.</li>
-        <li>Klik <strong>+ Create Credentials</strong> &gt; <strong>OAuth client ID</strong> &gt; pilih jenis <strong>Desktop app</strong>.</li>
-        <li>Unduh file JSON dan tarik ke kotak di atas, atau salin Client ID &amp; Secret ke formulir ini.</li>
-      </ol>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <strong style="font-size:13px;color:#1b392b">Panduan Langkah Demi Langkah Google Cloud:</strong>
+        <button type="button" class="button small ghost" data-action="open-gcal-console-link" style="border:1px solid #c2dbcd;color:#18786c;font-weight:600;background:#fff;cursor:pointer">
+          ${icon('external')} Buka Google Cloud Console: Credentials ↗
+        </button>
+      </div>
+
+      <div class="gcal-guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          Buka <strong>Google Cloud Console</strong> dengan tombol di atas, lalu buat <strong>Project Baru</strong> (misal beri nama <em>Notely</em>).
+        </div>
+      </div>
+
+      <div class="gcal-guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          Buka menu <strong>APIs &amp; Services &gt; Library</strong>, cari dan aktifkan <strong>Google Calendar API</strong>.
+        </div>
+      </div>
+
+      <div class="gcal-guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          Buka menu <strong>Google Auth Platform &gt; Audience</strong> (OAuth consent screen):<br>
+          • Pada Audience, pilih <strong>External</strong>.<br>
+          • Masukkan email Google Anda pada bagian <strong>Test users</strong> (Wajib diisi agar Google tidak memblokir akses / Error 403).
+        </div>
+      </div>
+
+      <div class="gcal-guide-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          Buka menu <strong>Clients / Credentials</strong>: Klik <strong>+ Create Credentials &gt; OAuth client ID</strong>, pilih tipe <strong>Desktop app</strong>, lalu klik <strong>Create</strong>.
+        </div>
+      </div>
+
+      <div class="gcal-guide-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          Klik <strong>Download JSON</strong> dan tarik file tersebut ke kotak di atas, atau salin <strong>Client ID</strong> &amp; <strong>Client Secret</strong> ke formulir ini.
+        </div>
+      </div>
     </div>
 
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;padding-top:16px;border-top:1px solid #e9f0eb">
-      <button class="button ghost" data-action="close-gcal-creds-modal">Batal</button>
-      <button class="button accent" data-action="save-gcal-creds-and-auth" style="height:38px">${icon('google')} Simpan &amp; Lanjutkan Login</button>
+      <button class="button ghost" data-action="close-gcal-creds-modal" style="height:38px;padding:0 16px">Batal</button>
+      <button class="button accent" data-action="save-gcal-creds-and-auth" style="height:38px;padding:0 20px;font-weight:600">
+        ${icon('google')} Simpan &amp; Lanjutkan Login
+      </button>
     </div>
   </div>`;
 
@@ -473,6 +528,7 @@ function openExternalUrl(url) {
     window.open(url, '_blank');
   } catch (e) {}
 }
+window.openExternalUrl = openExternalUrl;
 
 // Start Google Calendar authentication via authentic Google OAuth 2.0
 async function startGcalAuth() {
@@ -897,6 +953,18 @@ function deadlinesPage() {
     applyDockScale();
   }
 
+  // Ensure calendar view fills full height without empty dock padding
+  const mainPage = document.getElementById('main-page');
+  if (mainPage) {
+    if (state.deadlineView === 'calendar') {
+      mainPage.style.paddingBottom = '0px';
+      mainPage.style.overflow = 'hidden';
+    } else {
+      mainPage.style.paddingBottom = '';
+      mainPage.style.overflow = '';
+    }
+  }
+
   const all = state.deadlines || [];
   const q = (state.deadlineSearch || '').toLowerCase().trim();
   const filtered = all.filter(d => {
@@ -1232,7 +1300,7 @@ function renderDeadlineCalendar() {
       </div>
     </div>
 
-    <div class="calendar-grid">
+    <div class="calendar-days-bar">
       <div class="calendar-day-header">Sen</div>
       <div class="calendar-day-header">Sel</div>
       <div class="calendar-day-header">Rab</div>
@@ -1240,7 +1308,9 @@ function renderDeadlineCalendar() {
       <div class="calendar-day-header">Jum</div>
       <div class="calendar-day-header weekend">Sab</div>
       <div class="calendar-day-header weekend">Min</div>
+    </div>
 
+    <div class="calendar-cells-grid" style="grid-template-rows: repeat(${numWeeks}, minmax(0, 1fr));">
       ${cells.map(c => {
         const tasks = deadlineMap.get(c.dateStr) || [];
         const hasTasks = tasks.length > 0;
@@ -1653,6 +1723,11 @@ handleClick = function(action, id) {
     closeGcalCredsModal();
     return;
   }
+  if (action === 'open-gcal-console-link') {
+    openExternalUrl('https://console.cloud.google.com/apis/credentials');
+    toast('Membuka Google Cloud Console di peramban…');
+    return;
+  }
   if (action === 'save-gcal-creds-and-auth') {
     saveGcalCredsAndAuth();
     return;
@@ -1665,6 +1740,7 @@ handleClick = function(action, id) {
     state.gcalStatus.preferredMode = 'web';
     updateGcalConfig({ preferredMode: 'web' });
     closeGcalModal();
+    closeGcalCredsModal();
     closeGcalUserGuideModal();
     toast('✓ Mode Cepat Web aktif! Tenggat tugas otomatis membuka Google Calendar di browser dengan data terisi.');
     refreshPage();
