@@ -56,6 +56,7 @@ fn launch_installer(app: &tauri::AppHandle, bytes: &[u8]) -> Result<(), String> 
         .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"])
         .arg(&helper).arg("-Installer").arg(&installer)
         .arg("-InstallDir").arg(directory).arg("-AppPid").arg(std::process::id().to_string())
+        .arg("-TargetExe").arg(&executable)
         .creation_flags(0x08000000).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }

@@ -13,29 +13,236 @@ async function api(path,payload){
  const obj=await res.json(); if(!res.ok||obj.error)throw Error(obj.error||'Server tidak merespons.'); return obj;
 }
 function alertError(error){toast(String(error?.message||error).slice(0,200));}
+
+function showStartupSplash(){
+ if(document.getElementById('startup-splash'))return;
+ const el=document.createElement('div');
+ el.id='startup-splash';
+ el.innerHTML=`
+  <div class="splash-container">
+    <div class="splash-logo-wrap">
+      <div class="splash-logo-glow"></div>
+      <img src="assets/notely.svg" alt="Notely" class="splash-logo">
+    </div>
+    <div class="splash-brand">
+      <span>Notely</span>
+      <span class="splash-version-tag">v${window.APP_VERSION||'1.2.9'}</span>
+    </div>
+    <div class="splash-subtitle">Aplikasi Catatan & Transkripsi AI Lokal</div>
+    
+    <div class="splash-card">
+      <div class="splash-status-text" id="splash-status-text">Memulai Notely...</div>
+      <div class="splash-substatus-text" id="splash-substatus-text">Menyiapkan komponen audio dan model AI</div>
+      
+      <div class="splash-progress-track">
+        <div class="splash-progress-fill indeterminate" id="splash-progress-bar"></div>
+      </div>
+      
+      <div class="splash-meta-row">
+        <span class="splash-hardware-badge" id="splash-gpu-chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+          <span id="splash-gpu-text">Memeriksa perangkat audio & GPU...</span>
+        </span>
+      </div>
+
+      <div class="splash-actions" id="splash-actions" style="display:none;">
+        <button class="button" id="splash-skip-btn" type="button">Lanjutkan ke Beranda</button>
+        <button class="button accent" id="splash-retry-btn" type="button">Coba Lagi</button>
+      </div>
+    </div>
+  </div>`;
+ document.body.appendChild(el);
+ document.getElementById('splash-skip-btn')?.addEventListener('click',hideStartupSplash);
+ document.getElementById('splash-retry-btn')?.addEventListener('click',()=>{
+   const act=document.getElementById('splash-actions');
+   if(act)act.style.display='none';
+   const bar=document.getElementById('splash-progress-bar');
+   if(bar){bar.className='splash-progress-fill indeterminate';bar.style.width='';}
+   startup();
+ });
+}
+
+function updateSplash(title,subtitle,percent,gpuText){
+ const t=document.getElementById('splash-status-text');
+ const s=document.getElementById('splash-substatus-text');
+ const b=document.getElementById('splash-progress-bar');
+ const g=document.getElementById('splash-gpu-text');
+ if(t&&title)t.textContent=title;
+ if(s&&subtitle)s.textContent=subtitle;
+ if(b){
+   if(typeof percent==='number'){
+     b.className='splash-progress-fill';
+     b.style.width=Math.max(0,Math.min(100,percent))+'%';
+   }else{
+     b.className='splash-progress-fill indeterminate';
+     b.style.width='';
+   }
+ }
+ if(g&&gpuText)g.textContent=gpuText;
+}
+
+function showSplashActions(errorMsg){
+ const s=document.getElementById('splash-status-text');
+ const sub=document.getElementById('splash-substatus-text');
+ const act=document.getElementById('splash-actions');
+ const bar=document.getElementById('splash-progress-bar');
+ if(s)s.textContent='Penyiapan Belum Selesai';
+ if(sub&&errorMsg)sub.textContent=errorMsg;
+ if(bar){bar.className='splash-progress-fill';bar.style.width='100%';bar.style.background='#e28834';}
+ if(act)act.style.display='flex';
+}
+
+function hideStartupSplash(){
+ const splash=document.getElementById('startup-splash');
+ if(!splash)return;
+ splash.classList.add('splash-fade-out');
+ setTimeout(()=>splash.remove(),400);
+}
+
+async function prepareModelOnStartup(gpuBadge){
+ try{
+  if(!await ensureModelStorage()){
+   hideStartupSplash();
+   return;
+  }
+  let targetKey=state.settings.model||(engine.hasNvidia?'maleo-turbo':'maleo-small');
+  if(!choiceIds[targetKey])targetKey=engine.hasNvidia?'maleo-turbo':'maleo-small';
+  state.settings.model=targetKey;
+  persistSettings();
+
+  engine.preferCuda=engine.hasNvidia;
+  const targetLabel=choiceIds[targetKey]||'Indonesia Turbo';
+  const gpuMode=engine.preferCuda?'Otomatis':'CPU';
+
+  updateSplash(`Memuat ${targetLabel}...`,'Menyiapkan bobot AI ke memori...',null,gpuBadge);
+
+  if(engine.preferCuda&&!engine.cudaDownloaded&&engine.hasNvidia){
+   try{
+    updateSplash('Menyiapkan pustaka CUDA NVIDIA...','Mengunduh komponen akselerasi GPU resmi...',null,gpuBadge);
+    const cj=await api('/cuda/prepare',{});
+    engine.cudaJob=cj.job;
+    for(let i=0;i<120;i++){
+     await new Promise(r=>setTimeout(r,1000));
+     const s=await api('/status?since='+engine.since);
+     if(s.jobs?.[cj.job]?.status==='done'){engine.cudaJob='';engine.cudaDownloaded=true;break;}
+     if(s.jobs?.[cj.job]?.status==='error'){engine.cudaJob='';break;}
+     if(s.jobs?.[cj.job]?.message){updateSplash('Menyiapkan CUDA NVIDIA...',s.jobs[cj.job].message,null,gpuBadge);}
+    }
+   }catch(e){console.warn('CUDA auto-prep skipped:',e);}
+  }
+
+  const res=await api('/model/prepare',{model:choiceIds[targetKey],gpu:gpuMode});
+  engine.currentJob=res.job;
+
+  let attempts=0;
+  const maxAttempts=180;
+  while(attempts<maxAttempts){
+   await new Promise(r=>setTimeout(r,400));
+   attempts++;
+   const s=await api('/status?since='+engine.since);
+   engine.since=s.latest||engine.since;
+   const job=s.jobs?.[res.job];
+
+   if(engine.modelReady||job?.status==='done'){
+    engine.currentJob='';
+    engine.modelReady=true;
+    safeStore.set('notelySetupComplete',true);
+    window.__notelyStatus='Model siap · '+(job?.result?.backend||'');
+    updateSplash('Model AI Siap Digunakan!',`${targetLabel} aktif di memori. Membuka Notely...`,100,gpuBadge);
+    await new Promise(r=>setTimeout(r,350));
+    hideStartupSplash();
+    return;
+   }
+   if(job?.status==='running'){
+    const msg=job.message||'Memuat model ke memori...';
+    updateSplash(`Memuat ${targetLabel}...`,msg,null,gpuBadge);
+   }else if(job?.status==='error'){
+    engine.currentJob='';
+    console.warn('Model prep error:',job.message);
+    if(gpuMode!=='CPU'){
+     updateSplash('Beralih ke mode CPU...','GPU tidak merespons, beralih ke mode CPU...',null,'Mode CPU');
+     try{
+      const cpuKey='maleo-small';
+      state.settings.model=cpuKey;
+      persistSettings();
+      const cpuRes=await api('/model/prepare',{model:choiceIds[cpuKey],gpu:'CPU'});
+      engine.currentJob=cpuRes.job;
+      res.job=cpuRes.job;
+      continue;
+     }catch(e2){
+      showSplashActions('Persiapan model belum berhasil: '+(job.message||'Koneksi jaringan diperlukan'));
+      return;
+     }
+    }else{
+     showSplashActions('Gagal menyiapkan model: '+job.message);
+     return;
+    }
+   }
+  }
+  showSplashActions('Waktu tunggu habis. Anda dapat membuka beranda dan menyiapkan model nanti.');
+ }catch(err){
+  console.warn('Startup model prepare error:',err);
+  showSplashActions('Model belum siap: '+err.message);
+ }
+}
+
 async function startup(){
- if(!native()) {window.__notelyStatus='Mode pratinjau — backend desktop tidak tersedia';render();return;}
+ showStartupSplash();
+ if(!native()) {
+  updateSplash('Mode Pratinjau','Backend desktop tidak tersedia di peramban web.',100);
+  window.__notelyStatus='Mode pratinjau — backend desktop tidak tersedia';
+  setTimeout(hideStartupSplash,600);
+  render();
+  return;
+ }
+
+ updateSplash('Menghubungkan mesin desktop...','Memulai koneksi backend lokal...',15);
  let data;for(let attempt=0;attempt<30;attempt++){
   try{data=await native()('bridge_connection');if(data?.url&&data?.token)break;}catch{}
   await new Promise(r=>setTimeout(r,400));
  }
- if(!data?.url) {window.__notelyStatus='Backend tidak terhubung';render();return;}
+ if(!data?.url) {
+  window.__notelyStatus='Backend tidak terhubung';
+  showSplashActions('Backend desktop Notely tidak dapat dihubungi. Coba jalankan ulang aplikasi.');
+  render();
+  return;
+ }
  engine.base=data.url;engine.token=data.token;engine.ready=true;
+
+ updateSplash('Memeriksa status mesin...','Menunggu server transkripsi lokal siap...',30);
  for(let attempt=0;attempt<50;attempt++){
-  try{await api('/status');break;}catch(e){if(attempt===49){engine.ready=false;window.__notelyStatus='Backend gagal memulai';render();return;}await new Promise(r=>setTimeout(r,500));}
+  try{await api('/status');break;}catch(e){
+   if(attempt===49){
+    engine.ready=false;
+    window.__notelyStatus='Backend gagal memulai';
+    showSplashActions('Backend lokal gagal merespons. Tutup dan buka kembali Notely.');
+    render();
+    return;
+   }
+   await new Promise(r=>setTimeout(r,500));
+  }
  }
  window.__notelyStatus='Mesin lokal terhubung';
- try{const saved=await api('/preferences',{});state.savedKeys=saved.keys||{};state.apiKey=state.savedKeys[state.settings.provider]||'';state.modelStorage=saved.modelRoot||'';}catch(e){alertError(e);}
- if(!safeStore.get('notelySetupComplete'))showWizard();
+
+ updateSplash('Memeriksa preferensi...','Memuat pengaturan model dan folder...',45);
+ try{const saved=await api('/preferences',{});state.savedKeys=saved.keys||{};state.apiKey=state.savedKeys[state.settings.provider]||'';state.modelStorage=saved.modelRoot||'';}catch(e){console.warn(e);}
+
+ updateSplash('Memeriksa perangkat audio & GPU...','Mendeteksi mikrofon, speaker, dan akselerasi grafis...',60);
  await Promise.allSettled([loadSessions(),findDevices(),detectGpu()]);engine.deviceChecked=true;render();
  const welcomeStart=document.getElementById('wizard-start');if(welcomeStart){welcomeStart.disabled=false;welcomeStart.textContent='Mulai persiapan →';}
  const gpuChoice=document.getElementById('wizard-use-cuda');if(gpuChoice){gpuChoice.disabled=!engine.hasNvidia;gpuChoice.checked=engine.hasNvidia;}
  const gpuNote=document.getElementById('wizard-gpu-note');if(gpuNote)gpuNote.textContent=window.__notelyGpuStatus||'';
+
+ const gpuBadge=engine.hasNvidia?`NVIDIA GPU (${engine.gpu?'CUDA Siap':'Terdeteksi'})`:'Mode CPU (Hemat Daya)';
+ updateSplash('Menyiapkan model AI transkripsi...','Memuat model ke memori agar siap merekam seketika...',null,gpuBadge);
+
  if(typeof loadLocalCatalog==='function')loadLocalCatalog();
  if(typeof loadTranscriptionSizes==='function')loadTranscriptionSizes();
  setInterval(poll,500);
- if(!safeStore.get('notelySetupComplete')) showWizard();else activateSavedModel();
+
+ await prepareModelOnStartup(gpuBadge);
 }
+
 async function activateSavedModel(){
  try{if(!await ensureModelStorage())return;const j=await api('/model/prepare',{model:choiceIds[state.settings.model],gpu:engine.preferCuda?'Otomatis':'CPU'});engine.currentJob=j.job;
   window.__notelyStatus='Memuat model pilihan terakhir…';
@@ -184,7 +391,11 @@ function updateLiveTranscript(m){
 async function startRecording(){
  if(!engine.ready)return alertError('Aplikasi belum siap');
  if(engine.state!=='idle'||state.recordStarting)return toast('Perekaman sebelumnya belum selesai.');
- if(!engine.modelReady)return showWizard();
+ if(!engine.modelReady){
+  toast('Menyiapkan model AI transkripsi... Mohon tunggu sejenak.');
+  try{await activateSavedModel();}catch(e){showWizard();}
+  return;
+ }
  if(!engine.selectedSpeaker)return toast('Speaker belum tersedia. Buka Pengaturan → Rekaman.');
  state.recordStarting=true;
  try{
@@ -228,7 +439,11 @@ async function generateRealSummary(){
  await confirmRealSummary();
 }
 async function reprocessAudio(){
- if(!engine.modelReady)return showWizard();
+ if(!engine.modelReady){
+  toast('Menyiapkan model AI transkripsi... Mohon tunggu sejenak.');
+  try{await activateSavedModel();}catch(e){showWizard();}
+  return;
+ }
  const m=getMeeting();if(!m?.id||m.id==='empty')return;
  try{const j=await api('/reprocess',{session:m.id,model:choiceIds[state.settings.model],gpu:engine.preferCuda?'Otomatis':'CPU'});engine.transcribeJob=j.job;toast('Memproses audio dengan model yang dipilih…');}
  catch(e){alertError(e);}
