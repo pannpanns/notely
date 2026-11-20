@@ -21,6 +21,15 @@ fn stop_engine(app: &tauri::AppHandle) {
 }
 
 #[tauri::command]
+fn open_browser_url(url: String) -> Result<(), String> {
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL tidak valid.".to_string());
+    }
+    std::process::Command::new("explorer.exe").arg(&url).spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 fn open_provider_help(provider: String) -> Result<(), String> {
     let url = match provider.as_str() {
         "gemini" => "https://aistudio.google.com/apikey",
@@ -85,7 +94,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move { while rx.recv().await.is_some() {} });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![bridge_connection, set_busy_guard, open_storage, choose_model_folder, open_provider_help, updates::check_update, updates::install_update])
+        .invoke_handler(tauri::generate_handler![bridge_connection, set_busy_guard, open_storage, choose_model_folder, open_provider_help, open_browser_url, updates::check_update, updates::install_update])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if let Some(busy) = window.try_state::<BusyGuard>() {

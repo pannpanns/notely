@@ -434,11 +434,20 @@ class Handler(BaseHTTPRequestHandler):
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
             elif path=='/open-url':
-                import webbrowser
+                import subprocess, sys, os
                 target_url=str(q.get('url',[''])[0]).strip()
                 if target_url.startswith(('http://','https://')):
-                    try:webbrowser.open(target_url)
-                    except Exception:pass
+                    try:
+                        if sys.platform == 'win32':
+                            os.startfile(target_url)
+                        else:
+                            import webbrowser
+                            webbrowser.open(target_url)
+                    except Exception:
+                        try:
+                            subprocess.Popen(['explorer.exe', target_url])
+                        except Exception:
+                            pass
                 out={'opened':True}
             elif path=='/preferences':
                 out={**preferences.public_settings(),'storageReady':svc.storage_ready,'storageError':svc.storage_error}
@@ -654,13 +663,20 @@ class Handler(BaseHTTPRequestHandler):
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
             elif path=='/open-url':
-                import webbrowser
+                import subprocess, sys, os
                 target_url=str(args.get('url','')).strip()
                 if target_url.startswith(('http://','https://')):
                     try:
-                        webbrowser.open(target_url)
+                        if sys.platform == 'win32':
+                            os.startfile(target_url)
+                        else:
+                            import webbrowser
+                            webbrowser.open(target_url)
                     except Exception:
-                        pass
+                        try:
+                            subprocess.Popen(['explorer.exe', target_url])
+                        except Exception:
+                            pass
                 out={'opened':True}
             elif path=='/deadlines':
                 from deadlines import load_deadlines

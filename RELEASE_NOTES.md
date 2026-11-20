@@ -1,3 +1,10 @@
+Pembaruan Notely v1.2.5:
+• Penghapusan Dropdown Riwayat Input (No Browser Autocomplete): Menambahkan proteksi atribut autofill pada seluruh formulir penambahan tugas dan pencarian, mencegah munculnya pop-up dropdown hitam riwayat browser yang menutupi antarmuka.
+• Peluncuran Andal Mode Cepat Google Calendar (Auto Open Chrome): Memperbaiki mekanisme peluncuran peramban web pada Windows menggunakan native handler sehingga Chrome langsung terbuka ke halaman pembuatan acara Google Calendar dengan data tugas terisi lengkap.
+• Dialog Konfirmasi Hapus Tugas & Solusi 1-Klik: Menghilangkan bug klik 2x saat menghapus tugas dan menambahkan dialog konfirmasi yang aman dan rapi sebelum tugas dihapus permanen.
+• Tampilan Kalender Terkunci (Fixed Viewport - No Scroll): Menyesuaikan kisi kalender bulanan agar pas 100% pada tinggi layar laptop tanpa memunculkan bilah gulir vertikal (scrollbar), memberikan pengalaman kalender desktop yang solid dan rapi.
+• Kerapian Dialog Kredensial OAuth & Panduan Error 403: Menyembunyikan tombol default file picker bawaan peramban pada area drag-and-drop JSON dan menambahkan panduan penambahan Test Users di Google Cloud Console untuk mengatasi Google Error 403 access_denied.
+
 Pembaruan Notely v1.2.4:
 • Solusi Ganda Google Calendar (Mode Cepat Web & Mode Otomatis OAuth): Pengguna kini bebas memilih cara integrasi yang diinginkan:
   1. Mode Cepat via Web (⭐ Paling Mudah & Nol Setup): Tanpa izin akun atau kredensial developer, Notely langsung membuka Google Calendar di peramban dengan formulir judul dan tanggal tugas yang sudah otomatis terisi lengkap. Pengguna tinggal klik 'Simpan'.

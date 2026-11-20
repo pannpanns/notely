@@ -230,27 +230,33 @@ function renderGcalCredsModal() {
       <strong>Tarik &amp; Lepas File Kredensial JSON di Sini</strong>
       <p>atau klik untuk memilih file <code>client_secret_*.json</code> dari Google Cloud Console</p>
     </div>
-    <input type="file" id="gcal-json-file-input" accept=".json" style="position:fixed;top:-1000px;left:-1000px;opacity:0;pointer-events:none;width:0;height:0" onchange="window.handleGcalJsonFileSelect(this)">
+    <input type="file" id="gcal-json-file-input" accept=".json" hidden style="display:none !important;" onchange="window.handleGcalJsonFileSelect(this)">
 
-    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 16px">
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px">
       <div style="flex:1;height:1px;background:#e2ebe5"></div>
       <span style="font-size:11.5px;font-weight:600;color:#859a8d;text-transform:uppercase;letter-spacing:0.5px">atau masukkan manual</span>
       <div style="flex:1;height:1px;background:#e2ebe5"></div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
+    <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:18px">
       <div class="field" style="margin:0">
         <label class="field-label" for="gcal-input-client-id" style="font-size:12.5px;margin-bottom:6px">OAuth Client ID (Desktop app) *</label>
-        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12.5px;height:38px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}">
+        <input type="text" id="gcal-input-client-id" class="textbox" style="font-size:12.5px;height:38px" placeholder="Contoh: 123456789-abcdef.apps.googleusercontent.com" value="${esc(clientId)}" autocomplete="off" spellcheck="false">
       </div>
       <div class="field" style="margin:0">
         <label class="field-label" for="gcal-input-client-secret" style="font-size:12.5px;margin-bottom:6px">Client Secret *</label>
-        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12.5px;height:38px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off">
+        <input type="password" id="gcal-input-client-secret" class="textbox" style="font-size:12.5px;height:38px" placeholder="${hasSecret ? '••••••••••••••••••••••••••••••••' : 'Contoh: GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx'}" autocomplete="off" spellcheck="false">
         <span class="field-help" style="font-size:11.5px;margin-top:4px">Client secret tersimpan aman di komputer lokal Anda.</span>
       </div>
     </div>
 
-    <div class="gcal-creds-guide" style="margin-bottom:24px">
+    <!-- Notice if Error 403 occurs in testing mode -->
+    <div style="background:#fefbf4;border:1px solid #f2deba;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#775618;line-height:1.55">
+      <strong>💡 Muncul Pesan "Akses diblokir / Error 403: access_denied"?</strong><br>
+      Jika project Google Cloud Anda berstatus <em>Testing</em>, tambahkan email akun Google Anda ke menu <strong>Google Auth Platform &gt; Audience &gt; Test users</strong> di Google Cloud Console. Atau gunakan <strong>Mode Cepat Web</strong> untuk langsung menjadwalkan tanpa perlu izin pengembang.
+    </div>
+
+    <div class="gcal-creds-guide" style="margin-bottom:20px">
       <strong>Panduan Ringkas Google Cloud Console:</strong>
       <ol>
         <li>Buka <a href="javascript:void(0)" onclick="openExternalUrl('https://console.cloud.google.com/apis/credentials')" style="color:#18786c;font-weight:600">Google Cloud Console: Credentials ↗</a></li>
@@ -448,9 +454,24 @@ function renderGcalModal() {
 
 function openExternalUrl(url) {
   if (!url) return;
+  // 1. Try Tauri native explorer invoke first
+  try {
+    if (window.__TAURI__?.core?.invoke) {
+      window.__TAURI__.core.invoke('open_browser_url', { url }).catch(() => {
+        if (typeof api === 'function' && engine.ready) {
+          api('/open-url', { url }).catch(() => {});
+        }
+      });
+      return;
+    }
+  } catch (e) {}
+
+  // 2. Python backend /open-url
   if (typeof api === 'function' && engine.ready) {
     api('/open-url', { url }).catch(() => {});
   }
+
+  // 3. Browser fallback
   try {
     window.open(url, '_blank');
   } catch (e) {}
@@ -564,18 +585,74 @@ async function updateGcalConfig(updates) {
   }
 }
 
+// Helper to build direct Google Calendar event creation URL template
+function buildGcalWebUrl(item) {
+  const title = item.title || 'Tenggat Tugas';
+  const course = item.course || '';
+  const summary = course ? `${title} [${course}]` : title;
+  const desc = `${item.description || ''}\n\nMata Kuliah / Kategori: ${course || '-'}\nPrioritas: ${(item.priority || 'sedang').toUpperCase()}\n\n[Dibuat & Dikelola via Notely Desktop]`.trim();
+
+  const deadlineDate = item.deadline || new Date().toISOString().slice(0, 10);
+  const timeStr = item.time || '23:59';
+  const cleanDate = deadlineDate.replace(/-/g, '');
+
+  let datesParam;
+  if (timeStr && timeStr !== '23:59') {
+    const cleanTime = timeStr.replace(/:/g, '') + '00';
+    const parts = timeStr.split(':');
+    const h = Math.min(23, parseInt(parts[0], 10) + 1);
+    const endTime = String(h).padStart(2, '0') + parts[1] + '00';
+    datesParam = `${cleanDate}T${cleanTime}/${cleanDate}T${endTime}`;
+  } else {
+    const dt = new Date(deadlineDate + 'T00:00:00');
+    dt.setDate(dt.getDate() + 1);
+    const nextCleanDate = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
+    datesParam = `${cleanDate}/${nextCleanDate}`;
+  }
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(summary)}&dates=${datesParam}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(course)}`;
+}
+
 // Sync single event directly to Google Calendar via API or direct web sync
 async function syncSingleDeadlineGcal(item, autoOpen = true) {
-  if (!state.gcalStatus.connected) {
+  const isWebMode = state.gcalStatus.preferredMode === 'web' || !state.gcalStatus.connected;
+
+  // If user explicitly configured OAuth mode and is NOT connected, show connect modal
+  if (!isWebMode && !state.gcalStatus.connected) {
     openGcalConnectModal(true);
     return;
   }
 
   try {
-    toast(`Menyinkronkan "${item.title}" ke Google Calendar…`);
     let finalItem = item;
     let targetLink = item.gcal_link || '';
 
+    // Direct Web Mode: immediately build template link, save & launch Chrome
+    if (isWebMode) {
+      targetLink = buildGcalWebUrl(item);
+      item.gcal_link = targetLink;
+      item.gcal_event_id = item.gcal_event_id || ('direct_' + Date.now());
+      item.gcal_synced_at = new Date().toISOString();
+
+      const idx = state.deadlines.findIndex(d => d.id === item.id);
+      if (idx !== -1) state.deadlines[idx] = item;
+      safeStore.set('notelyDeadlines', state.deadlines);
+      if (typeof api === 'function' && engine.ready) {
+        api('/deadlines/save', { item }).catch(() => {});
+      }
+      refreshPage();
+
+      if (autoOpen && targetLink) {
+        openExternalUrl(targetLink);
+        toast(`📅 Membuka Google Calendar di peramban — Klik "Simpan" untuk memasukkan tugas!`);
+      } else {
+        toast(`✓ Jadwal "${item.title}" tersimpan untuk Google Calendar.`);
+      }
+      return;
+    }
+
+    // Official OAuth background API sync
+    toast(`Menyinkronkan "${item.title}" ke Google Calendar…`);
     if (typeof api === 'function' && engine.ready) {
       const res = await api('/gcalendar/sync-event', { id: item.id, item });
       if (res.item) {
@@ -586,18 +663,7 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
         refreshPage();
       }
       targetLink = res.gcal?.htmlLink || finalItem.gcal_link || targetLink;
-
-      const isOauth = state.gcalStatus.mode === 'oauth' || (res.gcal?.gcal_event_id && !String(res.gcal.gcal_event_id).startsWith('direct_'));
-      if (isOauth) {
-        toast(`✓ "${item.title}" berhasil disinkronkan langsung ke Google Calendar Anda!`);
-      } else {
-        if (autoOpen && targetLink) {
-          openExternalUrl(targetLink);
-          toast(`📅 Google Calendar dibuka — Klik "Simpan" di Google Calendar untuk memasukkan tugas ini!`);
-        } else {
-          toast(`✓ Jadwal "${item.title}" tersimpan untuk Google Calendar.`);
-        }
-      }
+      toast(`✓ "${item.title}" berhasil disinkronkan langsung ke Google Calendar Anda!`);
     } else {
       item.gcal_event_id = 'demo_event_' + Date.now();
       item.gcal_link = 'https://calendar.google.com';
@@ -612,6 +678,7 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
     alertError(err);
   }
 }
+
 
 // Sync all active deadlines directly to Google Calendar via API
 async function syncAllDeadlinesGcal() {
@@ -710,13 +777,36 @@ async function persistDeadlinesBatch(items) {
 
 // Delete deadline
 async function removeDeadline(id) {
+  state.deadlines = state.deadlines.filter(d => d.id !== id);
+  safeStore.set('notelyDeadlines', state.deadlines);
   try {
     if (typeof api === 'function' && engine.ready) {
       await api('/deadlines/delete', { id });
     }
   } catch (e) {}
-  state.deadlines = state.deadlines.filter(d => d.id !== id);
-  safeStore.set('notelyDeadlines', state.deadlines);
+}
+
+// Confirmation dialog for deleting a task (instant single-click + modal safety)
+function promptDeleteDeadline(id) {
+  const item = state.deadlines.find(d => d.id === id);
+  const title = item ? item.title : 'tugas ini';
+
+  const content = `
+    <div style="font-size:13.5px;color:#435c4e;line-height:1.6;padding:4px 0;">
+      <p style="margin:0 0 12px;">Apakah Anda yakin ingin menghapus tugas <strong>"${esc(title)}"</strong>?</p>
+      <div style="background:#fdf2f2;border:1px solid #f9d5d8;border-radius:10px;padding:10px 14px;color:#ba3939;font-size:12px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px">⚠️</span>
+        <span>Tugas yang telah dihapus tidak dapat dipulihkan kembali.</span>
+      </div>
+    </div>
+  `;
+
+  window.__deadlineIdToDelete = id;
+
+  modal('Hapus Tenggat Tugas', content, [
+    ['Batal', 'close-modal', 'ghost'],
+    ['Hapus Tugas', 'confirm-delete-deadline', 'danger']
+  ]);
 }
 
 // Toggle completion status
@@ -830,7 +920,8 @@ function deadlinesPage() {
   // Privacy setting: User can hide/show the status indicator in settings
   const showIndicator = state.settings.showGcalIndicator !== false;
 
-  return `<div class="deadlines-page">
+  const isCalView = state.deadlineView === 'calendar';
+  return `<div class="deadlines-page ${isCalView ? 'calendar-view-fixed' : ''}">
     <div class="deadlines-top-bar">
       <div class="deadlines-title-area">
         <span class="eyebrow">AGENDA & MANAJEMEN TUGAS</span>
@@ -1153,7 +1244,9 @@ function renderDeadlineCalendar() {
     deadlineMap.get(d.deadline).push(d);
   }
 
-  return `<div class="calendar-wrapper">
+  const numWeeks = Math.ceil(cells.length / 7) || 5;
+
+  return `<div class="calendar-wrapper" style="--cal-rows: ${numWeeks};">
     <div class="calendar-header-bar">
       <div class="calendar-month-title">
         <h2>${months[curMonth]} ${curYear}</h2>
@@ -1258,6 +1351,10 @@ function renderDeadlineList(tasks) {
             <button class="button small accent-soft" data-action="sync-single-gcal" data-id="${esc(d.id)}" title="Kirim langsung ke Google Calendar di latar belakang">
               ${icon('google')} Sync Kalender
             </button>
+          ` : (state.gcalStatus.preferredMode === 'web' || !state.gcalStatus.hasCredentials) ? `
+            <button class="button small accent-soft" data-action="sync-single-gcal" data-id="${esc(d.id)}" title="Buka dan simpan langsung di Google Calendar">
+              ${icon('google')} Buka di Kalender
+            </button>
           ` : `
             <button class="button small google-btn" data-action="open-gcal-connect-modal" title="Sambungkan Google Calendar untuk sinkronisasi otomatis">
               ${icon('google')} Sambungkan Kalender
@@ -1311,7 +1408,7 @@ function renderDateDetailsModal(dateStr) {
               ` : `
                 <button class="button small accent-soft icon-only" data-action="sync-single-gcal" data-id="${esc(t.id)}" title="Simpan ke Google Calendar">${icon('google')}</button>
               `}
-              <button class="button small ghost icon-only" data-action="delete-deadline" data-id="${esc(t.id)}" title="Hapus">${icon('trash')}</button>
+              <button class="button small ghost icon-only danger-hover" data-action="delete-deadline" data-id="${esc(t.id)}" title="Hapus">${icon('trash')}</button>
             </div>
           </div>`;
         }).join('') : `<p class="no-tasks-hint">Belum ada tugas pada tanggal ini.</p>`}
@@ -1411,7 +1508,7 @@ function renderAiModal() {
         <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
         <div style="margin-top:12px">
           <label class="field-label" for="ai-extra-prompt">Catatan / Instruksi tambahan (opsional):</label>
-          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil hanya tugas minggu ini' atau 'Tandai prioritas tinggi'..." value="${esc(state.deadlineAiPrompt)}">
+          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil hanya tugas minggu ini' atau 'Tandai prioritas tinggi'..." value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
         </div>
       </div>`}
 
@@ -1432,11 +1529,11 @@ function renderAiModal() {
           ${state.extractedPreview.map((item, idx) => `
             <div class="extracted-item-card">
               <div class="space-between">
-                <input type="text" class="textbox item-edit-title" data-idx="${idx}" data-field="title" value="${esc(item.title)}">
+                <input type="text" class="textbox item-edit-title" data-idx="${idx}" data-field="title" value="${esc(item.title)}" autocomplete="off" spellcheck="false">
                 <span class="prio-badge prio-${item.priority || 'sedang'}">${esc(item.priority || 'sedang')}</span>
               </div>
               <div class="extracted-item-grid">
-                <div><small>MATA KULIAH</small><input type="text" class="textbox small" data-idx="${idx}" data-field="course" value="${esc(item.course || 'Umum')}"></div>
+                <div><small>MATA KULIAH</small><input type="text" class="textbox small" data-idx="${idx}" data-field="course" value="${esc(item.course || 'Umum')}" autocomplete="off" spellcheck="false"></div>
                 <div><small>TANGGAL</small><input type="date" class="textbox small" data-idx="${idx}" data-field="deadline" value="${esc(item.deadline)}"></div>
                 <div><small>JAM</small><input type="time" class="textbox small" data-idx="${idx}" data-field="time" value="${esc(item.time || '23:59')}"></div>
               </div>
@@ -1487,15 +1584,15 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
     status: 'pending'
   };
 
-  const content = `<div class="manual-deadline-form" style="display:flex;flex-direction:column;gap:14px;">
+  const content = `<form class="manual-deadline-form" autocomplete="off" onsubmit="event.preventDefault(); return false;" style="display:flex;flex-direction:column;gap:14px;">
     <div class="field">
       <label class="field-label" for="manual-dl-title">Nama Tugas / Judul *</label>
-      <input type="text" id="manual-dl-title" class="textbox" placeholder="Misal: Tugas Akhir PBO, Laporan Praktikum" value="${esc(item.title)}">
+      <input type="text" id="manual-dl-title" class="textbox" placeholder="Misal: Tugas Akhir PBO, Laporan Praktikum" value="${esc(item.title)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other">
     </div>
     <div class="split-field">
       <div class="field">
         <label class="field-label" for="manual-dl-course">Mata Kuliah / Kategori</label>
-        <input type="text" id="manual-dl-course" class="textbox" placeholder="Misal: PBO, Basis Data" value="${esc(item.course)}">
+        <input type="text" id="manual-dl-course" class="textbox" placeholder="Misal: PBO, Basis Data" value="${esc(item.course)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other">
       </div>
       <div class="field">
         <label class="field-label" for="manual-dl-prio">Prioritas</label>
@@ -1509,25 +1606,25 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
     <div class="split-field">
       <div class="field">
         <label class="field-label" for="manual-dl-date">Tanggal Tenggat (Deadline) *</label>
-        <input type="date" id="manual-dl-date" class="textbox" value="${esc(item.deadline)}">
+        <input type="date" id="manual-dl-date" class="textbox" value="${esc(item.deadline)}" autocomplete="off">
       </div>
       <div class="field">
         <label class="field-label" for="manual-dl-time">Jam Pengumpulan</label>
-        <input type="time" id="manual-dl-time" class="textbox" value="${esc(item.time || '23:59')}">
+        <input type="time" id="manual-dl-time" class="textbox" value="${esc(item.time || '23:59')}" autocomplete="off">
       </div>
     </div>
     <div class="field">
       <label class="field-label" for="manual-dl-desc">Deskripsi & Catatan Tambahan</label>
-      <textarea id="manual-dl-desc" class="textbox" style="height:75px;resize:vertical" placeholder="Format file PDF, link pengumpulan, atau catatan penting...">${esc(item.description)}</textarea>
+      <textarea id="manual-dl-desc" class="textbox" style="height:75px;resize:vertical" placeholder="Format file PDF, link pengumpulan, atau catatan penting..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">${esc(item.description)}</textarea>
     </div>
     <label class="manual-form-gcal-sync">
-      <input type="checkbox" id="manual-sync-gcal" ${state.gcalStatus.connected ? 'checked' : ''}>
+      <input type="checkbox" id="manual-sync-gcal" ${state.gcalStatus.connected || state.gcalStatus.preferredMode === 'web' ? 'checked' : ''}>
       <span>Simpan & buka jadwal di Google Calendar</span>
     </label>
-  </div>`;
+  </form>`;
 
   modal(isEdit ? 'Edit Tenggat Tugas' : 'Tambah Tenggat Tugas Baru', content, [
-    ['Batal', 'close-modal', ''],
+    ['Batal', 'close-modal', 'ghost'],
     [isEdit ? 'Simpan Perubahan' : 'Tambah Tugas', 'save-manual-deadline', 'accent']
   ]);
 
@@ -1738,12 +1835,21 @@ handleClick = function(action, id) {
     return;
   }
   if (action === 'delete-deadline') {
-    removeDeadline(id);
-    if (state.selectedDeadlineDate) {
-      const remaining = state.deadlines.filter(d => d.deadline === state.selectedDeadlineDate);
-      if (!remaining.length) state.selectedDeadlineDate = null;
+    promptDeleteDeadline(id);
+    return;
+  }
+  if (action === 'confirm-delete-deadline') {
+    const idToDelete = window.__deadlineIdToDelete;
+    if (idToDelete) {
+      removeDeadline(idToDelete);
+      if (state.selectedDeadlineDate) {
+        const remaining = state.deadlines.filter(d => d.deadline === state.selectedDeadlineDate);
+        if (!remaining.length) state.selectedDeadlineDate = null;
+      }
+      toast('✓ Tugas berhasil dihapus.');
+      window.__deadlineIdToDelete = null;
     }
-    toast('Tugas dihapus.');
+    closeModal();
     refreshPage();
     return;
   }
