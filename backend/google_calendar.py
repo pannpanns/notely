@@ -56,6 +56,7 @@ def get_config(data_root: str | Path) -> dict:
         'clientId': DEFAULT_CLIENT_ID,
         'clientSecret': DEFAULT_CLIENT_SECRET,
         'autoSync': True,
+        'preferredMode': 'web',
         'dismissPrompt': False
     }
 
@@ -84,10 +85,12 @@ def get_status(data_root: str | Path) -> dict:
     effective_client_id = config.get('clientId') or DEFAULT_CLIENT_ID
     effective_secret = config.get('clientSecret') or DEFAULT_CLIENT_SECRET
     has_credentials = bool(effective_client_id and effective_secret)
+    pref_mode = config.get('preferredMode', 'oauth' if connected else 'web')
     return {
         'connected': connected,
         'email': tokens.get('email', ''),
-        'mode': 'oauth' if connected else 'none',
+        'mode': 'oauth' if connected else (pref_mode if pref_mode == 'web' else 'none'),
+        'preferredMode': pref_mode,
         'autoSync': config.get('autoSync', True),
         'hasCredentials': has_credentials,
         'clientId': effective_client_id,
@@ -320,8 +323,8 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
 
     web_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote(summary)}&dates={dates_param}&details={urllib.parse.quote(desc)}"
 
-    # If OAuth tokens are available, sync via Google Calendar API v3
-    if tokens.get('refresh_token') or tokens.get('access_token'):
+    # If OAuth tokens are available and preferred mode is not web, sync via Google Calendar API v3
+    if (tokens.get('refresh_token') or tokens.get('access_token')) and config.get('preferredMode') != 'web':
         try:
             token = refresh_access_token_if_needed(data_root)
             now_local = datetime.datetime.now().astimezone()

@@ -101,6 +101,101 @@ function closeGcalCredsModal() {
   if (el) el.remove();
 }
 
+function openGcalUserGuideModal() {
+  renderGcalUserGuideModal();
+}
+
+function closeGcalUserGuideModal() {
+  const el = document.getElementById('gcal-user-guide-modal');
+  if (el) el.remove();
+}
+
+function renderGcalUserGuideModal() {
+  let modalEl = document.getElementById('gcal-user-guide-modal');
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'gcal-user-guide-modal';
+    modalEl.className = 'overlay';
+    document.body.appendChild(modalEl);
+  }
+
+  modalEl.innerHTML = `<div class="gcal-guide-modal-card" onclick="event.stopPropagation()">
+    <div class="space-between" style="align-items:flex-start;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="gcal-icon-badge" style="background:#edf7f2;color:#18786c">${icon('google')}</div>
+        <div>
+          <h2 style="font-size:18px;font-weight:700;color:#183226;margin:0 0 2px;line-height:1.25">Panduan Mudah Otorisasi Google Calendar</h2>
+          <span style="font-size:12.5px;color:#677d71">Cara menghubungkan Notely ke Google Calendar tanpa pusing</span>
+        </div>
+      </div>
+      <button class="dismiss" data-action="close-gcal-guide-modal" title="Tutup">×</button>
+    </div>
+
+    <p style="font-size:13px;color:#576f62;line-height:1.6;margin:0 0 16px">
+      Google memiliki standar keamanan tinggi untuk melindungi akun Anda. Saat menghubungkan Notely pertama kali, ikuti 4 langkah sederhana berikut:
+    </p>
+
+    <div class="gcal-guide-steps">
+      <div class="gcal-guide-step-card">
+        <div class="gcal-step-num">1</div>
+        <div class="gcal-step-content">
+          <h5>1. Klik tombol "Sambungkan Akun Google"</h5>
+          <p>Browser bawaan komputer Anda akan otomatis terbuka ke situs resmi Google (<code>accounts.google.com</code>).</p>
+        </div>
+      </div>
+
+      <div class="gcal-guide-step-card">
+        <div class="gcal-step-num">2</div>
+        <div class="gcal-step-content">
+          <h5>2. Pilih Akun Google Anda</h5>
+          <p>Pilih akun Gmail atau akun kampus yang biasa Anda pakai untuk melihat kalender di HP atau laptop.</p>
+        </div>
+      </div>
+
+      <div class="gcal-guide-step-card">
+        <div class="gcal-step-num">3</div>
+        <div class="gcal-step-content">
+          <h5>3. Jika Muncul Pesan "Google belum memverifikasi aplikasi ini"</h5>
+          <p><strong>Jangan khawatir, ini sangat normal!</strong> Notely berjalan mandiri di laptop pribadi Anda secara offline (bukan aplikasi cloud komersial publik).</p>
+          <div class="gcal-tip-box">
+            👉 Cukup klik tulisan kecil <strong>"Lanjutan" (Advanced)</strong> di bagian bawah layar, lalu klik <strong>"Buka Notely (tidak aman)" / "Go to Notely"</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="gcal-guide-step-card">
+        <div class="gcal-step-num">4</div>
+        <div class="gcal-step-content">
+          <h5>4. Beri Izin &amp; Klik "Lanjutkan" / "Izinkan"</h5>
+          <p>Beri tanda centang pada izin kalender, lalu klik <strong>Lanjutkan</strong>. Jendela peramban akan otomatis menutup dan Notely langsung terhubung seketika!</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f4faf6;border:1px solid #d5e9dc;border-radius:12px;padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div>
+        <strong style="display:block;font-size:13px;color:#184c31;margin-bottom:3px">Tidak ingin repot dengan izin Google?</strong>
+        <p style="font-size:12px;color:#5a7867;margin:0">Gunakan Mode Cepat Web. Jadwal tugas akan otomatis membuka formulir Google Calendar yang sudah terisi lengkap tanpa setup akun apapun!</p>
+      </div>
+      <button class="button accent small" data-action="choose-gcal-web-mode">
+        ${icon('globe')} Pakai Mode Cepat Saja
+      </button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid #e8efe9;flex-wrap:wrap;gap:10px">
+      <button class="button ghost" data-action="open-gcal-creds-modal" style="font-size:11.5px;color:#677d71">
+        ⚙️ Kredensial Khusus Developer (Opsional)
+      </button>
+      <div style="display:flex;gap:8px">
+        <button class="button ghost" data-action="close-gcal-guide-modal">Kembali</button>
+        <button class="button accent" data-action="start-gcal-auth-flow">
+          ${icon('google')} Sambungkan Sekarang
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderGcalCredsModal() {
   let modalEl = document.getElementById('gcal-creds-modal');
   if (!modalEl) {
@@ -248,74 +343,104 @@ function renderGcalModal() {
   }
 
   const isConnected = state.gcalStatus.connected;
-  const hasCreds = !!(state.gcalStatus.hasCredentials || state.gcalStatus.clientId);
+  const isWebMode = state.gcalStatus.preferredMode === 'web';
 
-  modalEl.innerHTML = `<div class="gcal-modal-card" onclick="event.stopPropagation()">
-    <div class="space-between" style="align-items:flex-start">
-      <div class="gcal-logo-circle">${icon('google')}</div>
+  modalEl.innerHTML = `<div class="gcal-modal-card gcal-options-modal" onclick="event.stopPropagation()">
+    <div class="space-between" style="align-items:flex-start;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="gcal-logo-circle" style="margin-bottom:0;width:44px;height:44px">${icon('google')}</div>
+        <div>
+          <h2 class="gcal-modal-title" style="margin:0 0 2px;line-height:1.25">Integrasi Google Calendar</h2>
+          <span style="font-size:12.5px;color:#677d70">Pilih solusi sinkronisasi tenggat tugas yang paling cocok untuk Anda:</span>
+        </div>
+      </div>
       <button class="dismiss" data-action="close-gcal-modal" title="Tutup">×</button>
     </div>
 
     ${isConnected ? `
       <!-- Connected State -->
-      <h2 class="gcal-modal-title">✓ Google Calendar Terhubung!</h2>
-      <p class="gcal-modal-subtitle">Akun Anda kini aktif tersambung resmi via Google OAuth 2.0.</p>
-
-      <div class="gcal-success-box">
+      <div class="gcal-success-box" style="margin-top:14px">
         <div class="gcal-success-icon">✓</div>
-        <strong>Sinkronisasi Otomatis Aktif</strong>
-        <p>Setiap tugas baru dari prompt teks atau tangkapan layar akan langsung otomatis terjadwal di Google Calendar Anda.</p>
+        <strong>Google Calendar Terhubung Resmi</strong>
+        <p>Akun <strong>${esc(state.gcalStatus.email || 'Google')}</strong> aktif tersambung via OAuth 2.0. Seluruh tugas otomatis tersinkron ke kalender ponsel &amp; laptop.</p>
       </div>
 
       <div class="gcal-modal-footer" style="justify-content:flex-end">
-        <button class="button accent" data-action="close-gcal-modal">Mulai Gunakan</button>
+        <button class="button accent" data-action="close-gcal-modal">Selesai</button>
       </div>
     ` : state.gcalConnecting ? `
       <!-- Connecting State -->
-      <h2 class="gcal-modal-title">Menunggu Otorisasi di Browser…</h2>
-      <p class="gcal-modal-subtitle">Laman login Google resmi telah dibuka di browser Anda.</p>
-
-      <div class="gcal-waiting-box">
+      <div class="gcal-waiting-box" style="margin-top:14px">
         <div class="gcal-spinner"></div>
-        <strong>Silakan Izinkan Akses Kalender</strong>
-        <p>Pilih akun Google Anda pada tab browser yang terbuka, lalu klik <strong>"Izinkan" / "Allow"</strong>. Notely akan otomatis terhubung seketika!</p>
+        <strong>Menunggu Otorisasi di Peramban…</strong>
+        <p>Laman login Google telah dibuka di browser Anda. Pilih akun Anda lalu klik <strong>"Izinkan" / "Allow"</strong>.</p>
+        <div style="font-size:11.5px;color:#788e81;margin-top:4px">Jika muncul "Google belum memverifikasi aplikasi", klik <em>Lanjutan</em> lalu <em>Buka Notely</em>.</div>
       </div>
 
       <div class="gcal-modal-footer" style="justify-content:flex-end">
         <button class="button danger" data-action="cancel-gcal-auth">Batal</button>
       </div>
     ` : `
-      <!-- Initial Connect Prompt State -->
-      <h2 class="gcal-modal-title">Sambungkan ke Google Calendar</h2>
-      <p class="gcal-modal-subtitle">Otomatis sinkronkan tenggat tugas Anda langsung ke Google Calendar via OAuth resmi.</p>
+      <!-- Initial Connect: Two Distinct, Clear Choices -->
+      <div class="gcal-choices-grid">
+        <!-- Pilihan 1: Mode Cepat Web (Paling Praktis & Nol Setup) -->
+        <div class="gcal-choice-card ${isWebMode ? 'featured' : ''}">
+          <div class="gcal-choice-badge recommended">⭐ Paling Mudah · Tanpa Setup</div>
+          <div class="gcal-choice-header">
+            <div class="gcal-choice-icon">${icon('globe')}</div>
+            <div>
+              <h4>Mode Cepat via Web</h4>
+              <span class="subtext">Langsung pakai dalam 1 detik</span>
+            </div>
+          </div>
+          <p class="gcal-choice-desc">
+            Saat ada tugas baru atau Anda klik kalender, Notely langsung membuka Google Calendar di peramban dengan formulir tanggal &amp; judul yang <strong>sudah otomatis terisi</strong>. Anda tinggal klik tombol <strong>"Simpan"</strong> (Oke).
+          </p>
+          <ul class="gcal-choice-features">
+            <li>✓ Nol konfigurasi, tanpa pusing Client ID / izin akun</li>
+            <li>✓ 100% aman langsung di web resmi Google Calendar</li>
+            <li>✓ Notifikasi pengingat di HP &amp; laptop aktif otomatis</li>
+          </ul>
+          <button class="button accent" style="width:100%;margin-top:auto" data-action="choose-gcal-web-mode">
+            ${icon('globe')} Gunakan Mode Cepat (Web)
+          </button>
+        </div>
 
-      <div class="gcal-benefits-list">
-        <div class="gcal-benefit-item">
-          <span class="benefit-icon">${icon('spark')}</span>
-          <div><strong>Otomatis dari Teks &amp; Screenshot:</strong> AI mengekstrak tugas dan langsung menjadwalkannya di Google Calendar.</div>
-        </div>
-        <div class="gcal-benefit-item">
-          <span class="benefit-icon">${icon('bolt')}</span>
-          <div><strong>Pengingat H-1 &amp; Jam Deadline:</strong> Dapatkan notifikasi pengingat otomatis di ponsel dan komputer Anda.</div>
-        </div>
-        <div class="gcal-benefit-item">
-          <span class="benefit-icon">${icon('check')}</span>
-          <div><strong>Otorisasi Resmi OAuth 2.0:</strong> Terhubung aman dengan izin akses resmi dari Google.</div>
+        <!-- Pilihan 2: Mode Otomatis Latar Belakang (OAuth 2.0) -->
+        <div class="gcal-choice-card">
+          <div class="gcal-choice-badge">Otomatis Penuh · Latar Belakang</div>
+          <div class="gcal-choice-header">
+            <div class="gcal-choice-icon accent-bg">${icon('spark')}</div>
+            <div>
+              <h4>Mode Otomatis (OAuth 2.0)</h4>
+              <span class="subtext">Sinkron langsung tanpa buka browser</span>
+            </div>
+          </div>
+          <p class="gcal-choice-desc">
+            Tugas otomatis masuk dan tersinkron ke kalender di ponsel dan komputer Anda di latar belakang tanpa membuka tab peramban setiap kali.
+          </p>
+          <ul class="gcal-choice-features">
+            <li>✓ Cukup 1 kali login dengan akun Google Anda</li>
+            <li>✓ Sinkronisasi penuh 2 arah via API resmi Google</li>
+            <li>✓ Notifikasi H-1 dan jam deadline langsung aktif</li>
+          </ul>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+            <button class="button" style="width:100%" data-action="start-gcal-auth-flow">
+              ${icon('google')} Sambungkan Akun Google
+            </button>
+            <button class="button small ghost" style="font-size:11.5px;color:#18786c" data-action="open-gcal-user-guide">
+              📖 Panduan Mudah untuk Pemula ↗
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style="margin-bottom:14px">
-        <button class="button accent" style="width:100%;height:46px;font-size:14px;font-weight:650;gap:10px" data-action="start-gcal-auth-flow">
-          ${icon('google')} Sambungkan dengan Akun Google
-        </button>
-      </div>
-
-      <div class="gcal-modal-footer">
+      <div class="gcal-modal-footer" style="margin-top:14px;padding-top:12px;border-top:1px solid #e7eee9">
         <label class="gcal-dismiss-check">
           <input type="checkbox" id="gcal-dont-show-again">
-          <span>Jangan ingatkan lagi</span>
+          <span>Jangan ingatkan lagi saat membuka halaman</span>
         </label>
-        <button class="button ghost" data-action="dismiss-gcal-modal">Nanti saja</button>
+        <button class="button ghost" data-action="dismiss-gcal-modal">Tutup</button>
       </div>
     `}
   </div>`;
@@ -701,7 +826,8 @@ function deadlinesPage() {
   const countActive = all.filter(d => d.status !== 'completed').length;
   const countUrgent = all.filter(d => d.status !== 'completed' && getDeadlineStatus(d.deadline, d.time, d.status).urgent).length;
   const isGcalConnected = !!state.gcalStatus.connected;
-  // Privacy setting: User can hide/show the red/green status indicator in settings
+  const isWebMode = state.gcalStatus.preferredMode === 'web';
+  // Privacy setting: User can hide/show the status indicator in settings
   const showIndicator = state.settings.showGcalIndicator !== false;
 
   return `<div class="deadlines-page">
@@ -723,8 +849,17 @@ function deadlinesPage() {
             </button>
             ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
           </div>
+        ` : isWebMode ? `
+          <div class="gcal-popover-wrap">
+            <button class="gcal-status-pill web-mode" data-action="toggle-gcal-menu" title="Google Calendar: Mode Cepat Web (Klik untuk opsi)">
+              <span class="gcal-dot blue"></span>
+              <span>Google Calendar (Web)</span>
+              ${icon('chevron')}
+            </button>
+            ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
+          </div>
         ` : `
-          <button class="gcal-status-pill disconnected" data-action="open-gcal-connect-modal" title="Google Calendar: Belum tersambung (Klik untuk menyambungkan)">
+          <button class="gcal-status-pill disconnected" data-action="open-gcal-connect-modal" title="Google Calendar: Belum tersambung (Klik untuk opsi)">
             <span class="gcal-dot red"></span>
             <span>Google Calendar</span>
           </button>
@@ -772,9 +907,37 @@ function deadlinesPage() {
 // GOOGLE CALENDAR DROPDOWN MENU (Clean & Private)
 // --------------------------------------------------------------------------
 function renderGcalDropdownMenu() {
+  const isConnected = !!state.gcalStatus.connected;
+  const isWebMode = state.gcalStatus.preferredMode === 'web';
   const isAutoSync = state.gcalStatus.autoSync !== false;
   const rawEmail = state.gcalStatus.email || '';
   const displayEmail = state.showGcalEmail ? rawEmail : maskEmail(rawEmail);
+
+  if (isWebMode && !isConnected) {
+    return `<div class="gcal-dropdown-menu" onclick="event.stopPropagation()">
+      <div class="gcal-menu-header">
+        <div class="space-between" style="margin-bottom:4px">
+          <span class="gcal-status-badge-inline" style="background:#e8f4fd;color:#185a9d;border:1px solid #c7e1f4">
+            <span class="gcal-dot blue"></span> Mode Cepat Web
+          </span>
+        </div>
+        <small>METODE SINKRONISASI</small>
+        <strong>Google Calendar (Tanpa Setup)</strong>
+      </div>
+
+      <div class="gcal-menu-actions">
+        <button class="button small" data-action="open-gcal-web-test">
+          ${icon('google')} Buka Google Calendar di Browser
+        </button>
+        <button class="button small accent" data-action="start-gcal-auth-flow">
+          ${icon('spark')} Beralih ke Mode Otomatis (OAuth)
+        </button>
+        <button class="button small ghost" data-action="go-gcal-settings">
+          ${icon('settings')} Pengaturan Integrasi
+        </button>
+      </div>
+    </div>`;
+  }
 
   return `<div class="gcal-dropdown-menu" onclick="event.stopPropagation()">
     <div class="gcal-menu-header">
@@ -801,6 +964,9 @@ function renderGcalDropdownMenu() {
       <button class="button small" data-action="gcal-sync-all">
         ${icon('bolt')} Sinkronkan Semua Tugas Sekarang
       </button>
+      <button class="button small ghost" data-action="choose-gcal-web-mode">
+        ${icon('globe')} Beralih ke Mode Cepat Web
+      </button>
       <button class="button small ghost" data-action="go-gcal-settings">
         ${icon('settings')} Pengaturan di Settings
       </button>
@@ -816,11 +982,11 @@ function renderGcalDropdownMenu() {
 // --------------------------------------------------------------------------
 function renderGcalSettingsCard() {
   const isConnected = !!state.gcalStatus.connected;
+  const isWebMode = state.gcalStatus.preferredMode === 'web';
   const rawEmail = state.gcalStatus.email || '';
   const isAutoSync = state.gcalStatus.autoSync !== false;
   const showIndicator = state.settings.showGcalIndicator !== false;
   const displayEmail = state.showGcalEmail ? rawEmail : maskEmail(rawEmail);
-  const hasCreds = !!(state.gcalStatus.hasCredentials || state.gcalStatus.clientId);
 
   return `<div class="setting-card gcal-settings-card">
     <!-- Card Header -->
@@ -829,30 +995,16 @@ function renderGcalSettingsCard() {
         <div class="gcal-icon-badge">${icon('google')}</div>
         <div>
           <h3 class="section-title">Integrasi Google Calendar</h3>
-          <p class="section-description">Otomatis sinkronkan tenggat tugas kuliah dan pengingat ke Google Calendar via OAuth 2.0 resmi.</p>
+          <p class="section-description">Sinkronkan tenggat tugas kuliah dan pengingat ke Google Calendar (Mode Cepat Web atau OAuth Otomatis).</p>
         </div>
       </div>
-      <div class="gcal-status-pill-badge ${isConnected ? 'connected' : 'disconnected'}">
-        <span class="gcal-dot ${isConnected ? 'green' : 'red'}"></span>
-        <span>${isConnected ? 'Tersambung (OAuth)' : 'Belum Terhubung'}</span>
+      <div class="gcal-status-pill-badge ${isConnected ? 'connected' : isWebMode ? 'connected' : 'disconnected'}" style="${isWebMode && !isConnected ? 'background:#e8f4fd;color:#185a9d;border:1px solid #c7e1f4' : ''}">
+        <span class="gcal-dot ${isConnected ? 'green' : isWebMode ? 'blue' : 'red'}"></span>
+        <span>${isConnected ? 'Tersambung (OAuth 2.0)' : isWebMode ? 'Mode Cepat Web Aktif' : 'Belum Terhubung'}</span>
       </div>
     </div>
 
-    ${!isConnected ? `
-      <!-- Disconnected: Hero Connection Box -->
-      <div class="gcal-connect-hero">
-        <div class="gcal-hero-content">
-          <h4>Sambungkan dengan Akun Google</h4>
-          <p>Notely menggunakan otorisasi resmi <strong>Google OAuth 2.0</strong>. Cukup klik tombol di bawah, masuk dengan akun Google Anda di peramban, lalu klik <em>Izinkan</em>. Jadwal tugas baru dari prompt AI maupun screenshot akan langsung otomatis terjadwal di Google Calendar ponsel dan komputer Anda.</p>
-
-          <div class="gcal-hero-actions">
-            <button class="button accent" data-action="start-gcal-auth-flow" style="font-size:13.5px;padding:10px 22px">
-              ${icon('google')} Sambungkan dengan Akun Google
-            </button>
-          </div>
-        </div>
-      </div>
-    ` : `
+    ${isConnected ? `
       <!-- Connected: Account Management Box -->
       <div class="gcal-connected-box">
         <div class="space-between" style="align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px">
@@ -878,7 +1030,7 @@ function renderGcalSettingsCard() {
 
         <div class="setting-row" style="padding-top:12px;border-top:1px solid #e7ede9">
           <div>
-            <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Sinkronisasi Otomatis Tugas Baru</h4>
+            <h4 style="font-size:13.5px;font-weight:600;color:#22362b;margin:0 0 4px">Sinkronisasi Otomatis Tugas Baru</h4>
             <p style="font-size:12px;color:#718579;margin:0">Setiap tugas baru dari prompt AI, tangkapan layar, atau tambah manual langsung dikirim ke kalender.</p>
           </div>
           <input type="checkbox" class="switch" ${isAutoSync ? 'checked' : ''} data-action="toggle-gcal-autosync" aria-label="Auto sync">
@@ -886,17 +1038,62 @@ function renderGcalSettingsCard() {
 
         <div style="display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #e7ede9;flex-wrap:wrap">
           <button class="button small" data-action="gcal-sync-all">${icon('bolt')} Sinkronkan Semua Tugas Sekarang</button>
+          <button class="button small ghost" data-action="choose-gcal-web-mode">${icon('globe')} Beralih ke Mode Cepat Web</button>
           <button class="button small ghost" data-action="page" data-id="deadlines">${icon('calendar')} Buka Tenggat Tugas</button>
+        </div>
+      </div>
+    ` : isWebMode ? `
+      <!-- Web Mode Box -->
+      <div class="gcal-web-mode-box">
+        <div class="space-between" style="align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="gcal-avatar-circle" style="background:#eaf4fa;color:#1a73e8">${icon('globe')}</div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px">Mode Aktif Saat Ini</div>
+              <div style="font-size:15px;font-weight:650;color:#1d3429;margin-top:2px">Mode Cepat via Web (Tanpa Setup &amp; Nol Ribet)</div>
+              <small style="font-size:12px;color:#456b57">✓ Form Google Calendar otomatis terbuka dengan data terisi lengkap</small>
+            </div>
+          </div>
+          <button class="button small ghost" data-action="open-gcal-connect-modal">
+            ${icon('refresh')} Ganti Pilihan Mode
+          </button>
+        </div>
+        <p style="font-size:12.5px;color:#5c7265;line-height:1.6;margin:0 0 16px">
+          Setiap tugas yang Anda simpan atau sinkronkan akan langsung membuka tab peramban ke halaman resmi Google Calendar dengan judul, tanggal, dan jam yang sudah terisi otomatis. Anda tinggal menekan tombol <strong>Simpan</strong> (Oke) satu kali di peramban.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="button small" data-action="open-gcal-web-test">${icon('google')} Buka Google Calendar Web</button>
+          <button class="button small accent" data-action="start-gcal-auth-flow">${icon('spark')} Beralih ke Mode Otomatis (OAuth)</button>
+        </div>
+      </div>
+    ` : `
+      <!-- Initial Choices Box -->
+      <div class="gcal-connect-hero">
+        <div class="gcal-hero-content">
+          <h4>Pilih Metode Integrasi Google Calendar</h4>
+          <p>Notely menyediakan 2 pilihan cara sinkronisasi: <strong>Mode Cepat Web</strong> (langsung pakai tanpa izin/setup apapun) atau <strong>Mode Otomatis OAuth</strong> (tugas otomatis tersinkron di latar belakang).</p>
+
+          <div class="gcal-hero-actions">
+            <button class="button accent" data-action="choose-gcal-web-mode" style="font-size:13.5px;padding:9px 20px">
+              ${icon('globe')} Gunakan Mode Cepat (Web)
+            </button>
+            <button class="button" data-action="start-gcal-auth-flow" style="font-size:13.5px;padding:9px 20px">
+              ${icon('google')} Sambungkan Akun (OAuth)
+            </button>
+            <button class="button small ghost" data-action="open-gcal-user-guide" style="color:#18786c">
+              📖 Panduan Pemula ↗
+            </button>
+          </div>
         </div>
       </div>
     `}
 
     <!-- Display Settings Sub-Row -->
-    <div class="hr" style="margin:20px 0 16px"></div>
+    <div class="hr" style="margin:8px 0 16px"></div>
 
     <div class="setting-row">
       <div>
-        <h4 style="font-size:13px;font-weight:600;color:#22362b;margin:0 0 4px">Tampilkan Indikator Status di Header</h4>
+        <h4 style="font-size:13.5px;font-weight:600;color:#22362b;margin:0 0 4px">Tampilkan Indikator Status di Header</h4>
         <p style="font-size:12px;color:#718579;margin:0">Tampilkan pill status Google Calendar di bagian atas halaman Tenggat Tugas.</p>
       </div>
       <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
@@ -1391,6 +1588,29 @@ handleClick = function(action, id) {
   }
   if (action === 'close-gcal-modal') {
     closeGcalModal();
+    return;
+  }
+  if (action === 'choose-gcal-web-mode') {
+    state.gcalStatus.preferredMode = 'web';
+    updateGcalConfig({ preferredMode: 'web' });
+    closeGcalModal();
+    closeGcalUserGuideModal();
+    toast('✓ Mode Cepat Web aktif! Tenggat tugas otomatis membuka Google Calendar di browser dengan data terisi.');
+    refreshPage();
+    return;
+  }
+  if (action === 'open-gcal-user-guide') {
+    closeGcalModal();
+    openGcalUserGuideModal();
+    return;
+  }
+  if (action === 'close-gcal-guide-modal') {
+    closeGcalUserGuideModal();
+    return;
+  }
+  if (action === 'open-gcal-web-test') {
+    openExternalUrl('https://calendar.google.com');
+    toast('Membuka Google Calendar di peramban…');
     return;
   }
   if (action === 'dismiss-gcal-modal') {

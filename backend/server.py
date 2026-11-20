@@ -609,6 +609,7 @@ class Handler(BaseHTTPRequestHandler):
                 cfg=get_config(svc.root)
                 if 'autoSync' in args: cfg['autoSync']=bool(args['autoSync'])
                 if 'dismissPrompt' in args: cfg['dismissPrompt']=bool(args['dismissPrompt'])
+                if 'preferredMode' in args: cfg['preferredMode']=str(args['preferredMode']).strip()
                 if 'clientId' in args: cfg['clientId']=str(args['clientId']).strip()
                 if 'clientSecret' in args: cfg['clientSecret']=str(args['clientSecret']).strip()
                 save_config(svc.root,cfg)

@@ -1,5 +1,6 @@
-Pembaruan Notely v1.2.3:
-• Google OAuth 2.0 Bawaan (Built-in 1-Click Login): Menyematkan kredensial resmi Google OAuth Desktop App langsung ke dalam aplikasi. Pengguna tidak perlu lagi memasukkan Client ID atau melakukan setup Google Cloud Console—cukup klik tombol 'Sambungkan dengan Akun Google', pilih akun di peramban, dan klik 'Izinkan'.
-• Perbaikan Total Ruang & Tata Letak Antarmuka (Anti-Cramped UI): Menambahkan backdrop overlay gelap dengan efek blur pada seluruh dialog modal sehingga halaman latar belakang tidak tembus dan bertabrakan. Memberikan padding (28px 32px) dan jarak pemisah antar-kartu (24px margin-bottom) yang lega pada menu Pengaturan agar tidak ada elemen yang terhimpit.
-• Sinkronisasi Latar Belakang Tangguh via Google Calendar API v3: Tugas dari prompt teks atau tangkapan layar otomatis terjadwal langsung ke Google Calendar di ponsel dan komputer tanpa membuka peramban web satu per satu.
-• Perbaikan Rute API Google Calendar & Tenggat: Dukungan routing dua arah (GET & POST) penuh di server lokal untuk seluruh rute integrasi kalender dan manajemen tugas.
+Pembaruan Notely v1.2.4:
+• Solusi Ganda Google Calendar (Mode Cepat Web & Mode Otomatis OAuth): Pengguna kini bebas memilih cara integrasi yang diinginkan:
+  1. Mode Cepat via Web (⭐ Paling Mudah & Nol Setup): Tanpa izin akun atau kredensial developer, Notely langsung membuka Google Calendar di peramban dengan formulir judul dan tanggal tugas yang sudah otomatis terisi lengkap. Pengguna tinggal klik 'Simpan'.
+  2. Mode Otomatis Latar Belakang (OAuth 2.0): Sinkronisasi penuh ke kalender HP & laptop tanpa membuka peramban, dilengkapi panduan visual interaktif yang super ramah dan mudah dipahami orang awam.
+• Perbaikan Presisi Tata Letak Teks & Antarmuka (Anti-Sagging Text Fixes): Menyelaraskan seluruh optical vertical alignment pada tombol, badge, tab navigasi, dan indikator status. Menghilangkan ruang kosong ganda pada menu Pengaturan sehingga posisi judul dan deskripsi tidak lagi melorot terlalu ke bawah.
+• Perbaikan Semantik Dialog Modal: Memperbaiki pembungkus elemen bodi dialog modal agar kompatibel dengan standar HTML tanpa penutupan tag otomatis yang memecah hierarki DOM.
