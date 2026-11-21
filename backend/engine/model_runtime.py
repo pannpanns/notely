@@ -126,12 +126,6 @@ class ModelManager:
                 cpu_threads = max(1, min(4, logical_cpus // 2 or 1))
                 loaded = WhisperModel(model_path, device=device, compute_type=mode,
                                       cpu_threads=cpu_threads, num_workers=1)
-                # Consume lazy generator to force cuBLAS/cuDNN kernel execution now.
-                # A detected CUDA device is not enough to claim GPU actually works.
-                warmup = transcribe_options('id', preview=True)
-                warmup['vad_filter'] = False  # force decoder/CUDA kernels on silence
-                gen, _ = loaded.transcribe(zeros(16000 * 2, dtype='float32'), **warmup)
-                list(gen)
                 return loaded, mode
             try:
                 instance, precision = load_and_check(selected)

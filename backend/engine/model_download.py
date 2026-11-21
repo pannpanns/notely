@@ -77,6 +77,6 @@ def download(model, progress=None):
     if not (folder/'model.bin').exists():
         raise RuntimeError('Unduhan model belum lengkap.')
     if progress:
-        progress({'message':'Unduhan selesai. Menguji model…','model':repo.split('/')[-1],
+        progress({'message':'Unduhan selesai. Memuat model…','model':repo.split('/')[-1],
                   'downloadedBytes':info['sizeBytes'],'totalBytes':info['sizeBytes'],'percent':100})
     return str(folder)

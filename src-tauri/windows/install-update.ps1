@@ -15,27 +15,43 @@ try {
     }
     
     # 2. Run NSIS installer silently in-place directly overwriting files
-    $process = Start-Process -FilePath $Installer -ArgumentList ('/S', '/D=' + $InstallDir) -PassThru
-    $process.WaitForExit()
-    if ($process.ExitCode -ne 0) { throw "Installer selesai dengan kode $($process.ExitCode)." }
+    # NSIS requires /D= to be unquoted even if the path contains spaces
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Installer
+    $psi.Arguments = "/S /D=$InstallDir"
+    $psi.UseShellExecute = $false
+    $installerProc = [System.Diagnostics.Process]::Start($psi)
+    $installerProc.WaitForExit()
+    if ($installerProc.ExitCode -ne 0) { throw "Installer selesai dengan kode $($installerProc.ExitCode)." }
 
     # 3. Wait for NSIS sub-installer worker processes (e.g. Au_.exe in ~nsu.tmp) to completely finish
     $maxWaitSec = 90
     $startWait = [System.Diagnostics.Stopwatch]::StartNew()
     while ($startWait.Elapsed.TotalSeconds -lt $maxWaitSec) {
-        $nsisWorkers = Get-Process | Where-Object {
-            ($_.ProcessName -like 'Au_*' -or $_.ProcessName -like '*nsu*') -or
-            ($_.Path -and ($_.Path -like '*~nsu*' -or $_.Path -like "*$InstallDir*updater*"))
-        } -ErrorAction SilentlyContinue
+        $workerFound = $false
+        try {
+            $procs = Get-Process -ErrorAction SilentlyContinue
+            foreach ($p in $procs) {
+                if ($p.ProcessName -like 'Au_*' -or $p.ProcessName -like '*nsu*') {
+                    $workerFound = $true
+                    break
+                }
+            }
+        } catch {}
 
-        if (-not $nsisWorkers) {
-            # Double check after 1.5 seconds to confirm no subsequent stage is starting
+        if (-not $workerFound) {
             Start-Sleep -Milliseconds 1500
-            $nsisWorkers2 = Get-Process | Where-Object {
-                ($_.ProcessName -like 'Au_*' -or $_.ProcessName -like '*nsu*') -or
-                ($_.Path -and ($_.Path -like '*~nsu*' -or $_.Path -like "*$InstallDir*updater*"))
-            } -ErrorAction SilentlyContinue
-            if (-not $nsisWorkers2) { break }
+            $workerFound2 = $false
+            try {
+                $procs2 = Get-Process -ErrorAction SilentlyContinue
+                foreach ($p2 in $procs2) {
+                    if ($p2.ProcessName -like 'Au_*' -or $p2.ProcessName -like '*nsu*') {
+                        $workerFound2 = $true
+                        break
+                    }
+                }
+            } catch {}
+            if (-not $workerFound2) { break }
         } else {
             Start-Sleep -Milliseconds 500
         }
@@ -56,19 +72,25 @@ try {
 
     # 6. Relaunch Notely so the user immediately sees the updated app
     if (Test-Path -LiteralPath $TargetExe) {
-        for ($lockCheck = 0; $lockCheck -lt 10; $lockCheck++) {
+        for ($lockCheck = 0; $lockCheck -lt 15; $lockCheck++) {
             try {
                 $fileStream = [System.IO.File]::Open($TargetExe, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
                 $fileStream.Close()
                 $fileStream.Dispose()
                 break
             } catch {
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds 400
             }
         }
+        Start-Sleep -Milliseconds 800
         Start-Process -FilePath $TargetExe -WorkingDirectory $InstallDir
     }
 } catch {
+    $logMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Update error: $($_.Exception.Message)"
+    Add-Content -Path (Join-Path $env:TEMP 'notely-update.log') -Value $logMsg -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
+} finally {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
 } finally {

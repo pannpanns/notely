@@ -26,7 +26,7 @@ function showStartupSplash(){
     </div>
     <div class="splash-brand">
       <span>Notely</span>
-      <span class="splash-version-tag">v${window.APP_VERSION||'1.2.9'}</span>
+      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.0'}</span>
     </div>
     <div class="splash-subtitle">Aplikasi Catatan & Transkripsi AI Lokal</div>
     
@@ -135,7 +135,7 @@ async function prepareModelOnStartup(gpuBadge){
   engine.currentJob=res.job;
 
   let attempts=0;
-  const maxAttempts=180;
+  const maxAttempts=750;
   while(attempts<maxAttempts){
    await new Promise(r=>setTimeout(r,400));
    attempts++;
@@ -154,8 +154,10 @@ async function prepareModelOnStartup(gpuBadge){
     return;
    }
    if(job?.status==='running'){
+    attempts=Math.min(attempts,10);
     const msg=job.message||'Memuat model ke memori...';
-    updateSplash(`Memuat ${targetLabel}...`,msg,null,gpuBadge);
+    const pct=typeof job.percent==='number'?Math.round(job.percent):null;
+    updateSplash(`Memuat ${targetLabel}...`,msg,pct,gpuBadge);
    }else if(job?.status==='error'){
     engine.currentJob='';
     console.warn('Model prep error:',job.message);

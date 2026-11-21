@@ -85,7 +85,13 @@ def get_status(data_root: str | Path) -> dict:
     effective_client_id = config.get('clientId') or DEFAULT_CLIENT_ID
     effective_secret = config.get('clientSecret') or DEFAULT_CLIENT_SECRET
     has_credentials = bool(effective_client_id and effective_secret)
-    pref_mode = config.get('preferredMode', 'oauth' if connected else 'web')
+    pref_mode = config.get('preferredMode')
+    if connected:
+        if pref_mode != 'web':
+            pref_mode = 'oauth'
+    else:
+        if not pref_mode:
+            pref_mode = 'web'
     return {
         'connected': connected,
         'email': tokens.get('email', ''),
@@ -246,6 +252,13 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
                             'connected_at': datetime.datetime.now().isoformat()
                         })
 
+                        try:
+                            cfg = get_config(data_root)
+                            cfg['preferredMode'] = 'oauth'
+                            save_config(data_root, cfg)
+                        except Exception:
+                            pass
+
                         html = """<!DOCTYPE html><html><head><meta charset="utf-8"><title>Notely — Google Calendar</title>
                         <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f6f9f7;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
                         .card{background:#fff;padding:40px 36px;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.07);text-align:center;max-width:440px;border:1px solid #e2ebe6;}
@@ -297,6 +310,7 @@ def start_oauth_flow(data_root: str | Path, client_id: str = '', client_secret: 
 
 def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
     """Create or update a deadline event directly in Google Calendar via Google Calendar API or direct web sync."""
+    config = get_config(data_root)
     tokens = get_tokens(data_root)
     deadline_date = item.get('deadline')
     if not deadline_date:
@@ -328,8 +342,9 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
 
     web_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote(summary)}&dates={dates_param}&ctz={urllib.parse.quote(tz_name)}&details={urllib.parse.quote(desc)}"
 
+    connected = bool(tokens.get('refresh_token') or (tokens.get('mode') == 'oauth' and tokens.get('access_token')))
     # If OAuth tokens are available and preferred mode is not web, sync via Google Calendar API v3
-    if (tokens.get('refresh_token') or tokens.get('access_token')) and config.get('preferredMode') != 'web':
+    if connected and config.get('preferredMode') != 'web':
         try:
             token = refresh_access_token_if_needed(data_root)
             tz_offset = now_local.strftime('%z') or "+07:00"

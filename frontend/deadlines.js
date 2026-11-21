@@ -434,52 +434,44 @@ function renderGcalModal() {
         <button class="button danger" data-action="cancel-gcal-auth">Batal</button>
       </div>
     ` : `
-      <!-- Initial Connect: Clear Choices -->
+      <!-- Initial Connect: Clean & Spacious Choices -->
       <div class="gcal-choices-grid">
-        <!-- Pilihan 1: Mode Cepat Web (Paling Praktis & Nol Setup) -->
+        <!-- Pilihan 1: Mode Cepat Web (Paling Praktis) -->
         <div class="gcal-choice-card ${isWebMode ? 'featured' : ''}">
-          <div class="gcal-choice-badge recommended">⭐ Mode Standar · Tanpa Setup</div>
+          <div class="gcal-choice-badge recommended">Mode Cepat</div>
           <div class="gcal-choice-header">
             <div class="gcal-choice-icon">${icon('globe')}</div>
             <div>
-              <h4>Mode Cepat via Web</h4>
-              <span class="subtext">Langsung pakai tanpa izin akun</span>
+              <h4>Mode Cepat Web</h4>
+              <span class="subtext">1-Klik Tanpa Perlu Setup Akun</span>
             </div>
           </div>
           <p class="gcal-choice-desc">
-            Saat menyimpan atau menyinkronkan tugas, Notely otomatis membuka Google Calendar di peramban dengan formulir judul, tanggal, dan jam yang sudah terisi. Anda tinggal menekan tombol <strong>Simpan</strong>.
+            Saat menyimpan tugas, formulir Google Calendar otomatis terbuka di peramban dengan judul, tanggal, dan jam yang sudah terisi. Anda tinggal menekan tombol <strong>Simpan</strong> satu kali.
           </p>
-          <ul class="gcal-choice-features">
-            <li>✓ 100% aman, langsung di situs resmi Google Calendar</li>
-            <li>✓ Tidak memerlukan Client ID atau akun pengembang</li>
-            <li>✓ Notifikasi pengingat di HP dan laptop aktif otomatis</li>
-          </ul>
-          <button class="button accent" style="width:100%;margin-top:auto" data-action="choose-gcal-web-mode">
-            ${icon('globe')} Tetap Gunakan Mode Cepat (Web)
-          </button>
+          <div style="margin-top:auto;padding-top:10px">
+            <button class="button accent" style="width:100%" data-action="choose-gcal-web-mode">
+              ${icon('globe')} Gunakan Mode Cepat
+            </button>
+          </div>
         </div>
 
-        <!-- Pilihan 2: Kredensial Khusus Developer (Google Cloud API) -->
+        <!-- Pilihan 2: Kredensial Khusus Developer (OAuth API) -->
         <div class="gcal-choice-card">
-          <div class="gcal-choice-badge">Pengembang · API Pribadi</div>
+          <div class="gcal-choice-badge">Pengembang / Lanjutan</div>
           <div class="gcal-choice-header">
             <div class="gcal-choice-icon accent-bg">${icon('sliders')}</div>
             <div>
               <h4>Kredensial Khusus</h4>
-              <span class="subtext">Client ID &amp; Secret Pribadi</span>
+              <span class="subtext">Google Calendar API Pribadi</span>
             </div>
           </div>
           <p class="gcal-choice-desc">
-            Untuk Anda yang memiliki Google Cloud Project sendiri. Masukkan Client ID atau tarik file JSON kredensial untuk sinkronisasi otomatis via Google Calendar API.
+            Sambungkan akun Google Anda dengan Client ID atau file JSON dari Google Cloud Console. Tugas akan otomatis tersinkronisasi di latar belakang tanpa perlu membuka peramban.
           </p>
-          <ul class="gcal-choice-features">
-            <li>✓ Gunakan Google Cloud Project milik Anda sendiri</li>
-            <li>✓ Sinkronisasi latar belakang tanpa buka browser</li>
-            <li>✓ Mendukung file JSON atau input manual</li>
-          </ul>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
-            <button class="button" style="width:100%" data-action="open-gcal-creds-modal">
-              ⚙️ Atur Kredensial Khusus Developer
+          <div style="margin-top:auto;padding-top:10px">
+            <button class="button neutral" style="width:100%" data-action="open-gcal-creds-modal">
+              ${icon('settings')} Atur Kredensial Pribadi
             </button>
           </div>
         </div>
@@ -672,10 +664,11 @@ function buildGcalWebUrl(item) {
 
 // Sync single event directly to Google Calendar via API or direct web sync
 async function syncSingleDeadlineGcal(item, autoOpen = true) {
-  const isWebMode = state.gcalStatus.preferredMode === 'web' || !state.gcalStatus.connected;
+  const isConnected = !!state.gcalStatus.connected;
+  const isOAuthMode = isConnected && state.gcalStatus.preferredMode !== 'web';
 
   // If user explicitly configured OAuth mode and is NOT connected, show connect modal
-  if (!isWebMode && !state.gcalStatus.connected) {
+  if (!isOAuthMode && state.gcalStatus.preferredMode === 'oauth' && !isConnected) {
     openGcalConnectModal(true);
     return;
   }
@@ -685,7 +678,7 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
     let targetLink = item.gcal_link || '';
 
     // Direct Web Mode: immediately build template link, save & launch Chrome
-    if (isWebMode) {
+    if (!isOAuthMode) {
       targetLink = buildGcalWebUrl(item);
       item.gcal_link = targetLink;
       item.gcal_event_id = item.gcal_event_id || ('direct_' + Date.now());
@@ -701,9 +694,9 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
 
       if (autoOpen && targetLink) {
         openExternalUrl(targetLink);
-        toast(`📅 Membuka Google Calendar di peramban — Klik "Simpan" untuk memasukkan tugas!`);
+        toast(`Membuka Google Calendar di peramban — Klik Simpan untuk memasukkan tugas.`);
       } else {
-        toast(`✓ Jadwal "${item.title}" tersimpan untuk Google Calendar.`);
+        toast(`Jadwal "${item.title}" tersimpan untuk Google Calendar.`);
       }
       return;
     }
@@ -1667,7 +1660,7 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
     </div>
     <label class="manual-form-gcal-sync">
       <input type="checkbox" id="manual-sync-gcal" ${state.gcalStatus.connected || state.gcalStatus.preferredMode === 'web' ? 'checked' : ''}>
-      <span>Simpan & buka jadwal di Google Calendar</span>
+      <span>${state.gcalStatus.connected && state.gcalStatus.preferredMode !== 'web' ? 'Simpan & sinkronkan otomatis ke Google Calendar' : 'Simpan & buka jadwal di Google Calendar'}</span>
     </label>
   </form>`;
 
