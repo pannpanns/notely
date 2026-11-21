@@ -419,7 +419,7 @@ class Handler(BaseHTTPRequestHandler):
                 deadlines=load_deadlines(svc.root)
                 synced_count=0
                 errors=[]
-                import datetime
+                import datetime, time
                 for d in deadlines:
                     if d.get('status')=='completed':continue
                     try:
@@ -430,6 +430,7 @@ class Handler(BaseHTTPRequestHandler):
                             d['gcal_synced_at']=datetime.datetime.now().isoformat()
                             add_or_update_deadline(svc.root,d)
                             synced_count+=1
+                        time.sleep(0.4)
                     except Exception as exc:
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
@@ -692,7 +693,7 @@ class Handler(BaseHTTPRequestHandler):
                 deadlines=load_deadlines(svc.root)
                 synced_count=0
                 errors=[]
-                import datetime
+                import datetime, time
                 for d in deadlines:
                     if d.get('status')=='completed':continue
                     try:
@@ -703,6 +704,7 @@ class Handler(BaseHTTPRequestHandler):
                             d['gcal_synced_at']=datetime.datetime.now().isoformat()
                             add_or_update_deadline(svc.root,d)
                             synced_count+=1
+                        time.sleep(0.4)
                     except Exception as exc:
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}

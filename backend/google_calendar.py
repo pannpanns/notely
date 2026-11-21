@@ -345,27 +345,33 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
             tz_formatted = f"{tz_offset[:3]}:{tz_offset[3:]}" if len(tz_offset) >= 5 else "+07:00"
 
             if time_str:
-                if time_str == '23:59':
-                    start_dt = f"{deadline_date}T23:00:00{tz_formatted}"
-                    end_dt = f"{deadline_date}T23:59:00{tz_formatted}"
-                else:
-                    start_dt = f"{deadline_date}T{time_str}:00{tz_formatted}"
-                    parts = time_str.split(':')
-                    h = min(23, int(parts[0]) + 1)
-                    end_dt = f"{deadline_date}T{h:02d}:{parts[1]}:00{tz_formatted}"
+                parts = time_str.split(':')
+                h = int(parts[0]) if parts else 23
+                m = int(parts[1]) if len(parts) > 1 else 59
+                
+                # The specified time is the DEADLINE (the end time of the task)
+                end_dt = f"{deadline_date}T{h:02d}:{m:02d}:00{tz_formatted}"
+                
+                # Start time is 30 minutes before the deadline for clear context
+                total_min = h * 60 + m
+                start_min = max(0, total_min - 30)
+                start_h = start_min // 60
+                start_m = start_min % 60
+                start_dt = f"{deadline_date}T{start_h:02d}:{start_m:02d}:00{tz_formatted}"
+
                 event_body = {
-                    'summary': summary,
-                    'description': desc,
+                    'summary': f"[Tenggat] {summary}",
+                    'description': f"Batas Waktu Pengumpulan (Deadline): {deadline_date} pukul {time_str}\n\n{desc}",
                     'start': {'dateTime': start_dt},
                     'end': {'dateTime': end_dt},
-                    'reminders': {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': 1440}, {'method': 'popup', 'minutes': 120}]}
+                    'reminders': {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': 1440}, {'method': 'popup', 'minutes': 120}, {'method': 'popup', 'minutes': 30}]}
                 }
             else:
                 dt = datetime.datetime.strptime(deadline_date, '%Y-%m-%d')
                 next_dt = dt + datetime.timedelta(days=1)
                 event_body = {
-                    'summary': summary,
-                    'description': desc,
+                    'summary': f"[Tenggat] {summary}",
+                    'description': f"Batas Waktu Pengumpulan (Deadline): {deadline_date}\n\n{desc}",
                     'start': {'date': deadline_date},
                     'end': {'date': next_dt.strftime('%Y-%m-%d')},
                     'reminders': {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': 1440}]}
@@ -375,38 +381,47 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
             method = 'PATCH' if (existing_gcal_id and not str(existing_gcal_id).startswith('direct_')) else 'POST'
             url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events/{existing_gcal_id}" if method == 'PATCH' else "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
-            try:
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(event_body).encode('utf-8'),
-                    headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-                    method=method
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    res = json.loads(resp.read().decode('utf-8'))
-                return {
-                    'success': True,
-                    'gcal_event_id': res.get('id', ''),
-                    'htmlLink': res.get('htmlLink') or 'https://calendar.google.com'
-                }
-            except urllib.error.HTTPError as he:
-                if he.code == 404 and method == 'PATCH':
-                    # Fallback to creating a new event if the previous ID was deleted
-                    post_req = urllib.request.Request(
-                        "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            max_retries = 3
+            backoff = 1.0
+            for attempt in range(max_retries):
+                try:
+                    req = urllib.request.Request(
+                        url,
                         data=json.dumps(event_body).encode('utf-8'),
                         headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
-                        method='POST'
+                        method=method
                     )
-                    with urllib.request.urlopen(post_req, timeout=15) as p_resp:
-                        res = json.loads(p_resp.read().decode('utf-8'))
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        res = json.loads(resp.read().decode('utf-8'))
                     return {
                         'success': True,
                         'gcal_event_id': res.get('id', ''),
                         'htmlLink': res.get('htmlLink') or 'https://calendar.google.com'
                     }
-                err_text = he.read().decode('utf-8', errors='ignore')
-                raise RuntimeError(f"Google Calendar API Error (HTTP {he.code}): {err_text or str(he)}")
+                except urllib.error.HTTPError as he:
+                    if he.code == 404 and method == 'PATCH':
+                        # Fallback to creating a new event if the previous ID was deleted
+                        post_req = urllib.request.Request(
+                            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+                            data=json.dumps(event_body).encode('utf-8'),
+                            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+                            method='POST'
+                        )
+                        with urllib.request.urlopen(post_req, timeout=15) as p_resp:
+                            res = json.loads(p_resp.read().decode('utf-8'))
+                        return {
+                            'success': True,
+                            'gcal_event_id': res.get('id', ''),
+                            'htmlLink': res.get('htmlLink') or 'https://calendar.google.com'
+                        }
+                    err_text = he.read().decode('utf-8', errors='ignore')
+                    if (he.code in (403, 429) or 'rateLimitExceeded' in err_text) and attempt < max_retries - 1:
+                        time.sleep(backoff)
+                        backoff *= 2.0
+                        continue
+                    if 'rateLimitExceeded' in err_text or he.code == 429:
+                        raise RuntimeError("Batas kuota panggilan Google Calendar sementara penuh (Rate Limit). Notely akan otomatis mencoba ulang.")
+                    raise RuntimeError(f"Google Calendar API Error (HTTP {he.code}): {err_text or str(he)}")
         except Exception as exc:
             raise RuntimeError(f"Gagal sinkronisasi Google Calendar: {exc}")
 

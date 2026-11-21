@@ -635,17 +635,16 @@ function buildGcalWebUrl(item) {
 
   let datesParam;
   if (timeStr) {
-    if (timeStr === '23:59') {
-      datesParam = `${cleanDate}T230000/${cleanDate}T235900`;
-    } else {
-      const parts = timeStr.split(':');
-      const h = parseInt(parts[0], 10) || 0;
-      const m = parseInt(parts[1], 10) || 0;
-      const cleanTime = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
-      const endH = Math.min(23, h + 1);
-      const endTime = String(endH).padStart(2, '0') + String(m).padStart(2, '0') + '00';
-      datesParam = `${cleanDate}T${cleanTime}/${cleanDate}T${endTime}`;
-    }
+    const parts = timeStr.split(':');
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    const totalMin = h * 60 + m;
+    const startMin = Math.max(0, totalMin - 30);
+    const startH = Math.floor(startMin / 60);
+    const startM = startMin % 60;
+    const cleanStart = String(startH).padStart(2, '0') + String(startM).padStart(2, '0') + '00';
+    const cleanEnd = String(h).padStart(2, '0') + String(m).padStart(2, '0') + '00';
+    datesParam = `${cleanDate}T${cleanStart}/${cleanDate}T${cleanEnd}`;
   } else {
     const dt = new Date(deadlineDate + 'T00:00:00');
     dt.setDate(dt.getDate() + 1);
@@ -767,22 +766,24 @@ async function loadDeadlinesData() {
         safeStore.set('notelyDeadlines', state.deadlines);
       }
 
-      // If connected to Google Calendar and has mock direct_ items, auto-sync them in background
+      // If connected to Google Calendar and has mock direct_ items, auto-sync them in background with gentle pacing
       if (state.gcalStatus.connected && state.gcalStatus.autoSync !== false) {
         const hasUnsynced = state.deadlines.some(d => d.status !== 'completed' && (!d.gcal_event_id || String(d.gcal_event_id).startsWith('direct_')));
         if (hasUnsynced && !window.__autoSyncedDeadlinesOnce) {
           window.__autoSyncedDeadlinesOnce = true;
-          api('/gcalendar/sync-all', {}).then(res => {
-            if (res && res.synced) {
-              api('/deadlines').then(fresh => {
-                if (Array.isArray(fresh.deadlines)) {
-                  state.deadlines = fresh.deadlines;
-                  safeStore.set('notelyDeadlines', state.deadlines);
-                  refreshPage();
-                }
-              }).catch(() => {});
-            }
-          }).catch(() => {});
+          setTimeout(() => {
+            api('/gcalendar/sync-all', {}).then(res => {
+              if (res && res.synced) {
+                api('/deadlines').then(fresh => {
+                  if (Array.isArray(fresh.deadlines)) {
+                    state.deadlines = fresh.deadlines;
+                    safeStore.set('notelyDeadlines', state.deadlines);
+                    refreshPage();
+                  }
+                }).catch(() => {});
+              }
+            }).catch(() => {});
+          }, 1500);
         }
       }
     } else {
@@ -807,8 +808,8 @@ async function persistDeadline(item) {
     else state.deadlines.unshift(item);
     safeStore.set('notelyDeadlines', state.deadlines);
 
-    // If Google Calendar is connected and autoSync is enabled, sync event immediately without opening browser!
-    if (state.gcalStatus.connected && state.gcalStatus.autoSync !== false) {
+    // If backend didn't already sync it and Google Calendar is connected, sync event
+    if (state.gcalStatus.connected && state.gcalStatus.autoSync !== false && !item.gcal_event_id) {
       syncSingleDeadlineGcal(item, false);
     }
     return item;
@@ -2053,8 +2054,8 @@ handleClick = function(action, id) {
       closeModal();
       toast('Tenggat tugas berhasil disimpan.');
       refreshPage();
-      if (shouldSyncGcal && savedItem) {
-        syncSingleDeadlineGcal(savedItem, !state.gcalStatus.connected);
+      if (shouldSyncGcal && savedItem && !state.gcalStatus.connected) {
+        syncSingleDeadlineGcal(savedItem, true);
       }
     });
     return;

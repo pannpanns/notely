@@ -1,3 +1,8 @@
+Pembaruan Notely v1.3.2:
+• Penanganan Kuota & Rate Limit Google Calendar API (Fix Error 403 rateLimitExceeded): Mengatasi error limit kuota akibat panggilan beruntun dengan menambahkan mekanisme retry otomatis (exponential backoff), jeda waktu pacing 0.4 detik pada sinkronisasi massal, serta meniadakan panggilan API ganda/redundant antara frontend dan backend.
+• Logika Waktu Batas Pengumpulan Presisi di Google Calendar (Fix 4:59 - 5:59): Waktu tenggat tugas kini secara presisi dijadikan sebagai waktu selesai (end time) acara di kalender (misal: 16:29 s.d. 16:59 untuk tenggat 16:59 / 4:59 PM), dengan judul acara yang jelas bertuliskan `[Tenggat] Nama Tugas` dan deskripsi batas waktu pengumpulan, sehingga pengguna tidak lagi bingung dengan rentang waktu durasi kalender.
+• Sinkronisasi Versi Aplikasi v1.3.2: Pembaruan versi pada antarmuka, Tauri, dan Cargo ke v1.3.2.
+
 Pembaruan Notely v1.3.1:
 • Sinkronisasi Otomatis Google Calendar Latar Belakang (Direct Background Sync): Mengatasi masalah di mana tugas tidak otomatis tersinkron saat akun OAuth terhubung. Backend dan antarmuka kini otomatis menyinkronkan setiap tugas baru (baik dari prompt AI, tangkapan layar, maupun tambah manual) secara langsung ke Google Calendar API di latar belakang tanpa membuka tab peramban Chrome lagi.
 • Pencegahan Pembukaan Draf Template URL ('Buka di Kalender'): Tombol 'Buka di Kalender' kini mengarahkan pengguna langsung ke halaman utama Google Calendar (`https://calendar.google.com`) atau pranala acara tersinkron, mencegah peramban membuka draf pembuatan tugas kosong (`action=TEMPLATE`) yang membingungkan pengguna.
