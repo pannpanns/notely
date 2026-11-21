@@ -85,13 +85,7 @@ def get_status(data_root: str | Path) -> dict:
     effective_client_id = config.get('clientId') or DEFAULT_CLIENT_ID
     effective_secret = config.get('clientSecret') or DEFAULT_CLIENT_SECRET
     has_credentials = bool(effective_client_id and effective_secret)
-    pref_mode = config.get('preferredMode')
-    if connected:
-        if pref_mode != 'web':
-            pref_mode = 'oauth'
-    else:
-        if not pref_mode:
-            pref_mode = 'web'
+    pref_mode = 'oauth' if connected else config.get('preferredMode', 'web')
     return {
         'connected': connected,
         'email': tokens.get('email', ''),
@@ -343,8 +337,8 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
     web_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote(summary)}&dates={dates_param}&ctz={urllib.parse.quote(tz_name)}&details={urllib.parse.quote(desc)}"
 
     connected = bool(tokens.get('refresh_token') or (tokens.get('mode') == 'oauth' and tokens.get('access_token')))
-    # If OAuth tokens are available and preferred mode is not web, sync via Google Calendar API v3
-    if connected and config.get('preferredMode') != 'web':
+    # If OAuth tokens are available, always sync via Google Calendar API v3 in the background
+    if connected:
         try:
             token = refresh_access_token_if_needed(data_root)
             tz_offset = now_local.strftime('%z') or "+07:00"
@@ -393,7 +387,7 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                 return {
                     'success': True,
                     'gcal_event_id': res.get('id', ''),
-                    'htmlLink': res.get('htmlLink', web_url)
+                    'htmlLink': res.get('htmlLink') or 'https://calendar.google.com'
                 }
             except urllib.error.HTTPError as he:
                 if he.code == 404 and method == 'PATCH':
@@ -409,7 +403,7 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                     return {
                         'success': True,
                         'gcal_event_id': res.get('id', ''),
-                        'htmlLink': res.get('htmlLink', web_url)
+                        'htmlLink': res.get('htmlLink') or 'https://calendar.google.com'
                     }
                 err_text = he.read().decode('utf-8', errors='ignore')
                 raise RuntimeError(f"Google Calendar API Error (HTTP {he.code}): {err_text or str(he)}")
@@ -423,6 +417,23 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
         'gcal_event_id': event_id,
         'htmlLink': web_url
     }
+
+def delete_event_from_google_calendar(data_root: str | Path, gcal_event_id: str):
+    """Safely delete an event from user's Google Calendar if synced."""
+    if not gcal_event_id or str(gcal_event_id).startswith('direct_') or str(gcal_event_id).startswith('demo_'):
+        return
+    tokens = get_tokens(data_root)
+    connected = bool(tokens.get('refresh_token') or (tokens.get('mode') == 'oauth' and tokens.get('access_token')))
+    if not connected:
+        return
+    try:
+        token = refresh_access_token_if_needed(data_root)
+        url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events/{gcal_event_id}"
+        req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'}, method='DELETE')
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+    except Exception:
+        pass
 
 def String_pad(n: int) -> str:
     return str(n).zfill(2)

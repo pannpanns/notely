@@ -581,14 +581,57 @@ class Handler(BaseHTTPRequestHandler):
                 out={'saved':True}
             elif path=='/deadlines/save':
                 from deadlines import add_or_update_deadline
-                out={'deadline':add_or_update_deadline(svc.root,args.get('item') or args)}
+                from google_calendar import get_status, get_config, sync_event_to_google_calendar
+                it = add_or_update_deadline(svc.root, args.get('item') or args)
+                # Auto-sync immediately to Google Calendar API if OAuth is connected and autoSync is enabled
+                st = get_status(svc.root)
+                cfg = get_config(svc.root)
+                if st.get('connected') and cfg.get('autoSync', True):
+                    try:
+                        res = sync_event_to_google_calendar(svc.root, it)
+                        if res.get('gcal_event_id'):
+                            it['gcal_event_id'] = res['gcal_event_id']
+                            it['gcal_link'] = res.get('htmlLink') or 'https://calendar.google.com'
+                            import datetime
+                            it['gcal_synced_at'] = datetime.datetime.now().isoformat()
+                            it = add_or_update_deadline(svc.root, it)
+                    except Exception:
+                        pass
+                out={'deadline': it}
             elif path=='/deadlines/batch':
                 from deadlines import add_or_update_deadline
-                saved=[add_or_update_deadline(svc.root,x) for x in (args.get('items') or [])]
+                from google_calendar import get_status, get_config, sync_event_to_google_calendar
+                st = get_status(svc.root)
+                cfg = get_config(svc.root)
+                can_sync = st.get('connected') and cfg.get('autoSync', True)
+                saved=[]
+                for x in (args.get('items') or []):
+                    it = add_or_update_deadline(svc.root, x)
+                    if can_sync:
+                        try:
+                            res = sync_event_to_google_calendar(svc.root, it)
+                            if res.get('gcal_event_id'):
+                                it['gcal_event_id'] = res['gcal_event_id']
+                                it['gcal_link'] = res.get('htmlLink') or 'https://calendar.google.com'
+                                import datetime
+                                it['gcal_synced_at'] = datetime.datetime.now().isoformat()
+                                it = add_or_update_deadline(svc.root, it)
+                        except Exception:
+                            pass
+                    saved.append(it)
                 out={'saved':len(saved),'deadlines':saved}
             elif path=='/deadlines/delete':
-                from deadlines import delete_deadline
-                out={'deleted':delete_deadline(svc.root,args.get('id',''))}
+                from deadlines import delete_deadline, load_deadlines
+                from google_calendar import delete_event_from_google_calendar
+                d_id = args.get('id','')
+                try:
+                    deadlines = load_deadlines(svc.root)
+                    target = next((d for d in deadlines if d.get('id') == d_id), None)
+                    if target and target.get('gcal_event_id'):
+                        delete_event_from_google_calendar(svc.root, target['gcal_event_id'])
+                except Exception:
+                    pass
+                out={'deleted':delete_deadline(svc.root,d_id)}
             elif path=='/deadlines/toggle':
                 from deadlines import toggle_deadline_status
                 out={'deadline':toggle_deadline_status(svc.root,args.get('id',''))}

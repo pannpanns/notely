@@ -49,6 +49,7 @@ class GoogleCalendarTests(unittest.TestCase):
             status2 = get_status(td)
             self.assertTrue(status2['connected'])
             self.assertEqual(status2['email'], 'mahasiswa@gmail.com')
+            self.assertEqual(status2['preferredMode'], 'oauth')
             self.assertFalse(status2['autoSync'])
             self.assertTrue(status2['dismissPrompt'])
 
@@ -57,6 +58,14 @@ class GoogleCalendarTests(unittest.TestCase):
             status3 = get_status(td)
             self.assertFalse(status3['connected'])
             self.assertEqual(status3['email'], '')
+            self.assertEqual(status3['preferredMode'], 'web')
+
+    def test_delete_event(self):
+        from google_calendar import delete_event_from_google_calendar
+        with tempfile.TemporaryDirectory() as td:
+            # Should safely ignore direct_ or demo_ or not connected without error
+            delete_event_from_google_calendar(td, 'direct_123456')
+            delete_event_from_google_calendar(td, '')
 
     def test_import_credentials_json(self):
         with tempfile.TemporaryDirectory() as td:
