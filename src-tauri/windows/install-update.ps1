@@ -91,9 +91,6 @@ try {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
 } finally {
-    Add-Type -AssemblyName System.Windows.Forms
-    [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
-} finally {
     # Delete only this updater's exact download, including on cancellation.
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
         Remove-Item -LiteralPath $Installer -Force -ErrorAction SilentlyContinue

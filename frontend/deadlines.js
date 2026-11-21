@@ -1539,35 +1539,40 @@ function renderAiModal() {
     <div class="ai-dialog-body">
       ${state.deadlineTab === 'prompt' ? `
       <div class="prompt-tab-panel">
-        <label class="field-label" for="ai-deadline-prompt">Tulis atau tempel teks tugas / pengumuman:</label>
-        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Contoh: 'Tugas resume bab 4 AI dikumpul 25 November jam 12 siang, Tugas Proyek Web tanggal 28 jam 23:59, dan kuis basis data senin depan'...">${esc(state.deadlineAiPrompt)}</textarea>
+        <label class="field-label" for="ai-deadline-prompt">Tulis atau tempel teks tugas / jadwal:</label>
+        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Contoh: 'Perkuliahan hari ini jam 16.30-19.29 link meet.google.com/xyz', atau 'Tugas resume bab 4 AI dikumpul 25 November jam 12 siang'…">${esc(state.deadlineAiPrompt)}</textarea>
         <div class="quick-prompt-chips">
           <span class="chip-label">Contoh cepat:</span>
+          <button class="chip-btn" data-action="apply-prompt-chip" data-id="Perkuliahan Google Meet hari ini jam 16:30 link meet.google.com/bfd-ghon-ght">Kuliah Meet</button>
           <button class="chip-btn" data-action="apply-prompt-chip" data-id="Tugas makalah Kecerdasan Buatan dikumpul jumat depan jam 12:00, kuis Basis Data tanggal 25 jam 10:00">Tugas Kuliah</button>
           <button class="chip-btn" data-action="apply-prompt-chip" data-id="Laporan praktikum fisika deadline 3 hari lagi jam 23:59, revisi proposal senin depan">Praktikum</button>
-          <button class="chip-btn" data-action="apply-prompt-chip" data-id="Presentasi Final Project tanggal 30 November jam 13:00 materi bab 1-5">Presentasi</button>
         </div>
       </div>` : `
       <div class="screenshot-tab-panel">
-        <div class="screenshot-dropzone ${state.deadlineAiImage ? 'has-image' : ''}" id="ai-screenshot-dropzone" data-action="trigger-screenshot-upload">
+        <div class="screenshot-dropzone ${state.deadlineAiImage ? 'has-image' : ''}" id="ai-screenshot-dropzone">
           ${state.deadlineAiImage ? `
-            <div class="image-preview-wrapper">
-              <img src="${state.deadlineAiImage}" alt="Screenshot tugas" class="screenshot-preview-img">
-              <button class="button small danger remove-img-btn" data-action="remove-ai-image">${icon('trash')} Ganti Gambar</button>
+            <div class="image-preview-card">
+              <div class="image-preview-box">
+                <img src="${state.deadlineAiImage}" alt="Screenshot tugas atau jadwal" class="screenshot-preview-img">
+              </div>
+              <div class="image-preview-controls">
+                <button class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Ganti Gambar</button>
+                <button class="button small ghost text-danger" data-action="remove-ai-image">${icon('trash')} Hapus</button>
+              </div>
             </div>
           ` : `
-            <div class="dropzone-hint">
+            <div class="dropzone-hint" data-action="trigger-screenshot-upload">
               <div class="dropzone-icon">${icon('image')}</div>
-              <strong>Pilih atau seret gambar ke sini</strong>
-              <p>Bisa juga tempel gambar langsung dengan <b>Ctrl + V</b></p>
-              <span class="dropzone-types">Format: PNG, JPG, JPEG, WEBP</span>
+              <strong>Pilih atau seret tangkapan layar jadwal ke sini</strong>
+              <p>Dapat membaca chat WhatsApp, pengumuman kuliah, atau web jadwal</p>
+              <span class="dropzone-types">Format: PNG, JPG, JPEG, WEBP · Tempel cepat dengan <b>Ctrl + V</b></span>
             </div>
           `}
         </div>
         <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
-        <div style="margin-top:12px">
+        <div class="ai-extra-field-group">
           <label class="field-label" for="ai-extra-prompt">Catatan / Instruksi tambahan (opsional):</label>
-          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil hanya tugas minggu ini' atau 'Tandai prioritas tinggi'..." value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
+          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil perkuliahan meet hari ini' atau 'Prioritaskan tugas mendesak'…" value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
         </div>
       </div>`}
 

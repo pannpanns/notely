@@ -65,11 +65,26 @@ def extract_text_from_image(image_bytes: bytes) -> str:
         cmd = [
             "powershell",
             "-NoProfile",
+            "-NonInteractive",
+            "-WindowStyle", "Hidden",
             "-ExecutionPolicy", "Bypass",
             "-File", ps_script_path,
             tmp_path
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if os.name == 'nt' else 0
+        startupinfo = None
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= getattr(subprocess, 'STARTF_USESHOWWINDOW', 1)
+            startupinfo.wShowWindow = 0  # SW_HIDE
+        res = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            creationflags=creationflags,
+            startupinfo=startupinfo
+        )
         if res.returncode == 0:
             return res.stdout.strip()
         return ""

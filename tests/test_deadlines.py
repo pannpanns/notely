@@ -121,5 +121,23 @@ class DeadlinesTests(unittest.TestCase):
         self.assertEqual(items[1]['time'], '10:00')
         self.assertEqual(items[1]['deadline'], '2026-11-25')
 
+    def test_heuristic_extractor_google_meet_lecture(self):
+        import datetime
+        ref = datetime.date(2026, 11, 21)
+        text = "Selamat siang, Bapak & teman-teman 🙏 Mohon izin mengirimkan link google meet untuk perkuliahan hari ini yang dijadwalkan pada jam 16.30-19.29 Link dapat diakses dibawah ini. https://meet.google.com/bfd-ghon-ght"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['title'], 'Perkuliahan Google Meet')
+        self.assertEqual(items[0]['deadline'], '2026-11-21')
+        self.assertEqual(items[0]['time'], '16:30')
+        self.assertIn('meet.google.com', items[0]['description'])
+
+    def test_conversational_questions_ignored(self):
+        import datetime
+        ref = datetime.date(2026, 11, 21)
+        text = "Jam berapa meet?"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 0)
+
 if __name__ == '__main__':
     unittest.main()

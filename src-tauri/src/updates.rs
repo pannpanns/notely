@@ -22,14 +22,34 @@ pub async fn install_update(app: tauri::AppHandle, pending: State<'_, PendingUpd
     if app.state::<super::BusyGuard>().0.load(Ordering::Relaxed) {
         return Err("Hentikan dan simpan rekaman sebelum update.".into());
     }
-    let update = pending.0.lock().map_err(|e| e.to_string())?.take()
-        .ok_or("Periksa pembaruan kembali sebelum mengunduh.")?;
+    let update = {
+        let mut guard = pending.0.lock().map_err(|e| e.to_string())?;
+        if guard.is_none() {
+            let u = app.updater().map_err(|e| e.to_string())?
+                .check().await.map_err(|e| e.to_string())?;
+            *guard = u;
+        }
+        guard.take().ok_or("Tidak ada pembaruan yang siap diunduh. Coba periksa kembali.")?
+    };
     let mut received = 0usize;
     // The official updater validates the signature before returning these bytes.
-    let bytes = update.download(|size, total| {
+    let bytes = match update.download(|size, total| {
         received += size;
         let _ = app.emit("notely-update-progress", serde_json::json!({"received":received,"total":total}));
-    }, || {}).await.map_err(|e| e.to_string())?;
+    }, || {}).await {
+        Ok(b) => b,
+        Err(e) => {
+            // Restore update check if download fails so retry works immediately on first click
+            if let Ok(updater) = app.updater() {
+                if let Ok(fresh) = updater.check().await {
+                    if let Ok(mut guard) = pending.0.lock() {
+                        *guard = fresh;
+                    }
+                }
+            }
+            return Err(e.to_string());
+        }
+    };
     if app.state::<super::BusyGuard>().0.load(Ordering::Relaxed) {
         return Err("Rekaman sedang berjalan. Simpan dahulu, kemudian coba update kembali.".into());
     }

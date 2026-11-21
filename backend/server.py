@@ -447,7 +447,8 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:
                         try:
                             escaped = target_url.replace("'", "''")
-                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-Command', f"Start-Process '{escaped}'"], shell=False)
+                            cflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if sys.platform == 'win32' else 0
+                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', f"Start-Process '{escaped}'"], shell=False, creationflags=cflags)
                         except Exception:
                             pass
                 out={'opened':True}
@@ -721,7 +722,8 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:
                         try:
                             escaped = target_url.replace("'", "''")
-                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-Command', f"Start-Process '{escaped}'"], shell=False)
+                            cflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if sys.platform == 'win32' else 0
+                            subprocess.Popen(['powershell', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', f"Start-Process '{escaped}'"], shell=False, creationflags=cflags)
                         except Exception:
                             pass
                 out={'opened':True}
