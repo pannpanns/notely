@@ -729,7 +729,7 @@ async function syncSingleDeadlineGcal(item, autoOpen = true) {
 }
 
 
-// Sync all active deadlines directly to Google Calendar via API
+// Sync all active deadlines directly to Google Calendar via API (Two-Way Sync: Pull first, then push)
 async function syncAllDeadlinesGcal() {
   if (!state.gcalStatus.connected) {
     openGcalConnectModal(true);
@@ -737,11 +737,16 @@ async function syncAllDeadlinesGcal() {
   }
 
   try {
-    toast('Menyinkronkan semua tugas aktif ke Google Calendar…');
+    toast('Menyinkronkan Google Calendar (Dua Arah)…');
     if (typeof api === 'function' && engine.ready) {
+      try {
+        await api('/gcalendar/pull', {});
+      } catch (pullErr) {
+        console.warn('GCal pull error:', pullErr);
+      }
       const res = await api('/gcalendar/sync-all', {});
       await loadDeadlinesData();
-      toast(`✓ Berhasil menyinkronkan ${res.synced || 0} tugas ke Google Calendar!`);
+      toast(`✓ Berhasil sinkronisasi Google Calendar! (${res.synced || 0} terkirim)`);
     } else {
       toast('✓ Semua tugas disinkronkan ke Google Calendar (Mode Demo)!');
     }
@@ -879,6 +884,61 @@ function promptDeleteDeadline(id) {
   ]);
 }
 
+// Confirmation dialog for completing & removing a task with delightful celebration animation
+function promptCompleteAndRemoveDeadline(id) {
+  const d = state.deadlines.find(x => x.id === id);
+  if (!d) return;
+
+  const content = `
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div style="display:flex;align-items:center;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 14px;border-radius:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#22c55e;color:#fff;display:grid;place-items:center;font-size:18px;font-weight:700">✓</div>
+        <div>
+          <h4 style="margin:0 0 2px;font-size:14px;color:#15803d;font-weight:700">Tandai Tugas Selesai?</h4>
+          <p style="margin:0;font-size:12px;color:#166534">Tugas yang diselesaikan akan otomatis dibersihkan dari jadwal kalender.</p>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:#374151;margin:0;line-height:1.6">
+        Apakah Anda menyatakan tugas <strong>"${esc(d.title)}"</strong> (${esc(d.course || 'Umum')}) telah selesai?
+      </p>
+      <div style="font-size:12px;color:#6b7280;background:#f9fafb;padding:10px 12px;border-radius:8px;border:1px solid #e5e7eb">
+        ✓ Tugas akan dituntaskan dan otomatis dihapus dari daftar tenggat agar kalender Anda tetap bersih dan terorganisir.
+      </div>
+    </div>
+  `;
+
+  window.__deadlineIdToComplete = id;
+
+  modal('Konfirmasi Tugas Selesai', content, [
+    ['Batal', 'cancel-complete-deadline', 'ghost'],
+    ['✓ Ya, Selesaikan & Hapus', 'confirm-complete-deadline', 'accent']
+  ]);
+}
+
+async function completeAndRemoveDeadlineWithAnimation(id) {
+  const d = state.deadlines.find(x => x.id === id);
+  closeModal();
+  if (!d) return;
+
+  // Add smooth completion animation on card
+  const card = document.querySelector(`.deadline-card input[data-id="${id}"]`)?.closest('.deadline-card') ||
+               document.querySelector(`.cal-modal-task-item input[data-id="${id}"]`)?.closest('.cal-modal-task-item');
+  if (card) {
+    card.classList.add('task-completing-anim');
+  }
+
+  setTimeout(async () => {
+    // Delete from Notely & Google Calendar
+    await removeDeadline(id);
+    if (state.selectedDeadlineDate) {
+      const remaining = state.deadlines.filter(x => x.deadline === state.selectedDeadlineDate);
+      if (!remaining.length) state.selectedDeadlineDate = null;
+    }
+    toast(`🎉 Hebat! Tugas "${d.title}" selesai & dibersihkan.`);
+    refreshPage();
+  }, 360);
+}
+
 // Toggle completion status
 async function toggleDeadline(id) {
   const d = state.deadlines.find(x => x.id === id);
@@ -960,6 +1020,20 @@ function exportDeadlinesICS() {
 function deadlinesPage() {
   checkGcalPromptOnEnter();
 
+  // Automatic Two-Way Sync from Google Calendar (events created/updated from smartphone)
+  if (state.gcalStatus.connected && !window.__gcalPullInitiated) {
+    window.__gcalPullInitiated = true;
+    if (typeof api === 'function' && engine.ready) {
+      api('/gcalendar/pull', {}).then(res => {
+        if (res && (res.imported > 0 || res.updated > 0)) {
+          loadDeadlinesData().then(() => {
+            if (state.page === 'deadlines') refreshPage();
+          });
+        }
+      }).catch(() => {});
+    }
+  }
+
   // Hide floating recording dock on deadlines page so it doesn't obstruct content
   const dock = document.getElementById('recording-dock');
   if (dock) {
@@ -1037,10 +1111,6 @@ function deadlinesPage() {
             <span>Google Calendar</span>
           </button>
         `) : ''}
-
-        <button class="button accent" data-action="open-deadline-ai">${icon('spark')} Buat dengan AI</button>
-        <button class="button" data-action="open-manual-deadline">${icon('plus')} Tambah manual</button>
-        <button class="button ghost" data-action="export-ics" title="Ekspor semua tugas aktif ke format .ics">${icon('google')} Ekspor .ics</button>
       </div>
     </div>
 
@@ -1051,11 +1121,17 @@ function deadlinesPage() {
           <button class="${state.deadlineView === 'list' ? 'active' : ''}" data-action="switch-deadline-view" data-id="list">${icon('notes')} Daftar Tugas</button>
         </div>
 
-        <div class="deadlines-search-wrap">
-          ${icon('search')}
-          <input type="text" id="deadline-search-input" placeholder="Cari nama tugas atau mata kuliah…" value="${esc(state.deadlineSearch)}" autocomplete="off">
-          ${state.deadlineSearch ? `<button class="search-clear" data-action="clear-deadline-search">×</button>` : ''}
-        </div>
+        ${isCalView ? `
+          <div class="deadlines-toolbar-actions">
+            <button class="button accent" data-action="open-deadline-ai">${icon('spark')} Buat dengan AI</button>
+          </div>
+        ` : `
+          <div class="deadlines-search-wrap">
+            ${icon('search')}
+            <input type="text" id="deadline-search-input" placeholder="Cari nama tugas atau mata kuliah…" value="${esc(state.deadlineSearch)}" autocomplete="off">
+            ${state.deadlineSearch ? `<button class="search-clear" data-action="clear-deadline-search">×</button>` : ''}
+          </div>
+        `}
       </div>
 
       ${state.deadlineView === 'list' ? `
@@ -1245,22 +1321,6 @@ function renderGcalSettingsCard() {
         <p style="font-size:12px;color:#718579;margin:0">Tampilkan pill status Google Calendar di bagian atas halaman Tenggat Tugas.</p>
       </div>
       <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
-    </div>
-
-    <!-- Default Reminder Setting Sub-Row -->
-    <div class="setting-row" style="margin-top:14px;padding-top:14px;border-top:1px solid #e7ede9">
-      <div>
-        <h4 style="font-size:13.5px;font-weight:600;color:#22362b;margin:0 0 4px">Waktu Pengingat Notifikasi Kalender</h4>
-        <p style="font-size:12px;color:#718579;margin:0">Setelan alarm pengingat default saat membuat atau menyinkronkan tugas ke Google Calendar.</p>
-      </div>
-      <select class="control-select" style="max-width:210px;height:38px;font-size:12.5px" data-setting="gcalReminder">
-        <option value="30" ${(state.settings.gcalReminder ?? 30) === 30 ? 'selected' : ''}>30 menit sebelumnya (Standar)</option>
-        <option value="10" ${(state.settings.gcalReminder ?? 30) === 10 ? 'selected' : ''}>10 menit sebelumnya</option>
-        <option value="60" ${(state.settings.gcalReminder ?? 30) === 60 ? 'selected' : ''}>1 jam sebelumnya</option>
-        <option value="120" ${(state.settings.gcalReminder ?? 30) === 120 ? 'selected' : ''}>2 jam sebelumnya</option>
-        <option value="1440" ${(state.settings.gcalReminder ?? 30) === 1440 ? 'selected' : ''}>1 hari sebelumnya</option>
-        <option value="0" ${(state.settings.gcalReminder ?? 30) === 0 ? 'selected' : ''}>Tanpa notifikasi</option>
-      </select>
     </div>
   </div>`;
 }
@@ -1664,6 +1724,26 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
     status: 'pending'
   };
 
+  let remVal = item.reminder !== undefined ? item.reminder : 30;
+  let remAmount = 30;
+  let remUnit = 'minutes';
+  if (remVal === 0) {
+    remAmount = 0;
+    remUnit = 'none';
+  } else if (remVal % 10080 === 0) {
+    remAmount = remVal / 10080;
+    remUnit = 'weeks';
+  } else if (remVal % 1440 === 0) {
+    remAmount = remVal / 1440;
+    remUnit = 'days';
+  } else if (remVal % 60 === 0) {
+    remAmount = remVal / 60;
+    remUnit = 'hours';
+  } else {
+    remAmount = remVal;
+    remUnit = 'minutes';
+  }
+
   const uid = Date.now();
   const content = `<div class="manual-deadline-form" style="display:flex;flex-direction:column;gap:14px;">
     <div class="field">
@@ -1695,15 +1775,17 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
       </div>
     </div>
     <div class="field">
-      <label class="field-label" for="manual-dl-reminder">Waktu Pengingat Notifikasi Kalender</label>
-      <select id="manual-dl-reminder" class="control-select">
-        <option value="30" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 30 ? 'selected' : ''}>30 menit sebelum tenggat (Standar)</option>
-        <option value="10" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 10 ? 'selected' : ''}>10 menit sebelum tenggat</option>
-        <option value="60" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 60 ? 'selected' : ''}>1 jam sebelum tenggat</option>
-        <option value="120" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 120 ? 'selected' : ''}>2 jam sebelum tenggat</option>
-        <option value="1440" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 1440 ? 'selected' : ''}>1 hari sebelum tenggat</option>
-        <option value="0" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 0 ? 'selected' : ''}>Tanpa notifikasi</option>
-      </select>
+      <label class="field-label">Pengingat Notifikasi Kalender</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="manual-dl-reminder-num" class="textbox" min="1" max="99" value="${remAmount || 30}" style="max-width:90px" ${remUnit === 'none' ? 'disabled' : ''}>
+        <select id="manual-dl-reminder-unit" class="control-select" style="flex:1" onchange="document.getElementById('manual-dl-reminder-num').disabled = (this.value === 'none');">
+          <option value="minutes" ${remUnit === 'minutes' ? 'selected' : ''}>Menit sebelum tenggat</option>
+          <option value="hours" ${remUnit === 'hours' ? 'selected' : ''}>Jam sebelum tenggat</option>
+          <option value="days" ${remUnit === 'days' ? 'selected' : ''}>Hari sebelum tenggat</option>
+          <option value="weeks" ${remUnit === 'weeks' ? 'selected' : ''}>Minggu sebelum tenggat</option>
+          <option value="none" ${remUnit === 'none' ? 'selected' : ''}>Tanpa notifikasi</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label class="field-label" for="manual-dl-desc">Deskripsi & Catatan Tambahan</label>
@@ -1941,7 +2023,21 @@ handleClick = function(action, id) {
 
   // Task Actions
   if (action === 'toggle-deadline') {
-    toggleDeadline(id);
+    promptCompleteAndRemoveDeadline(id);
+    return;
+  }
+  if (action === 'confirm-complete-deadline') {
+    const idToComplete = window.__deadlineIdToComplete;
+    if (idToComplete) {
+      completeAndRemoveDeadlineWithAnimation(idToComplete);
+      window.__deadlineIdToComplete = null;
+    }
+    return;
+  }
+  if (action === 'cancel-complete-deadline') {
+    window.__deadlineIdToComplete = null;
+    closeModal();
+    refreshPage();
     return;
   }
   if (action === 'delete-deadline') {
@@ -2071,8 +2167,20 @@ handleClick = function(action, id) {
       return;
     }
     const deadline = document.getElementById('manual-dl-date')?.value || new Date().toISOString().slice(0, 10);
-    const remVal = document.getElementById('manual-dl-reminder')?.value;
-    const reminder = remVal !== undefined && remVal !== null ? parseInt(remVal, 10) : parseInt(state.settings.gcalReminder ?? 30, 10);
+    const remNum = parseInt(document.getElementById('manual-dl-reminder-num')?.value || '30', 10);
+    const remUnit = document.getElementById('manual-dl-reminder-unit')?.value || 'minutes';
+    let reminder = 30;
+    if (remUnit === 'none') {
+      reminder = 0;
+    } else if (remUnit === 'minutes') {
+      reminder = Math.max(1, isNaN(remNum) ? 30 : remNum);
+    } else if (remUnit === 'hours') {
+      reminder = Math.max(1, isNaN(remNum) ? 1 : remNum) * 60;
+    } else if (remUnit === 'days') {
+      reminder = Math.max(1, isNaN(remNum) ? 1 : remNum) * 1440;
+    } else if (remUnit === 'weeks') {
+      reminder = Math.max(1, isNaN(remNum) ? 1 : remNum) * 10080;
+    }
     const item = {
       id: window.__manualDeadlineEditingId || undefined,
       title,
@@ -2133,6 +2241,9 @@ document.addEventListener('input', e => {
       const filtered = all.filter(d => !q || (d.title + ' ' + (d.course || '') + ' ' + (d.description || '')).toLowerCase().includes(q));
       container.innerHTML = state.deadlineView === 'calendar' ? renderDeadlineCalendar() : renderDeadlineList(filtered);
     }
+  }
+  if (e.target.id === 'ai-deadline-prompt' || e.target.id === 'ai-extra-prompt') {
+    state.deadlineAiPrompt = e.target.value;
   }
 });
 

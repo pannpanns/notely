@@ -105,6 +105,13 @@ class GoogleCalendarTests(unittest.TestCase):
             self.assertIn('calendar.google.com/calendar/render', res['htmlLink'])
             self.assertIn('Tugas%20Praktikum', res['htmlLink'])
 
+    def test_pull_events_disconnected(self):
+        from google_calendar import pull_events_from_google_calendar
+        with tempfile.TemporaryDirectory() as td:
+            res = pull_events_from_google_calendar(td)
+            self.assertFalse(res['success'])
+            self.assertEqual(res['imported'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -484,3 +484,121 @@ def delete_event_from_google_calendar(data_root: str | Path, gcal_event_id: str)
 
 def String_pad(n: int) -> str:
     return str(n).zfill(2)
+
+def pull_events_from_google_calendar(data_root: str | Path) -> dict:
+    """Two-way sync: Pull updated or newly created events from Google Calendar (e.g. from smartphone or web) into Notely."""
+    tokens = get_tokens(data_root)
+    connected = bool(tokens.get('refresh_token') or (tokens.get('mode') == 'oauth' and tokens.get('access_token')))
+    if not connected:
+        return {'success': False, 'message': 'Google Calendar tidak terhubung.', 'imported': 0, 'updated': 0}
+
+    try:
+        from deadlines import load_deadlines, save_deadlines
+        token = refresh_access_token_if_needed(data_root)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        # Check events from 30 days ago to 90 days ahead
+        time_min = (now - datetime.timedelta(days=30)).isoformat().replace('+00:00', 'Z')
+        url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin={time_min}&maxResults=150&singleEvents=true"
+        req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+
+        events = data.get('items', [])
+        deadlines = load_deadlines(data_root)
+        gcal_map = {d.get('gcal_event_id'): d for d in deadlines if d.get('gcal_event_id')}
+
+        imported_count = 0
+        updated_count = 0
+
+        for ev in events:
+            ev_id = ev.get('id')
+            if not ev_id:
+                continue
+
+            # If event was deleted on Google Calendar / phone, remove it from Notely
+            if ev.get('status') == 'cancelled':
+                if ev_id in gcal_map:
+                    deadlines = [d for d in deadlines if d.get('gcal_event_id') != ev_id]
+                    updated_count += 1
+                continue
+
+            summary = ev.get('summary', '').strip()
+            # Only pull events designated as deadlines or already tracked by Notely
+            is_deadline_event = summary.startswith('[Tenggat]') or ev_id in gcal_map
+            if not is_deadline_event:
+                continue
+
+            clean_title = summary.removeprefix('[Tenggat]').strip() or 'Tugas Kalender'
+            start = ev.get('start', {})
+            end = ev.get('end', {})
+
+            # Determine deadline date & time from Google Calendar event
+            date_str = ''
+            time_str = '23:59'
+
+            target_dt = end.get('dateTime') or start.get('dateTime')
+            target_d = end.get('date') or start.get('date')
+
+            if target_dt:
+                try:
+                    date_str = target_dt[:10]
+                    if len(target_dt) >= 16:
+                        time_str = target_dt[11:16]
+                except Exception:
+                    pass
+            elif target_d:
+                date_str = target_d[:10]
+                time_str = '23:59'
+
+            if not date_str:
+                continue
+
+            html_link = ev.get('htmlLink') or 'https://calendar.google.com'
+            desc = ev.get('description', '')
+
+            if ev_id in gcal_map:
+                existing = gcal_map[ev_id]
+                changed = False
+                if existing.get('title') != clean_title and clean_title:
+                    existing['title'] = clean_title
+                    changed = True
+                if existing.get('deadline') != date_str and date_str:
+                    existing['deadline'] = date_str
+                    changed = True
+                if existing.get('time') != time_str and time_str:
+                    existing['time'] = time_str
+                    changed = True
+                if changed:
+                    existing['gcal_synced_at'] = datetime.datetime.now().isoformat()
+                    updated_count += 1
+            else:
+                # Newly created event on smartphone / Google Calendar web!
+                new_item = {
+                    'id': f"dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}",
+                    'title': clean_title,
+                    'course': 'Google Calendar',
+                    'deadline': date_str,
+                    'time': time_str,
+                    'description': desc,
+                    'priority': 'sedang',
+                    'status': 'pending',
+                    'reminder': 30,
+                    'gcal_event_id': ev_id,
+                    'gcal_link': html_link,
+                    'gcal_synced_at': datetime.datetime.now().isoformat(),
+                    'created_at': datetime.datetime.now().isoformat()
+                }
+                deadlines.insert(0, new_item)
+                imported_count += 1
+
+        if imported_count > 0 or updated_count > 0:
+            save_deadlines(data_root, deadlines)
+
+        return {
+            'success': True,
+            'imported': imported_count,
+            'updated': updated_count,
+            'total': len(deadlines)
+        }
+    except Exception as exc:
+        return {'success': False, 'message': str(exc), 'imported': 0, 'updated': 0}

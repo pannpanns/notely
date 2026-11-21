@@ -126,7 +126,7 @@
 .deadlines-page {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 22px 28px 20px;
+  padding: 34px 36px 24px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -141,9 +141,9 @@
 .deadlines-top-bar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -188,7 +188,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   background: #f8faf9;
   padding: 10px 14px;
   border-radius: 12px;
@@ -201,6 +201,11 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+.deadlines-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .deadlines-search-wrap {
   position: relative;
@@ -527,6 +532,20 @@
 .deadline-card.is-done{opacity:.65;background:#fbfdfc}
 .deadline-card.is-done .task-title{text-decoration:line-through;color:#7e8f85}
 .deadline-card.is-overdue{border-color:#f2c7c4;background:#fffdfd}
+
+@keyframes completePop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.02); background: #f0fdf4; border-color: #86efac; box-shadow: 0 4px 14px rgba(34,197,94,.18); }
+  100% { transform: translateX(36px); opacity: 0; max-height: 0; margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border: 0; overflow: hidden; }
+}
+.task-completing-anim {
+  animation: completePop 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  pointer-events: none !important;
+}
+.task-completing-anim .task-title {
+  text-decoration: line-through !important;
+  color: #16a34a !important;
+}
 
 .task-check{width:18px;height:18px;cursor:pointer;accent-color:#18786c}
 .card-content-area{display:flex;flex-direction:column;gap:6px;min-width:0}

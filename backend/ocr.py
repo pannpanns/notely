@@ -29,6 +29,9 @@ try {
     $stream = Await-Op ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
     $decoder = Await-Op ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
     $bitmap = Await-Op ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+    if ($bitmap.BitmapPixelFormat -ne [Windows.Graphics.Imaging.BitmapPixelFormat]::Bgra8 -or $bitmap.BitmapAlphaMode -ne [Windows.Graphics.Imaging.BitmapAlphaMode]::Premultiplied) {
+        $bitmap = [Windows.Graphics.Imaging.SoftwareBitmap]::Convert($bitmap, [Windows.Graphics.Imaging.BitmapPixelFormat]::Bgra8, [Windows.Graphics.Imaging.BitmapAlphaMode]::Premultiplied)
+    }
 
     $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
     if ($null -eq $engine -and [Windows.Media.Ocr.OcrEngine]::AvailableRecognizerLanguages.Count -gt 0) {
@@ -62,8 +65,13 @@ def extract_text_from_image(image_bytes: bytes) -> str:
             ps_f.write(PS_OCR_SCRIPT)
             ps_script_path = ps_f.name
 
+        system_root = os.environ.get('SystemRoot', r'C:\Windows')
+        powershell_exe = os.path.join(system_root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+        if not os.path.isfile(powershell_exe):
+            powershell_exe = 'powershell'
+
         cmd = [
-            "powershell",
+            powershell_exe,
             "-NoProfile",
             "-NonInteractive",
             "-WindowStyle", "Hidden",
@@ -87,6 +95,8 @@ def extract_text_from_image(image_bytes: bytes) -> str:
         )
         if res.returncode == 0:
             return res.stdout.strip()
+        if res.stderr:
+            print(f"Windows OCR stderr (exit code {res.returncode}): {res.stderr.strip()[:300]}")
         return ""
     except Exception as e:
         print(f"OCR Error: {e}")

@@ -1,3 +1,13 @@
+Pembaruan Notely v1.3.5:
+• Fleksibilitas Pengaturan Waktu Notifikasi Kalender (Menit, Jam, Hari, Minggu): Menyediakan input angka bebas beserta pilihan satuan waktu (Menit, Jam, Hari, Minggu, atau Tanpa Notifikasi) pada formulir penambahan dan pengeditan tugas, memberikan kebebasan penuh bagi pengguna dalam mengatur pengingat Google Calendar sesuai kebutuhan.
+• Pembersihan Menu Pengaturan (Clean Settings Card): Menghapus baris pengaturan pengingat kalender dari menu Pengaturan agar tidak membingungkan, memusatkan kendali notifikasi langsung di jendela kalender saat membuat/mengedit tugas.
+• Tata Letak Header Bersih & Spasi Vertikal Lega (Anti-Cramp Padding): Menyesuaikan bantalan halaman Tenggat Tugas (`padding: 34px 36px 24px`) sehingga posisi judul tidak lagi menempel kaku ke batas atas layar, serta menghapus tombol 'Tambah manual' dan 'Ekspor .ics' yang berlebih dari header untuk tampilan minimalis dan rapi.
+• Penyelarasan Cerdas Toolbar (Search Bar vs Tombol AI): Pada mode Kalender, kolom pencarian digantikan dengan tombol utama "Buat dengan AI", sedangkan pada mode Daftar Tugas tetap menggunakan kolom pencarian tugas untuk memfilter kartu tenggat secara tepat.
+• Konfirmasi Penyelesaian Tugas & Animasi Pop-Out Mulus: Mencentang tugas kini menampilkan dialog konfirmasi penyelesaian tugas yang informatif, disertai animasi visual coret teks, kilau hijau (*check pop*), dan slide-out halus sebelum tugas otomatis dibersihkan dari Notely dan Google Calendar.
+• Sinkronisasi Dua Arah Google Calendar (Two-Way Sync): Notely kini otomatis menarik (pull) agenda tugas baru atau perubahan yang Anda buat melalui smartphone atau web Google Calendar saat Anda membuka Notely di laptop.
+• Peningkatan OCR & Ekstraksi AI Lokal Tangkapan Layar Kuliah: Memperkuat parser JSON (_clean_json_output) untuk mendukung format objek tunggal, array terbungkus, maupun respons berbasis teks, serta konversi format software bitmap pada Windows OCR agar tangkapan layar gelap WhatsApp, jadwal meet, dan nama pengirim seperti 'Trisna PTI' terbaca 100% akurat.
+• Sinkronisasi Versi Aplikasi v1.3.5: Pembaruan versi pada antarmuka, Tauri, and Cargo ke v1.3.5.
+
 Pembaruan Notely v1.3.4:
 • Perbaikan Tombol Update 1-Klik Langsung Aktif: Menghilangkan pemeriksaan status sibuk mesin model pada dialog pembaruan (`busy()` di frontend/updates.js) sehingga tombol "Update Sekarang" langsung mengunduh dan memasang pembaruan pada klik pertama tanpa tertahan atau mengharuskan klik 2 kali.
 • Pembersihan Dialog Kegagalan Pasca-Update: Menambahkan pengaman status peluncuran (`$launched`) pada skrip PowerShell updater (`install-update.ps1`) agar dialog peringatan "Update belum selesai. Buka Notely dan coba lagi" tidak lagi muncul saat Notely versi baru telah berhasil dibuka.

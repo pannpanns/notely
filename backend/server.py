@@ -430,10 +430,13 @@ class Handler(BaseHTTPRequestHandler):
                             d['gcal_synced_at']=datetime.datetime.now().isoformat()
                             add_or_update_deadline(svc.root,d)
                             synced_count+=1
-                        time.sleep(0.4)
+                        time.sleep(0.8)
                     except Exception as exc:
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
+            elif path=='/gcalendar/pull':
+                from google_calendar import pull_events_from_google_calendar
+                out = pull_events_from_google_calendar(svc.root)
             elif path=='/open-url':
                 import subprocess, sys, os
                 target_url=str(q.get('url',[''])[0]).strip()
@@ -709,10 +712,13 @@ class Handler(BaseHTTPRequestHandler):
                             d['gcal_synced_at']=datetime.datetime.now().isoformat()
                             add_or_update_deadline(svc.root,d)
                             synced_count+=1
-                        time.sleep(0.4)
+                        time.sleep(0.8)
                     except Exception as exc:
                         errors.append(f"{d.get('title')}: {str(exc)}")
                 out={'synced':synced_count,'total':len(deadlines),'errors':errors}
+            elif path=='/gcalendar/pull':
+                from google_calendar import pull_events_from_google_calendar
+                out = pull_events_from_google_calendar(svc.root)
             elif path=='/open-url':
                 import subprocess, sys, os
                 target_url=str(args.get('url','')).strip()

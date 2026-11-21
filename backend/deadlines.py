@@ -159,7 +159,7 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
     
     # Check if text contains a Google Meet / Zoom link or lecture meeting announcement
     meet_match = re.search(r'(?:https?://)?(?:meet\.google\.com/[a-z0-9-]+|[a-zA-Z0-9.-]*zoom\.us/[^\s\)\],]+)', normalized, re.IGNORECASE)
-    has_meet_context = bool(meet_match or re.search(r'\b(google meet|zoom|kuliah|perkuliahan|tatap muka|webinar)\b', normalized, re.IGNORECASE))
+    has_meet_context = bool(meet_match or re.search(r'\b(google meet|gmeet|zoom|kuliah|perkuliahan|tatap muka|daring|kelas|webinar|rapat|pertemuan)\b', normalized, re.IGNORECASE))
 
     results = []
 
@@ -171,6 +171,8 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
             target_date = ref_date + datetime.timedelta(days=1)
         elif re.search(r'\blusa\b', normalized, re.IGNORECASE):
             target_date = ref_date + datetime.timedelta(days=2)
+        elif re.search(r'\bhari\s*ini\b', normalized, re.IGNORECASE):
+            target_date = ref_date
         else:
             for day_name, day_idx in INDONESIAN_DAYS.items():
                 if re.search(rf'\b{day_name}\b', normalized, re.IGNORECASE):
@@ -187,20 +189,29 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
         if m_range:
             target_time = f'{int(m_range.group(1)):02d}:{int(m_range.group(2)):02d}'
         else:
-            m_single = re.search(r'(?:jam|pukul)\s*(\d{1,2})[.:](\d{2})', normalized, re.IGNORECASE)
+            m_single = re.search(r'(?:jam|pukul)?\s*(\d{1,2})[.:](\d{2})', normalized, re.IGNORECASE)
             if m_single:
                 target_time = f'{int(m_single.group(1)):02d}:{int(m_single.group(2)):02d}'
 
         # Course detection
         course = 'Kuliah'
-        for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen']:
-            if kw in normalized.lower():
-                course = kw.title() if kw not in ('pbo', 'ai', 'pr') else kw.upper()
-                break
+        m_sender = re.search(r'\b([A-Z][a-zA-Z]+)\s+([A-Z]{2,5})\b', normalized)
+        if m_sender and m_sender.group(2).upper() in ('PTI', 'TI', 'SI', 'IF', 'DKV', 'TE', 'TS', 'TM'):
+            course = m_sender.group(2).upper()
+        else:
+            for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen', 'pti', 'ti', 'si', 'if', 'dkv']:
+                if re.search(rf'\b{kw}\b', normalized, re.IGNORECASE):
+                    course = kw.upper() if len(kw) <= 4 or kw in ('pbo', 'ai', 'pti', 'dkv') else kw.title()
+                    break
 
-        title = 'Perkuliahan Google Meet' if ('meet' in normalized.lower() or meet_match) else ('Kuliah Daring ' + course)
+        if course != 'Kuliah':
+            title = f"Perkuliahan Google Meet ({course})" if ('meet' in normalized.lower() or meet_match) else f"Kuliah {course}"
+        else:
+            title = 'Perkuliahan Google Meet' if ('meet' in normalized.lower() or meet_match) else 'Kuliah Daring'
+
         desc_link = f"Link: {meet_match.group(0)}" if meet_match else ""
-        desc = f"Jadwal perkuliahan daring. {desc_link}".strip()
+        desc_time = f"Jadwal: {target_time} WIB" if target_time else ""
+        desc = f"Jadwal perkuliahan daring. {desc_time} {desc_link}".strip()
 
         results.append({
             'id': f'dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}',
@@ -378,45 +389,72 @@ def _clean_json_output(raw_text: str) -> list[dict]:
     if match:
         text = match.group(0)
 
+    parsed = None
     try:
         parsed = json.loads(text)
-        if isinstance(parsed, list):
-            valid_items = []
-            for item in parsed:
-                if not isinstance(item, dict):
-                    continue
-                title = str(item.get('title') or '').strip()
-                if not title:
-                    continue
-                deadline = str(item.get('deadline') or '').strip()
-                # Verify date format YYYY-MM-DD
-                if not re.match(r'^\d{4}-\d{2}-\d{2}$', deadline):
-                    # Fallback to tomorrow if invalid
-                    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-                    deadline = tomorrow.strftime('%Y-%m-%d')
+    except Exception:
+        # Try extracting JSON array using regex if embedded in prose
+        m_list = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
+        if m_list:
+            try:
+                parsed = json.loads(m_list.group(0))
+            except Exception:
+                pass
+        if parsed is None:
+            # Try extracting single JSON object using regex
+            m_obj = re.search(r'\{\s*"title".*?\}', text, re.DOTALL)
+            if m_obj:
+                try:
+                    parsed = json.loads(m_obj.group(0))
+                except Exception:
+                    pass
 
-                time_str = str(item.get('time') or '23:59').strip()
-                if not re.match(r'^\d{2}:\d{2}$', time_str):
-                    time_str = '23:59'
+    if isinstance(parsed, dict):
+        for k in ('deadlines', 'tasks', 'agenda', 'items', 'events'):
+            if isinstance(parsed.get(k), list):
+                parsed = parsed[k]
+                break
+        else:
+            if parsed.get('title') or parsed.get('deadline'):
+                parsed = [parsed]
+            else:
+                parsed = []
 
-                priority = str(item.get('priority') or 'sedang').lower()
-                if priority not in ('tinggi', 'sedang', 'rendah'):
-                    priority = 'sedang'
+    if isinstance(parsed, list):
+        valid_items = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get('title') or '').strip()
+            if not title:
+                continue
+            deadline = str(item.get('deadline') or '').strip()
+            # Verify date format YYYY-MM-DD
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', deadline):
+                # Fallback to tomorrow if invalid
+                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                deadline = tomorrow.strftime('%Y-%m-%d')
 
-                valid_items.append({
-                    'id': f"dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}",
-                    'title': title,
-                    'course': str(item.get('course') or 'Umum').strip(),
-                    'deadline': deadline,
-                    'time': time_str,
-                    'description': str(item.get('description') or '').strip(),
-                    'priority': priority,
-                    'status': 'pending',
-                    'created_at': datetime.datetime.now().isoformat()
-                })
-            return valid_items
-    except Exception as e:
-        print("JSON parse error:", e, "Raw output:", text[:200])
+            time_str = str(item.get('time') or '23:59').strip()
+            if not re.match(r'^\d{2}:\d{2}$', time_str):
+                time_str = '23:59'
+
+            priority = str(item.get('priority') or 'sedang').lower()
+            if priority not in ('tinggi', 'sedang', 'rendah'):
+                priority = 'sedang'
+
+            valid_items.append({
+                'id': f"dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}",
+                'title': title,
+                'course': str(item.get('course') or 'Umum').strip(),
+                'deadline': deadline,
+                'time': time_str,
+                'description': str(item.get('description') or '').strip(),
+                'priority': priority,
+                'status': 'pending',
+                'created_at': datetime.datetime.now().isoformat()
+            })
+        return valid_items
     return []
 
 def extract_deadlines(
