@@ -22,15 +22,12 @@ pub async fn install_update(app: tauri::AppHandle, pending: State<'_, PendingUpd
     if app.state::<super::BusyGuard>().0.load(Ordering::Relaxed) {
         return Err("Hentikan dan simpan rekaman sebelum update.".into());
     }
-    let update = {
-        let mut guard = pending.0.lock().map_err(|e| e.to_string())?;
-        if guard.is_none() {
-            let u = app.updater().map_err(|e| e.to_string())?
-                .check().await.map_err(|e| e.to_string())?;
-            *guard = u;
-        }
-        guard.take().ok_or("Tidak ada pembaruan yang siap diunduh. Coba periksa kembali.")?
-    };
+    let mut update = pending.0.lock().map_err(|e| e.to_string())?.take();
+    if update.is_none() {
+        update = app.updater().map_err(|e| e.to_string())?
+            .check().await.map_err(|e| e.to_string())?;
+    }
+    let update = update.ok_or("Tidak ada pembaruan yang siap diunduh. Coba periksa kembali.")?;
     let mut received = 0usize;
     // The official updater validates the signature before returning these bytes.
     let bytes = match update.download(|size, total| {
