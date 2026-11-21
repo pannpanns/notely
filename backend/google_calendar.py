@@ -7,8 +7,10 @@ import base64
 import datetime
 import json
 import os
+import re
 import threading
 import time
+import uuid
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -498,7 +500,8 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
         now = datetime.datetime.now(datetime.timezone.utc)
         # Check events from 30 days ago to 90 days ahead
         time_min = (now - datetime.timedelta(days=30)).isoformat().replace('+00:00', 'Z')
-        url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin={time_min}&maxResults=150&singleEvents=true"
+        time_max = (now + datetime.timedelta(days=90)).isoformat().replace('+00:00', 'Z')
+        url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin={time_min}&timeMax={time_max}&maxResults=250&singleEvents=true&showDeleted=true"
         req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode('utf-8'))
@@ -519,25 +522,30 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
             if ev.get('status') == 'cancelled':
                 if ev_id in gcal_map:
                     deadlines = [d for d in deadlines if d.get('gcal_event_id') != ev_id]
+                    gcal_map.pop(ev_id, None)
                     updated_count += 1
                 continue
 
+            ev_type = ev.get('eventType', 'default')
             summary = ev.get('summary', '').strip()
-            # Only pull events designated as deadlines or already tracked by Notely
-            is_deadline_event = summary.startswith('[Tenggat]') or ev_id in gcal_map
-            if not is_deadline_event:
+
+            # Ignore system/recurring birthday or outOfOffice events
+            if ev_type in ('birthday', 'focusTime', 'outOfOffice') or 'birthday' in summary.lower() or 'ulang tahun' in summary.lower():
+                continue
+
+            if not summary:
                 continue
 
             clean_title = summary.removeprefix('[Tenggat]').strip() or 'Tugas Kalender'
             start = ev.get('start', {})
             end = ev.get('end', {})
 
-            # Determine deadline date & time from Google Calendar event
+            # Determine deadline date & time from Google Calendar event (prefer start time for lectures/meetings)
             date_str = ''
             time_str = '23:59'
 
-            target_dt = end.get('dateTime') or start.get('dateTime')
-            target_d = end.get('date') or start.get('date')
+            target_dt = start.get('dateTime') or end.get('dateTime')
+            target_d = start.get('date') or end.get('date')
 
             if target_dt:
                 try:
@@ -555,6 +563,19 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
 
             html_link = ev.get('htmlLink') or 'https://calendar.google.com'
             desc = ev.get('description', '')
+
+            # Detect course from brackets e.g. "Tugas [PTI]" or keywords
+            m_course = re.search(r'\[(.*?)\]', summary)
+            detected_course = m_course.group(1).strip() if m_course else ''
+            if not detected_course:
+                for kw in ['pti', 'pbo', 'ai', 'ti', 'si', 'if', 'dkv', 'basis data', 'algoritma', 'matematika', 'fisika']:
+                    if re.search(rf'\b{kw}\b', summary, re.IGNORECASE):
+                        detected_course = kw.upper() if len(kw) <= 4 or kw in ('pbo', 'ai', 'pti', 'dkv') else kw.title()
+                        break
+            if not detected_course:
+                detected_course = 'Google Calendar'
+
+            priority = 'tinggi' if any(w in summary.lower() for w in ('kuis', 'ujian', 'uts', 'uas', 'deadline')) else 'sedang'
 
             if ev_id in gcal_map:
                 existing = gcal_map[ev_id]
@@ -576,11 +597,11 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
                 new_item = {
                     'id': f"dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}",
                     'title': clean_title,
-                    'course': 'Google Calendar',
+                    'course': detected_course,
                     'deadline': date_str,
                     'time': time_str,
                     'description': desc,
-                    'priority': 'sedang',
+                    'priority': priority,
                     'status': 'pending',
                     'reminder': 30,
                     'gcal_event_id': ev_id,
@@ -589,6 +610,7 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
                     'created_at': datetime.datetime.now().isoformat()
                 }
                 deadlines.insert(0, new_item)
+                gcal_map[ev_id] = new_item
                 imported_count += 1
 
         if imported_count > 0 or updated_count > 0:

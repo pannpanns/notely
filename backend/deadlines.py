@@ -351,9 +351,9 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
         title_formatted = ' '.join(w.capitalize() if not w.isupper() else w for w in clean_title.split())
 
         course = 'Umum'
-        for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen']:
+        for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen', 'pti', 'ti', 'si', 'if', 'dkv']:
             if kw in c_lower:
-                course = kw.title() if kw not in ('pbo', 'ai', 'pr') else kw.upper()
+                course = kw.upper() if len(kw) <= 4 or kw in ('pbo', 'ai', 'pr', 'pti', 'dkv') else kw.title()
                 break
 
         priority = 'sedang'

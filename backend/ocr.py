@@ -89,6 +89,8 @@ def extract_text_from_image(image_bytes: bytes) -> str:
             cmd,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=15,
             creationflags=creationflags,
             startupinfo=startupinfo

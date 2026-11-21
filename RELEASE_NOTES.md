@@ -1,3 +1,11 @@
+Pembaruan Notely v1.3.6:
+• Sinkronisasi Dua Arah Google Calendar Penuh & Real-Time (Fix Two-Way Sync): Menghapus pembatasan prefix '[Tenggat]' sehingga SEMUA agenda dan tugas yang Anda buat langsung di Google Calendar (baik dari aplikasi smartphone Android/iOS maupun web) otomatis ditarik dan muncul di kalender Notely. Menambahkan parameter `showDeleted=true` dan rentang waktu presisi (-30 hari hingga +90 hari) agar tugas yang Anda hapus dari HP juga otomatis terhapus dari Notely.
+• Tombol Sinkronkan Cepat di Header: Menyediakan tombol aksi cepat "⚡ Sinkronkan" langsung di sebelah indikator Google Calendar pada header halaman Tenggat Tugas untuk sinkronisasi dua arah instan dengan sekali klik.
+• Auto-Pull Cerdas Berkala: Penarikan perubahan kalender kini berjalan otomatis saat membuka halaman Tenggat Tugas atau saat status koneksi Google Calendar aktif (dengan cooldown proteksi 15 detik).
+• Perbaikan Encoding OCR Tangkapan Layar (Fix UnicodeDecodeError & Emoji WhatsApp): Memperbaiki pembacaan output OCR Windows dengan `encoding='utf-8'` dan `errors='replace'`, mengatasi kegagalan OCR yang sebelumnya crash akibat emoji (seperti emoji salam 🙏 pada chat WhatsApp grup kuliah) atau karakter non-ANSI.
+• Dukungan Drag & Drop Gambar: Area tangkapan layar pada dialog 'Buat dengan AI' kini mendukung seret dan lepas (drag-and-drop) gambar secara langsung selain melalui klik unggah atau Ctrl + V.
+• Sinkronisasi Versi Aplikasi v1.3.6: Pembaruan versi pada antarmuka, Tauri, and Cargo ke v1.3.6.
+
 Pembaruan Notely v1.3.5:
 • Fleksibilitas Pengaturan Waktu Notifikasi Kalender (Menit, Jam, Hari, Minggu): Menyediakan input angka bebas beserta pilihan satuan waktu (Menit, Jam, Hari, Minggu, atau Tanpa Notifikasi) pada formulir penambahan dan pengeditan tugas, memberikan kebebasan penuh bagi pengguna dalam mengatur pengingat Google Calendar sesuai kebutuhan.
 • Pembersihan Menu Pengaturan (Clean Settings Card): Menghapus baris pengaturan pengingat kalender dari menu Pengaturan agar tidak membingungkan, memusatkan kendali notifikasi langsung di jendela kalender saat membuat/mengedit tugas.

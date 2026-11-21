@@ -54,6 +54,16 @@ async function loadGcalStatus() {
       if (data && typeof data.connected === 'boolean') {
         state.gcalStatus = data;
         safeStore.set('notelyGcalStatus', data);
+        if (data.connected && (!window.__lastGcalPullTime || Date.now() - window.__lastGcalPullTime > 15000)) {
+          window.__lastGcalPullTime = Date.now();
+          api('/gcalendar/pull', {}).then(res => {
+            if (res && (res.imported > 0 || res.updated > 0)) {
+              loadDeadlinesData().then(() => {
+                if (state.page === 'deadlines') refreshPage();
+              });
+            }
+          }).catch(() => {});
+        }
       }
     } else {
       const local = safeStore.get('notelyGcalStatus');
@@ -737,16 +747,28 @@ async function syncAllDeadlinesGcal() {
   }
 
   try {
-    toast('Menyinkronkan Google Calendar (Dua Arah)…');
+    toast('Menyinkronkan dua arah dengan Google Calendar…');
     if (typeof api === 'function' && engine.ready) {
+      let pullRes = null;
       try {
-        await api('/gcalendar/pull', {});
+        pullRes = await api('/gcalendar/pull', {});
       } catch (pullErr) {
         console.warn('GCal pull error:', pullErr);
       }
-      const res = await api('/gcalendar/sync-all', {});
+      const pushRes = await api('/gcalendar/sync-all', {});
       await loadDeadlinesData();
-      toast(`✓ Berhasil sinkronisasi Google Calendar! (${res.synced || 0} terkirim)`);
+
+      const imported = pullRes?.imported || 0;
+      const pushed = pushRes?.synced || 0;
+      if (imported > 0 && pushed > 0) {
+        toast(`✓ Berhasil sinkronisasi 2 arah! (${imported} ditarik dari Google Calendar, ${pushed} terkirim)`);
+      } else if (imported > 0) {
+        toast(`✓ ${imported} tugas baru dari Google Calendar berhasil ditarik ke Notely!`);
+      } else if (pushed > 0) {
+        toast(`✓ ${pushed} tugas lokal berhasil dikirim ke Google Calendar!`);
+      } else {
+        toast('✓ Google Calendar dan Notely sudah sinkron sempurna!');
+      }
     } else {
       toast('✓ Semua tugas disinkronkan ke Google Calendar (Mode Demo)!');
     }
@@ -1021,8 +1043,9 @@ function deadlinesPage() {
   checkGcalPromptOnEnter();
 
   // Automatic Two-Way Sync from Google Calendar (events created/updated from smartphone)
-  if (state.gcalStatus.connected && !window.__gcalPullInitiated) {
-    window.__gcalPullInitiated = true;
+  const nowPull = Date.now();
+  if (state.gcalStatus.connected && (!window.__lastGcalPullTime || nowPull - window.__lastGcalPullTime > 15000)) {
+    window.__lastGcalPullTime = nowPull;
     if (typeof api === 'function' && engine.ready) {
       api('/gcalendar/pull', {}).then(res => {
         if (res && (res.imported > 0 || res.updated > 0)) {
@@ -1088,13 +1111,18 @@ function deadlinesPage() {
       <div class="deadlines-actions">
         <!-- Google Calendar Indicator (Configurable in Settings: hidden by default or toggleable) -->
         ${showIndicator ? (isGcalConnected ? `
-          <div class="gcal-popover-wrap">
-            <button class="gcal-status-pill connected" data-action="toggle-gcal-menu" title="Google Calendar: Tersambung (Klik untuk opsi)">
-              <span class="gcal-dot green"></span>
-              <span>Google Calendar</span>
-              ${icon('chevron')}
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="button small ghost gcal-quick-sync-btn" data-action="gcal-sync-all" title="Sinkronkan dua arah sekarang dengan Google Calendar">
+              ${icon('bolt')} Sinkronkan
             </button>
-            ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
+            <div class="gcal-popover-wrap">
+              <button class="gcal-status-pill connected" data-action="toggle-gcal-menu" title="Google Calendar: Tersambung (Klik untuk opsi)">
+                <span class="gcal-dot green"></span>
+                <span>Google Calendar</span>
+                ${icon('chevron')}
+              </button>
+              ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
+            </div>
           </div>
         ` : isWebMode ? `
           <div class="gcal-popover-wrap">
@@ -2223,6 +2251,40 @@ document.addEventListener('change', e => {
       const reader = new FileReader();
       reader.onload = ev => {
         state.deadlineAiImage = ev.target.result;
+        renderAiModal();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+});
+
+// Drag & drop support for screenshot dropzone
+document.addEventListener('dragover', e => {
+  const dropzone = e.target.closest('#ai-screenshot-dropzone');
+  if (dropzone) {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  }
+});
+
+document.addEventListener('dragleave', e => {
+  const dropzone = e.target.closest('#ai-screenshot-dropzone');
+  if (dropzone && !dropzone.contains(e.relatedTarget)) {
+    dropzone.classList.remove('dragover');
+  }
+});
+
+document.addEventListener('drop', e => {
+  const dropzone = e.target.closest('#ai-screenshot-dropzone');
+  if (dropzone) {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        state.deadlineAiImage = ev.target.result;
+        state.deadlineTab = 'screenshot';
         renderAiModal();
       };
       reader.readAsDataURL(file);
