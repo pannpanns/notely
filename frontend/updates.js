@@ -3,8 +3,7 @@
   const tauri = window.__TAURI__;
   if (!tauri?.core?.invoke) return;
   let checking = false;
-  const busy = () => typeof state !== 'undefined' && (state.recording || state.summaryLoading) ||
-    typeof engine !== 'undefined' && (engine.state === 'stopping' || engine.transcribeJob || engine.currentJob || engine.modelJob || engine.ollamaJob || engine.cudaJob);
+  const busy = () => typeof state !== 'undefined' && !!state.recording;
 
   function formatBytes(bytes) {
     if (!bytes || isNaN(bytes)) return '0 B';
@@ -196,12 +195,13 @@
 
     install.onclick = async () => {
       if (busy()) {
-        statusMsg.textContent = 'Selesaikan rekaman, transkripsi, ringkasan, atau unduhan model terlebih dahulu.';
+        statusMsg.textContent = 'Hentikan dan simpan rekaman suara terlebih dahulu sebelum update.';
         progressArea.hidden = false;
         return;
       }
       installing = true;
       install.disabled = later.disabled = true;
+      install.textContent = 'Menghubungkan…';
       progressArea.hidden = false;
       progressFill.style.width = '0%';
       sizeSpan.textContent = 'Menghubungkan…';

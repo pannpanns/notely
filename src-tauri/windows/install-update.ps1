@@ -5,6 +5,7 @@ param(
     [Parameter(Mandatory=$false)][string]$TargetExe = ''
 )
 $ErrorActionPreference = 'Stop'
+$launched = $false
 try {
     # 1. Wait for Notely and its engine to release installed files.
     Wait-Process -Id $AppPid -Timeout 60 -ErrorAction SilentlyContinue
@@ -84,12 +85,15 @@ try {
         }
         Start-Sleep -Milliseconds 800
         Start-Process -FilePath $TargetExe -WorkingDirectory $InstallDir
+        $launched = $true
     }
 } catch {
     $logMsg = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Update error: $($_.Exception.Message)"
     Add-Content -Path (Join-Path $env:TEMP 'notely-update.log') -Value $logMsg -ErrorAction SilentlyContinue
-    Add-Type -AssemblyName System.Windows.Forms
-    [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
+    if (-not $launched) {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show("Update belum selesai. Buka Notely dan coba lagi.`n$($_.Exception.Message)", 'Notely Update') | Out-Null
+    }
 } finally {
     # Delete only this updater's exact download, including on cancellation.
     for ($attempt = 0; $attempt -lt 30; $attempt++) {

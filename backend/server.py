@@ -607,7 +607,8 @@ class Handler(BaseHTTPRequestHandler):
                 cfg = get_config(svc.root)
                 can_sync = st.get('connected') and cfg.get('autoSync', True)
                 saved=[]
-                for x in (args.get('items') or []):
+                items = args.get('items') or []
+                for idx, x in enumerate(items):
                     it = add_or_update_deadline(svc.root, x)
                     if can_sync:
                         try:
@@ -620,6 +621,9 @@ class Handler(BaseHTTPRequestHandler):
                                 it = add_or_update_deadline(svc.root, it)
                         except Exception:
                             pass
+                        if idx < len(items) - 1:
+                            import time
+                            time.sleep(0.5)
                     saved.append(it)
                 out={'saved':len(saved),'deadlines':saved}
             elif path=='/deadlines/delete':

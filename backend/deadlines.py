@@ -56,6 +56,8 @@ def add_or_update_deadline(data_root: str | Path, item: dict) -> dict:
         item['priority'] = 'sedang'
     if not item.get('time'):
         item['time'] = '23:59'
+    if 'reminder' not in item:
+        item['reminder'] = 30
 
     existing_idx = next((i for i, d in enumerate(deadlines) if d.get('id') == item_id), None)
     if existing_idx is not None:

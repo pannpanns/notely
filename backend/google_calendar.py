@@ -359,30 +359,62 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                 start_m = start_min % 60
                 start_dt = f"{deadline_date}T{start_h:02d}:{start_m:02d}:00{tz_formatted}"
 
+                # Reminder notification setting from item
+                rem_val = item.get('reminder')
+                if rem_val is None:
+                    rem_val = item.get('reminder_minutes', 30)
+                try:
+                    rem_mins = int(rem_val)
+                except (ValueError, TypeError):
+                    rem_mins = 30
+
+                if rem_mins == 0:
+                    reminders_body = {'useDefault': False, 'overrides': []}
+                elif rem_mins == -1:
+                    reminders_body = {'useDefault': True}
+                else:
+                    reminders_body = {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': rem_mins}]}
+
                 event_body = {
                     'summary': f"[Tenggat] {summary}",
                     'description': f"Batas Waktu Pengumpulan (Deadline): {deadline_date} pukul {time_str}\n\n{desc}",
                     'start': {'dateTime': start_dt},
                     'end': {'dateTime': end_dt},
-                    'reminders': {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': 1440}, {'method': 'popup', 'minutes': 120}, {'method': 'popup', 'minutes': 30}]}
+                    'reminders': reminders_body
                 }
             else:
                 dt = datetime.datetime.strptime(deadline_date, '%Y-%m-%d')
                 next_dt = dt + datetime.timedelta(days=1)
+
+                rem_val = item.get('reminder')
+                if rem_val is None:
+                    rem_val = item.get('reminder_minutes', 1440)
+                try:
+                    rem_mins = int(rem_val)
+                except (ValueError, TypeError):
+                    rem_mins = 1440
+
+                if rem_mins == 0:
+                    reminders_body = {'useDefault': False, 'overrides': []}
+                elif rem_mins == -1:
+                    reminders_body = {'useDefault': True}
+                else:
+                    reminders_body = {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': rem_mins}]}
+
                 event_body = {
                     'summary': f"[Tenggat] {summary}",
                     'description': f"Batas Waktu Pengumpulan (Deadline): {deadline_date}\n\n{desc}",
                     'start': {'date': deadline_date},
                     'end': {'date': next_dt.strftime('%Y-%m-%d')},
-                    'reminders': {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': 1440}]}
+                    'reminders': reminders_body
                 }
 
             existing_gcal_id = item.get('gcal_event_id')
             method = 'PATCH' if (existing_gcal_id and not str(existing_gcal_id).startswith('direct_')) else 'POST'
             url = f"https://www.googleapis.com/calendar/v3/calendars/primary/events/{existing_gcal_id}" if method == 'PATCH' else "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
-            max_retries = 3
-            backoff = 1.0
+            max_retries = 4
+            backoff = 1.5
             for attempt in range(max_retries):
                 try:
                     req = urllib.request.Request(
@@ -420,7 +452,7 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                         backoff *= 2.0
                         continue
                     if 'rateLimitExceeded' in err_text or he.code == 429:
-                        raise RuntimeError("Batas kuota panggilan Google Calendar sementara penuh (Rate Limit). Notely akan otomatis mencoba ulang.")
+                        raise RuntimeError("Batas panggilan Google Calendar sementara penuh (Rate Limit). Notely telah mencoba ulang otomatis.")
                     raise RuntimeError(f"Google Calendar API Error (HTTP {he.code}): {err_text or str(he)}")
         except Exception as exc:
             raise RuntimeError(f"Gagal sinkronisasi Google Calendar: {exc}")

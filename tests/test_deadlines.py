@@ -34,9 +34,11 @@ class DeadlinesTests(unittest.TestCase):
             })
             self.assertTrue(item['id'].startswith('dl_'))
             self.assertEqual(item['status'], 'pending')
+            self.assertEqual(item['reminder'], 30)
             loaded = load_deadlines(td)
             self.assertEqual(len(loaded), 1)
             self.assertEqual(loaded[0]['title'], 'Laporan Fisika Dasar')
+            self.assertEqual(loaded[0]['reminder'], 30)
 
             # Toggle status
             toggled = toggle_deadline_status(td, item['id'])

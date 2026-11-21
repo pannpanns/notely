@@ -1246,6 +1246,22 @@ function renderGcalSettingsCard() {
       </div>
       <input type="checkbox" class="switch" ${showIndicator ? 'checked' : ''} data-action="toggle-header-indicator" aria-label="Toggle indicator">
     </div>
+
+    <!-- Default Reminder Setting Sub-Row -->
+    <div class="setting-row" style="margin-top:14px;padding-top:14px;border-top:1px solid #e7ede9">
+      <div>
+        <h4 style="font-size:13.5px;font-weight:600;color:#22362b;margin:0 0 4px">Waktu Pengingat Notifikasi Kalender</h4>
+        <p style="font-size:12px;color:#718579;margin:0">Setelan alarm pengingat default saat membuat atau menyinkronkan tugas ke Google Calendar.</p>
+      </div>
+      <select class="control-select" style="max-width:210px;height:38px;font-size:12.5px" data-setting="gcalReminder">
+        <option value="30" ${(state.settings.gcalReminder ?? 30) === 30 ? 'selected' : ''}>30 menit sebelumnya (Standar)</option>
+        <option value="10" ${(state.settings.gcalReminder ?? 30) === 10 ? 'selected' : ''}>10 menit sebelumnya</option>
+        <option value="60" ${(state.settings.gcalReminder ?? 30) === 60 ? 'selected' : ''}>1 jam sebelumnya</option>
+        <option value="120" ${(state.settings.gcalReminder ?? 30) === 120 ? 'selected' : ''}>2 jam sebelumnya</option>
+        <option value="1440" ${(state.settings.gcalReminder ?? 30) === 1440 ? 'selected' : ''}>1 hari sebelumnya</option>
+        <option value="0" ${(state.settings.gcalReminder ?? 30) === 0 ? 'selected' : ''}>Tanpa notifikasi</option>
+      </select>
+    </div>
   </div>`;
 }
 
@@ -1572,7 +1588,7 @@ function renderAiModal() {
         <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
         <div class="ai-extra-field-group">
           <label class="field-label" for="ai-extra-prompt">Catatan / Instruksi tambahan (opsional):</label>
-          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Misal: 'Ambil perkuliahan meet hari ini' atau 'Prioritaskan tugas mendesak'…" value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
+          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Tulis instruksi tambahan jika ada (opsional)…" value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
         </div>
       </div>`}
 
@@ -1652,12 +1668,12 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
   const content = `<div class="manual-deadline-form" style="display:flex;flex-direction:column;gap:14px;">
     <div class="field">
       <label class="field-label" for="manual-dl-title">Nama Tugas / Judul *</label>
-      <input type="text" id="manual-dl-title" name="task_title_${uid}" class="textbox" placeholder="Misal: Tugas Akhir PBO, Laporan Praktikum" value="${esc(item.title)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+      <input type="text" id="manual-dl-title" name="task_title_${uid}" class="textbox" placeholder="Judul tugas atau agenda perkuliahan…" value="${esc(item.title)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
     </div>
     <div class="split-field">
       <div class="field">
         <label class="field-label" for="manual-dl-course">Mata Kuliah / Kategori</label>
-        <input type="text" id="manual-dl-course" name="task_course_${uid}" class="textbox" placeholder="Misal: PBO, Basis Data" value="${esc(item.course)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+        <input type="text" id="manual-dl-course" name="task_course_${uid}" class="textbox" placeholder="Nama mata kuliah atau kategori…" value="${esc(item.course)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
       </div>
       <div class="field">
         <label class="field-label" for="manual-dl-prio">Prioritas</label>
@@ -1677,6 +1693,17 @@ function openManualDeadlineModal(editItem = null, defaultDate = null) {
         <label class="field-label" for="manual-dl-time">Jam Pengumpulan</label>
         <input type="time" id="manual-dl-time" class="textbox" value="${esc(item.time || '23:59')}" autocomplete="off">
       </div>
+    </div>
+    <div class="field">
+      <label class="field-label" for="manual-dl-reminder">Waktu Pengingat Notifikasi Kalender</label>
+      <select id="manual-dl-reminder" class="control-select">
+        <option value="30" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 30 ? 'selected' : ''}>30 menit sebelum tenggat (Standar)</option>
+        <option value="10" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 10 ? 'selected' : ''}>10 menit sebelum tenggat</option>
+        <option value="60" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 60 ? 'selected' : ''}>1 jam sebelum tenggat</option>
+        <option value="120" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 120 ? 'selected' : ''}>2 jam sebelum tenggat</option>
+        <option value="1440" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 1440 ? 'selected' : ''}>1 hari sebelum tenggat</option>
+        <option value="0" ${(item.reminder ?? (state.settings.gcalReminder ?? 30)) === 0 ? 'selected' : ''}>Tanpa notifikasi</option>
+      </select>
     </div>
     <div class="field">
       <label class="field-label" for="manual-dl-desc">Deskripsi & Catatan Tambahan</label>
@@ -2001,23 +2028,23 @@ handleClick = function(action, id) {
       if (state.extractedPreview[idx]) state.extractedPreview[idx].time = el.value;
     });
 
-    const itemsToSave = [...state.extractedPreview];
+    const defaultReminder = parseInt(state.settings.gcalReminder ?? 30, 10);
+    const itemsToSave = state.extractedPreview.map(item => ({
+      ...item,
+      reminder: item.reminder !== undefined ? item.reminder : defaultReminder
+    }));
     persistDeadlinesBatch(itemsToSave).then(async () => {
       const el = document.getElementById('deadline-ai-modal');
       if (el) el.remove();
 
-      // If Google Calendar is connected, automatically sync all new deadlines!
+      // If Google Calendar is connected, batch save already synced each new deadline
       if (state.gcalStatus.connected && state.gcalStatus.autoSync !== false) {
-        toast(`Menyimpan ${itemsToSave.length} tugas & menyinkronkan langsung ke Google Calendar…`);
+        toast(`✓ ${itemsToSave.length} tugas tersimpan & otomatis tersinkron ke Google Calendar!`);
         try {
           if (typeof api === 'function' && engine.ready) {
-            await api('/gcalendar/sync-all', {});
             await loadDeadlinesData();
           }
-          toast(`✓ ${itemsToSave.length} tugas tersimpan & otomatis tersinkron ke Google Calendar!`);
-        } catch (syncErr) {
-          toast(`Tugas tersimpan di Notely.`);
-        }
+        } catch (_) {}
       } else {
         toast(`✓ Berhasil menambahkan ${itemsToSave.length} tugas ke kalender!`);
       }
@@ -2044,6 +2071,8 @@ handleClick = function(action, id) {
       return;
     }
     const deadline = document.getElementById('manual-dl-date')?.value || new Date().toISOString().slice(0, 10);
+    const remVal = document.getElementById('manual-dl-reminder')?.value;
+    const reminder = remVal !== undefined && remVal !== null ? parseInt(remVal, 10) : parseInt(state.settings.gcalReminder ?? 30, 10);
     const item = {
       id: window.__manualDeadlineEditingId || undefined,
       title,
@@ -2052,6 +2081,7 @@ handleClick = function(action, id) {
       time: document.getElementById('manual-dl-time')?.value || '23:59',
       priority: document.getElementById('manual-dl-prio')?.value || 'sedang',
       description: document.getElementById('manual-dl-desc')?.value.trim() || '',
+      reminder,
       status: 'pending'
     };
     const shouldSyncGcal = document.getElementById('manual-sync-gcal')?.checked;

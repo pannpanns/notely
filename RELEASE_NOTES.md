@@ -1,3 +1,12 @@
+Pembaruan Notely v1.3.4:
+• Perbaikan Tombol Update 1-Klik Langsung Aktif: Menghilangkan pemeriksaan status sibuk mesin model pada dialog pembaruan (`busy()` di frontend/updates.js) sehingga tombol "Update Sekarang" langsung mengunduh dan memasang pembaruan pada klik pertama tanpa tertahan atau mengharuskan klik 2 kali.
+• Pembersihan Dialog Kegagalan Pasca-Update: Menambahkan pengaman status peluncuran (`$launched`) pada skrip PowerShell updater (`install-update.ps1`) agar dialog peringatan "Update belum selesai. Buka Notely dan coba lagi" tidak lagi muncul saat Notely versi baru telah berhasil dibuka.
+• Tata Letak Standar Kiri Halaman Tenggat Tugas (Anti-Slop Alignment): Mengembalikan tata letak judul "Tenggat Tugas" ke rata kiri (left-aligned) standar Notely dengan tombol aksi dan status kalender di sebelah kanan serta padding vertikal yang lega (`padding: 22px 28px 20px`), menciptakan tampilan rapi, elegan, dan proporsional tanpa penumpukan teks.
+• Pengaturan Waktu Pengingat Notifikasi Kalender Langsung dari Notely: Menambahkan setelan waktu alarm pengingat Google Calendar langsung di dalam aplikasi Notely (30 menit, 10 menit, 1 jam, 2 jam, 1 hari, atau tanpa notifikasi). Pengguna dapat mengatur pengingat default di Pengaturan maupun menentukan pengingat khusus saat menambah tugas.
+• Pembersihan Total Teks "Misal:": Menghilangkan seluruh kata "Misal:" pada teks placeholder input judul tugas, mata kuliah, dan instruksi AI sehingga kolom input tampil lebih bersih, profesional, dan modern.
+• Penanganan Kuota API & Pencegahan Sinkronisasi Ganda (Fix Rate Limit 403): Menghilangkan pemanggilan sinkronisasi massal berulang (`sync-all`) yang memicu error kuota Google Calendar saat mengekstrak tugas dengan AI, serta memperkuat jeda pacing dan retry otomatis bergradien (exponential backoff).
+• Sinkronisasi Versi Aplikasi v1.3.4: Pembaruan versi pada antarmuka, Tauri, dan Cargo ke v1.3.4.
+
 Pembaruan Notely v1.3.3:
 • Perbaikan Dialog Pembaruan & Penghapusan Popup 'Update belum selesai': Memperbaiki skrip pembaruan NSIS (`install-update.ps1`) dengan menghapus blok `finally` duplikat yang sebelumnya keliru menampilkan popup "Update belum selesai. Buka Notely dan coba lagi" meskipun pembaruan telah sukses terpasang.
 • Penanganan Tombol Unduh Pembaruan 1-Klik Tanpa Stuck: Memperbarui penanganan status pembaruan pada Tauri Rust (`install_update`) agar otomatis memeriksa dan mengunduh paket pembaruan tanpa tertahan atau mengharuskan pengguna menekan tombol hingga 2 kali.
