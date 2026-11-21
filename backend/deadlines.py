@@ -159,12 +159,13 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
     
     # Check if text contains a Google Meet / Zoom link or lecture meeting announcement
     meet_match = re.search(r'(?:https?://)?(?:meet\.google\.com/[a-z0-9-]+|[a-zA-Z0-9.-]*zoom\.us/[^\s\)\],]+)', normalized, re.IGNORECASE)
-    has_meet_context = bool(meet_match or re.search(r'\b(google meet|gmeet|zoom|kuliah|perkuliahan|tatap muka|daring|kelas|webinar|rapat|pertemuan)\b', normalized, re.IGNORECASE))
+    has_meet_context = bool(meet_match or re.search(r'\b(google meet|gmeet|meet|zoom|kuliah|perkuliahan|tatap muka|daring|kelas|webinar|rapat|pertemuan)\b|sesuai\s+(?:di\s+)?gambar', normalized, re.IGNORECASE))
 
     results = []
 
-    # If it's a meeting / lecture announcement, extract it directly
-    if has_meet_context and (meet_match or re.search(r'\b(jam|pukul|\d{1,2}[.:]\d{2})\b', normalized, re.IGNORECASE)):
+    # If it's a meeting / lecture announcement with a link or specific time digits, extract it directly
+    has_time_or_link = bool(meet_match or re.search(r'\b\d{1,2}[.:]\d{2}\b', normalized))
+    if has_meet_context and has_time_or_link:
         # Date detection
         target_date = ref_date
         if re.search(r'\bbesok\b', normalized, re.IGNORECASE):

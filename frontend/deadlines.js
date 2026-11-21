@@ -47,6 +47,27 @@ function maskEmail(email) {
 // GOOGLE CALENDAR API & FLOW
 // --------------------------------------------------------------------------
 
+// Standing automatic two-way background polling for Google Calendar (pull smartphone / web changes every 25s)
+function startGcalBackgroundPolling() {
+  if (window.__gcalBackgroundPollInterval) return;
+  window.__gcalBackgroundPollInterval = setInterval(async () => {
+    try {
+      if (typeof api !== 'function' || !engine.ready) return;
+      if (!state.gcalStatus || !state.gcalStatus.connected) return;
+
+      const res = await api('/gcalendar/pull', {});
+      if (res && (res.imported > 0 || res.updated > 0)) {
+        await loadDeadlinesData();
+        if (state.page === 'deadlines') {
+          refreshPage();
+        }
+      }
+    } catch (e) {
+      // Passive background polling must remain silent
+    }
+  }, 25000);
+}
+
 async function loadGcalStatus() {
   try {
     if (typeof api === 'function' && engine.ready) {
@@ -54,15 +75,18 @@ async function loadGcalStatus() {
       if (data && typeof data.connected === 'boolean') {
         state.gcalStatus = data;
         safeStore.set('notelyGcalStatus', data);
-        if (data.connected && (!window.__lastGcalPullTime || Date.now() - window.__lastGcalPullTime > 15000)) {
-          window.__lastGcalPullTime = Date.now();
-          api('/gcalendar/pull', {}).then(res => {
-            if (res && (res.imported > 0 || res.updated > 0)) {
-              loadDeadlinesData().then(() => {
-                if (state.page === 'deadlines') refreshPage();
-              });
-            }
-          }).catch(() => {});
+        if (data.connected) {
+          startGcalBackgroundPolling();
+          if (!window.__lastGcalPullTime || Date.now() - window.__lastGcalPullTime > 15000) {
+            window.__lastGcalPullTime = Date.now();
+            api('/gcalendar/pull', {}).then(res => {
+              if (res && (res.imported > 0 || res.updated > 0)) {
+                loadDeadlinesData().then(() => {
+                  if (state.page === 'deadlines') refreshPage();
+                });
+              }
+            }).catch(() => {});
+          }
         }
       }
     } else {
@@ -565,6 +589,12 @@ async function startGcalAuth() {
             state.gcalConnecting = false;
             state.gcalStatus = st;
             safeStore.set('notelyGcalStatus', state.gcalStatus);
+            startGcalBackgroundPolling();
+            api('/gcalendar/pull', {}).then(res => {
+              if (res && (res.imported > 0 || res.updated > 0)) {
+                loadDeadlinesData().then(() => refreshPage());
+              }
+            }).catch(() => {});
             closeGcalModal();
             refreshPage();
             toast(`✓ Akun Google (${st.email || 'OAuth'}) resmi tersambung!`);
@@ -2406,3 +2436,4 @@ async function runDeadlineAiExtraction() {
 // Initial loads
 loadDeadlinesData();
 loadGcalStatus();
+startGcalBackgroundPolling();

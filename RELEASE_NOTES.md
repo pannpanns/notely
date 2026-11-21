@@ -1,3 +1,10 @@
+Pembaruan Notely v1.3.7:
+• Perbaikan Tampilan Kalender Widescreen Proporsional (Anti-Gepeng): Mengubah kontainer kalender menjadi format lebar desktop (`max-width: 1440px`, sel kalender ~185px) sehingga kotak tanggal dan tugas tidak lagi menyusut sempit ("gepeng") di tengah layar monitor lebar, melainkan membentang luas, proporsional, dan nyaman dibaca.
+• Sinkronisasi Otomatis Latar Belakang Berkala (Standing Polling Tiap 25 Detik): Notely kini otomatis mengecek dan menyinkronkan Google Calendar setiap 25 detik secara senyap di latar belakang. Setiap tugas atau perkuliahan yang dibuat, diedit, atau dihapus dari smartphone langsung ter-update di Notely tanpa perlu menekan tombol sinkronisasi manual atau mematikan/menghidupkan saklar pengaturan.
+• Deteksi Tangkapan Layar & Heuristik Jadwal Perkuliahan Lebih Andal: Memperkuat integrasi teks OCR gambar dengan prompt pengguna (seperti "hari ini ada meet di jam sesuai di gambar" atau "Jam berapa meet") sehingga rentang waktu (`16.30-19.29`), mata kuliah (`PTI`), dan tautan Google Meet langsung terdeteksi dan tersusun menjadi agenda tanpa gagal.
+• Pengamanan Kuota API & Penanganan Latar Belakang Senyap: Pengecekan otomatis latar belakang didesain hemat kuota Google Calendar dan terlindungi dari interupsi popup error saat offline atau saat kuota dibatasi.
+• Sinkronisasi Versi Aplikasi v1.3.7: Pembaruan versi pada antarmuka, Tauri, dan Cargo ke v1.3.7.
+
 Pembaruan Notely v1.3.6:
 • Sinkronisasi Dua Arah Google Calendar Penuh & Real-Time (Fix Two-Way Sync): Menghapus pembatasan prefix '[Tenggat]' sehingga SEMUA agenda dan tugas yang Anda buat langsung di Google Calendar (baik dari aplikasi smartphone Android/iOS maupun web) otomatis ditarik dan muncul di kalender Notely. Menambahkan parameter `showDeleted=true` dan rentang waktu presisi (-30 hari hingga +90 hari) agar tugas yang Anda hapus dari HP juga otomatis terhapus dari Notely.
 • Tombol Sinkronkan Cepat di Header: Menyediakan tombol aksi cepat "⚡ Sinkronkan" langsung di sebelah indikator Google Calendar pada header halaman Tenggat Tugas untuk sinkronisasi dua arah instan dengan sekali klik.
