@@ -26,7 +26,7 @@ function showStartupSplash(){
     </div>
     <div class="splash-brand">
       <span>Notely</span>
-      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.8'}</span>
+      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.9'}</span>
     </div>
     <div class="splash-subtitle">Aplikasi Catatan & Transkripsi AI Lokal</div>
     

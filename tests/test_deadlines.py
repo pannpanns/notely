@@ -152,5 +152,32 @@ class DeadlinesTests(unittest.TestCase):
         self.assertEqual(items[0]['time'], '20:00')
         self.assertEqual(items[0]['priority'], 'tinggi')
 
+    def test_heuristic_polite_prefix(self):
+        import datetime
+        ref = datetime.date(2026, 11, 23)
+        text = "tolong buatkan tugas uts deadline nya jam 8"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['title'], 'Tugas UTS')
+        self.assertEqual(items[0]['deadline'], '2026-11-24')
+        self.assertEqual(items[0]['time'], '20:00')
+
+    def test_server_status_preserves_deadline_extract_result(self):
+        import tempfile, shutil, time
+        from backend.server import Service
+        tmpdir = tempfile.mkdtemp()
+        try:
+            svc = Service(tmpdir)
+            expected = {'deadlines': [{'title': 'UTS'}], 'count': 1}
+            job_info = svc.job('deadline_extract', lambda u: expected)
+            time.sleep(0.05)
+            st = svc.status()
+            job = st.get('jobs', {}).get(job_info['job'])
+            self.assertIsNotNone(job)
+            self.assertEqual(job.get('status'), 'done')
+            self.assertEqual(job.get('result'), expected)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
 if __name__ == '__main__':
     unittest.main()

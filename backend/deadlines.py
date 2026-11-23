@@ -242,15 +242,16 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
     for chunk in chunks:
         c_lower = chunk.lower()
 
-        # Ignore conversational questions from being added as dummy tasks
-        if re.search(r'^(?:jam berapa|kapan|apakah|adakah|tolong|jadwalkan|cek)\b', c_lower) or c_lower.endswith('?'):
+        # Ignore pure conversational questions with NO concrete time digits or deadline info (e.g. "Jam berapa meet?")
+        is_question = bool(re.search(r'^(?:jam berapa|kapan|apakah|adakah)\b', c_lower) or c_lower.endswith('?'))
+        has_concrete_time = bool(re.search(r'(?:\b(?:jam|pukul)\s*\d{1,2}|\b\d{1,2}[:.]\d{2}\b|\b(?:deadline|tenggat|dikumpul|kumpul)\b)', c_lower))
+        if is_question and not has_concrete_time:
             continue
 
-        # Check date cues
-        has_time_cue = bool(re.search(r'\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|besok|lusa|minggu|senin|selasa|rabu|kamis|jumat|sabtu|tanggal|tgl|\d{1,2}/\d{1,2})\b', c_lower))
-        if not has_time_cue and len(chunks) > 1:
-            if not re.match(r'^(tugas|kuis|revisi|laporan|ujian|pr|presentasi|proyek|makalah|resume|kuliah|perkuliahan)\b', c_lower):
-                continue
+        has_task_cue = bool(re.search(r'\b(tugas|uts|uas|kuis|ujian|pr|revisi|laporan|presentasi|proyek|makalah|resume|kuliah|perkuliahan|kelas|webinar|rapat|pertemuan)\b', c_lower))
+        has_time_cue = bool(re.search(r'\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|besok|lusa|minggu|senin|selasa|rabu|kamis|jumat|sabtu|tanggal|tgl|\d{1,2}/\d{1,2}|\d{1,2}[:.]\d{2})\b', c_lower))
+        if not has_time_cue and not has_task_cue and len(chunks) > 1:
+            continue
 
         # 1. Parse Date
         target_date = None
@@ -534,8 +535,8 @@ def extract_deadlines(
 
     items = _clean_json_output(raw_response) if raw_response else []
     if not items:
-        # Fallback to deterministic heuristic Indonesian deadline extractor
-        combined_text = f"{ocr_text}\n{prompt}\n{raw_response}".strip()
+        # Fallback to deterministic heuristic Indonesian deadline extractor on clean source
+        combined_text = f"{ocr_text}\n{prompt}".strip()
         items = extract_deadlines_heuristically(combined_text)
 
     return {

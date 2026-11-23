@@ -1,6 +1,6 @@
 
 'use strict';
-window.APP_VERSION = '1.3.8';
+window.APP_VERSION = '1.3.9';
 /* Notely browser UI prototype. No microphone, system-audio capture, external API,
    model download, or backend operations occur in this file. */
 const paths={

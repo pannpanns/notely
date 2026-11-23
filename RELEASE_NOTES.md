@@ -1,3 +1,9 @@
+Pembaruan Notely v1.3.9:
+• Perbaikan Fatal Serialisasi Hasil Ekstraksi AI (Fix Deadline Result Serialization): Memperbaiki bug kritis pada backend server di mana payload hasil job `deadline_extract` sebelumnya tidak masuk ke dalam daftar whitelist serialisasi endpoint `/status`, menyebabkan hasil ekstraksi AI/heuristik selalu terkirim sebagai `null` ke antarmuka desktop dan memunculkan toast keliru "AI tidak menemukan tenggat tugas dalam input yang diberikan". Kini hasil ekstraksi tugas terkirim 100% utuh ke dialog pratinjau.
+• Dukungan Penuh Frasa Percakapan & Kalimat Santai: Memperkuat parser heuristik agar tidak melewatkan prompt yang diawali kata permohonan sopan seperti "tolong buatkan...", "jadwalkan...", atau "mohon masukkan...", sehingga input natural sehari-hari langsung diekstrak menjadi tugas terjadwal yang akurat.
+• Pembersihan Sumber Cadangan Deterministik: Memastikan teks cadangan (fallback) diambil murni dari teks dan tangkapan layar pengguna tanpa terdistorsi oleh pesan kegagalan atau halusinasi model lokal.
+• Sinkronisasi Versi Aplikasi v1.3.9: Pembaruan versi pada antarmuka, Tauri, and Cargo ke v1.3.9.
+
 Pembaruan Notely v1.3.8:
 • Pemulihan Penuh Mesin AI Lokal (Ollama) & Resolusi Model Otomatis: Memperbaiki pemanggilan layanan AI lokal saat mengekstrak jadwal tugas dengan memastikan proses runtime Ollama otomatis aktif (`managed_ollama.ensure`) dan otomatis mendeteksi model yang telah terpasang (seperti `gemma4:latest`). Notely kini langsung mengekstrak prompt natural seperti "hari ini saya ada tugas uts deadline nya jam 8 tolong buatkan" menjadi judul tugas "Tugas UTS", tanggal hari ini, jam 20:00 (malam), dan prioritas tinggi.
 • Animasi Mulus Transisi Kalender ke Daftar Tugas: Menambahkan efek transisi visual dinamis (*fade & slide transition*) saat beralih antara tampilan Kalender dan Daftar Tugas, serta efek hover & aktif taktil pada tombol segmented switcher sehingga antarmuka terasa halus, modern, dan responsif.

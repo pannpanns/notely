@@ -177,7 +177,7 @@ class Service:
             return {'state':self.state,'spectra':list(self.spectra.values()) if self.state=='recording' else [],'backend':self.backend,'session':Path(self.active_session).name if self.active_session else None,
                     'elapsed':int(time.monotonic()-self.recording.started) if self.state=='recording' and self.recording else None,
                     'queue':self.queue_status,'events':[e for e in self.events if e['seq']>since][-150:], 'latest':self.serial,
-                    'preview':list(self.preview.values()),'jobs':{key:{'kind':j['kind'],'status':j['status'],'message':j.get('message',''), 'progress':j.get('progress'), 'result':j.get('result') if j['kind'] in ('model','audio_test','storage') else None} for key,j in list(self.jobs.items())[-70:]}}
+                    'preview':list(self.preview.values()),'jobs':{key:{'kind':j['kind'],'status':j['status'],'message':j.get('message',''), 'progress':j.get('progress'), 'result':j.get('result') if j['kind'] in ('model','audio_test','storage','deadline_extract') else None} for key,j in list(self.jobs.items())[-70:]}}
     def start(self,args):
         with self.lock:
             if self.state!='idle':raise ValueError('Perekaman masih berlangsung atau sedang diselesaikan.')
