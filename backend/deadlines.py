@@ -127,11 +127,12 @@ Keluarkan HANYA array JSON murni tanpa pengantar dan tanpa penutup markdown:
 [
   {{
     "title": "Perkuliahan Google Meet",
-    "course": "Kuliah",
+    "course": "Akademik",
     "deadline": "{now.strftime('%Y-%m-%d')}",
     "time": "16:30",
     "description": "Kuliah daring via Google Meet: https://meet.google.com/...",
-    "priority": "sedang"
+    "priority": "sedang",
+    "reminder": 60
   }}
 ]
 Jika benar-benar tidak ada agenda tugas atau jadwal apapun yang bisa dijadwalkan, keluarkan: []"""
@@ -186,16 +187,18 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
 
         # Time detection
         target_time = '16:30'  # reasonable fallback for afternoon class if not found
+        end_time = ''
         m_range = re.search(r'(\d{1,2})[.:](\d{2})\s*[-–]\s*(\d{1,2})[.:](\d{2})', normalized)
         if m_range:
             target_time = f'{int(m_range.group(1)):02d}:{int(m_range.group(2)):02d}'
+            end_time = f'{int(m_range.group(3)):02d}:{int(m_range.group(4)):02d}'
         else:
             m_single = re.search(r'(?:jam|pukul)?\s*(\d{1,2})[.:](\d{2})', normalized, re.IGNORECASE)
             if m_single:
                 target_time = f'{int(m_single.group(1)):02d}:{int(m_single.group(2)):02d}'
 
-        # Course detection
-        course = 'Kuliah'
+        # Category / Course detection (flexible and all-round)
+        course = 'Akademik'
         m_sender = re.search(r'\b([A-Z][a-zA-Z]+)\s+([A-Z]{2,5})\b', normalized)
         if m_sender and m_sender.group(2).upper() in ('PTI', 'TI', 'SI', 'IF', 'DKV', 'TE', 'TS', 'TM'):
             course = m_sender.group(2).upper()
@@ -205,16 +208,16 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
                     course = kw.upper() if len(kw) <= 4 or kw in ('pbo', 'ai', 'pti', 'dkv') else kw.title()
                     break
 
-        if course != 'Kuliah':
+        if course not in ('Akademik', 'Umum'):
             title = f"Perkuliahan Google Meet ({course})" if ('meet' in normalized.lower() or meet_match) else f"Kuliah {course}"
         else:
             title = 'Perkuliahan Google Meet' if ('meet' in normalized.lower() or meet_match) else 'Kuliah Daring'
 
+        desc_time = f"Jadwal: {target_time}" + (f" - {end_time} WIB" if end_time else " WIB")
         desc_link = f"Link: {meet_match.group(0)}" if meet_match else ""
-        desc_time = f"Jadwal: {target_time} WIB" if target_time else ""
         desc = f"Jadwal perkuliahan daring. {desc_time} {desc_link}".strip()
 
-        results.append({
+        item_dict = {
             'id': f'dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}',
             'title': title,
             'course': course,
@@ -222,9 +225,13 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
             'time': target_time,
             'description': desc,
             'priority': 'sedang',
+            'reminder': 60,
             'status': 'pending',
             'created_at': datetime.datetime.now().isoformat()
-        })
+        }
+        if end_time:
+            item_dict['end_time'] = end_time
+        results.append(item_dict)
         return results
 
     lines = re.split(r'[\n;]+|(?<=[^0-9])\s*[-*•]\s*', normalized)
@@ -379,6 +386,7 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
             'time': target_time,
             'description': chunk.strip(),
             'priority': priority,
+            'reminder': 60 if any(w in c_lower for w in ['meet', 'kuliah', 'zoom', 'tatap muka']) else 30,
             'status': 'pending',
             'created_at': datetime.datetime.now().isoformat()
         })
@@ -452,14 +460,19 @@ def _clean_json_output(raw_text: str) -> list[dict]:
             if priority not in ('tinggi', 'sedang', 'rendah'):
                 priority = 'sedang'
 
+            course_val = str(item.get('course') or 'Umum').strip()
+            if course_val.lower() == 'kuliah':
+                course_val = 'Akademik'
+
             valid_items.append({
                 'id': f"dl_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}",
                 'title': title,
-                'course': str(item.get('course') or 'Umum').strip(),
+                'course': course_val,
                 'deadline': deadline,
                 'time': time_str,
                 'description': str(item.get('description') or '').strip(),
                 'priority': priority,
+                'reminder': int(item.get('reminder', 60 if any(w in title.lower() for w in ['meet', 'kuliah', 'zoom', 'tatap muka']) else 30)),
                 'status': 'pending',
                 'created_at': datetime.datetime.now().isoformat()
             })

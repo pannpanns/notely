@@ -1624,7 +1624,6 @@ function openAiDeadlineModal() {
   state.deadlineAiLoading = false;
   state.deadlineAiStatus = '';
   state.extractedPreview = [];
-  state.deadlineTab = 'prompt';
   renderAiModal();
 }
 
@@ -1639,7 +1638,6 @@ function renderAiModal() {
 
   const prov = state.settings.provider || 'ollama';
   const model = state.settings.summaryModel || 'qwen2.5:7b';
-  const providerLabel = prov === 'ollama' ? `AI Lokal (${model})` : `Online (${prov} · ${model})`;
   const isGcalConnected = !!state.gcalStatus.connected;
 
   modalEl.innerHTML = `<div class="modal ai-deadline-dialog" onclick="event.stopPropagation()">
@@ -1661,54 +1659,50 @@ function renderAiModal() {
       ${!isGcalConnected ? '<button class="button small ghost" style="padding:2px 8px;height:24px" data-action="open-gcal-connect-modal">Sambungkan</button>' : ''}
     </div>
 
-    <div class="ai-input-tabs">
-      <button class="ai-tab-btn ${state.deadlineTab === 'prompt' ? 'active' : ''}" data-action="switch-ai-tab" data-id="prompt">
-        ${icon('notes')} Dari Prompt Teks
-      </button>
-      <button class="ai-tab-btn ${state.deadlineTab === 'screenshot' ? 'active' : ''}" data-action="switch-ai-tab" data-id="screenshot">
-        ${icon('image')} Dari Screenshot / Gambar
-      </button>
-    </div>
-
     <div class="ai-dialog-body">
-      ${state.deadlineTab === 'prompt' ? `
-      <div class="prompt-tab-panel">
-        <label class="field-label" for="ai-deadline-prompt">Tulis atau tempel teks tugas / jadwal:</label>
-        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Tulis tugas atau jadwal di sini…&#10;Contoh: 'Hari ini saya ada tugas UTS deadline jam 8' atau 'Kuliah Google Meet jam 16.30'…">${esc(state.deadlineAiPrompt)}</textarea>
+      <!-- Unified Prompt & Media Input (ChatGPT / Gemini style) -->
+      <div class="ai-unified-input-panel">
+        <label class="field-label" for="ai-deadline-prompt">Tulis instruksi / tempel teks tugas atau jadwal:</label>
+        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Tulis instruksi atau tempel teks jadwal di sini…&#10;Contoh: 'Hari ini saya ada perkuliahan Google Meet jam 16.30' atau 'Tugas UTS AI deadline jam 8'…">${esc(state.deadlineAiPrompt || '')}</textarea>
+
+        <!-- Attachment Box / Bar -->
+        ${state.deadlineAiImage ? `
+          <div class="ai-attached-image-card" id="ai-screenshot-dropzone">
+            <div class="ai-attached-thumb-wrap">
+              <img src="${state.deadlineAiImage}" alt="Screenshot lampiran" class="ai-attached-thumb">
+            </div>
+            <div class="ai-attached-details">
+              <div class="ai-attached-title">
+                <span class="ai-attached-badge">${icon('image')} Gambar Terlampir</span>
+                <span class="ai-attached-hint">Akan dianalisis oleh AI bersama instruksi teks</span>
+              </div>
+              <div class="ai-attached-actions">
+                <button type="button" class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Ganti Gambar</button>
+                <button type="button" class="button small ghost text-danger" data-action="remove-ai-image">${icon('trash')} Hapus</button>
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="ai-attach-trigger-bar" data-action="trigger-screenshot-upload" id="ai-screenshot-dropzone">
+            <div class="ai-attach-bar-left">
+              <div class="ai-attach-icon">${icon('image')}</div>
+              <div class="ai-attach-text">
+                <strong>Lampirkan Screenshot / Gambar (Opsional)</strong>
+                <span>Klik untuk pilih file, seret gambar ke sini, atau tempel dengan <b>Ctrl + V</b></span>
+              </div>
+            </div>
+            <button type="button" class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Pilih File</button>
+          </div>
+        `}
+        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
+
         <div class="quick-prompt-chips">
           <span class="chip-label">Contoh cepat:</span>
-          <button class="chip-btn" data-action="apply-prompt-chip" data-id="Perkuliahan Google Meet hari ini jam 16:30 link meet.google.com/bfd-ghon-ght">Kuliah Meet</button>
-          <button class="chip-btn" data-action="apply-prompt-chip" data-id="Tugas makalah Kecerdasan Buatan dikumpul jumat depan jam 12:00, kuis Basis Data tanggal 25 jam 10:00">Tugas Kuliah</button>
-          <button class="chip-btn" data-action="apply-prompt-chip" data-id="Laporan praktikum fisika deadline 3 hari lagi jam 23:59, revisi proposal senin depan">Praktikum</button>
+          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Perkuliahan Google Meet hari ini jam 16:30 link meet.google.com/bfd-ghon-ght">Kuliah Meet</button>
+          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Tugas makalah Kecerdasan Buatan dikumpul jumat depan jam 12:00, kuis Basis Data tanggal 25 jam 10:00">Tugas Kuliah</button>
+          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Laporan praktikum fisika deadline 3 hari lagi jam 23:59, revisi proposal senin depan">Praktikum</button>
         </div>
-      </div>` : `
-      <div class="screenshot-tab-panel">
-        <div class="screenshot-dropzone ${state.deadlineAiImage ? 'has-image' : ''}" id="ai-screenshot-dropzone">
-          ${state.deadlineAiImage ? `
-            <div class="image-preview-card">
-              <div class="image-preview-box">
-                <img src="${state.deadlineAiImage}" alt="Screenshot tugas atau jadwal" class="screenshot-preview-img">
-              </div>
-              <div class="image-preview-controls">
-                <button class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Ganti Gambar</button>
-                <button class="button small ghost text-danger" data-action="remove-ai-image">${icon('trash')} Hapus</button>
-              </div>
-            </div>
-          ` : `
-            <div class="dropzone-hint" data-action="trigger-screenshot-upload">
-              <div class="dropzone-icon">${icon('image')}</div>
-              <strong>Pilih atau seret tangkapan layar jadwal ke sini</strong>
-              <p>Dapat membaca chat WhatsApp, pengumuman kuliah, atau web jadwal</p>
-              <span class="dropzone-types">Format: PNG, JPG, JPEG, WEBP · Tempel cepat dengan <b>Ctrl + V</b></span>
-            </div>
-          `}
-        </div>
-        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
-        <div class="ai-extra-field-group">
-          <label class="field-label" for="ai-extra-prompt">Catatan / Instruksi tambahan (opsional):</label>
-          <input type="text" id="ai-extra-prompt" class="textbox" placeholder="Tulis instruksi tambahan jika ada (opsional)…" value="${esc(state.deadlineAiPrompt)}" autocomplete="off" spellcheck="false">
-        </div>
-      </div>`}
+      </div>
 
       ${state.deadlineAiLoading ? `
       <div class="ai-processing-box" id="ai-processing-box">
@@ -1727,13 +1721,38 @@ function renderAiModal() {
           ${state.extractedPreview.map((item, idx) => `
             <div class="extracted-item-card">
               <div class="space-between">
-                <input type="text" class="textbox item-edit-title" data-idx="${idx}" data-field="title" value="${esc(item.title)}" autocomplete="off" spellcheck="false">
-                <span class="prio-badge prio-${item.priority || 'sedang'}">${esc(item.priority || 'sedang')}</span>
+                <input type="text" class="textbox item-edit-title" data-idx="${idx}" data-field="title" value="${esc(item.title)}" placeholder="Judul Tugas / Acara" autocomplete="off" spellcheck="false">
+                <select class="prio-select prio-${(item.priority || 'sedang').toLowerCase()}" data-idx="${idx}" data-field="priority" title="Ubah Prioritas">
+                  <option value="tinggi" ${(item.priority || '').toLowerCase() === 'tinggi' ? 'selected' : ''}>Tinggi</option>
+                  <option value="sedang" ${(item.priority || '').toLowerCase() === 'sedang' || !item.priority ? 'selected' : ''}>Sedang</option>
+                  <option value="rendah" ${(item.priority || '').toLowerCase() === 'rendah' ? 'selected' : ''}>Rendah</option>
+                </select>
               </div>
               <div class="extracted-item-grid">
-                <div><small>MATA KULIAH</small><input type="text" class="textbox small" data-idx="${idx}" data-field="course" value="${esc(item.course || 'Umum')}" autocomplete="off" spellcheck="false"></div>
-                <div><small>TANGGAL</small><input type="date" class="textbox small" data-idx="${idx}" data-field="deadline" value="${esc(item.deadline)}"></div>
-                <div><small>JAM</small><input type="time" class="textbox small" data-idx="${idx}" data-field="time" value="${esc(item.time || '23:59')}"></div>
+                <div>
+                  <small>KATEGORI</small>
+                  <input type="text" class="textbox small" data-idx="${idx}" data-field="course" value="${esc(item.course || 'Akademik')}" placeholder="Kategori" autocomplete="off" spellcheck="false">
+                </div>
+                <div>
+                  <small>TANGGAL</small>
+                  <input type="date" class="textbox small" data-idx="${idx}" data-field="deadline" value="${esc(item.deadline)}">
+                </div>
+                <div>
+                  <small>JAM</small>
+                  <input type="time" class="textbox small" data-idx="${idx}" data-field="time" value="${esc(item.time || '23:59')}">
+                </div>
+                <div>
+                  <small>PENGINGAT GCAL</small>
+                  <select class="textbox small gcal-rem-select" data-idx="${idx}" data-field="reminder">
+                    <option value="60" ${Number(item.reminder ?? 60) === 60 ? 'selected' : ''}>1 Jam Sebelum</option>
+                    <option value="30" ${Number(item.reminder) === 30 ? 'selected' : ''}>30 Menit Sebelum</option>
+                    <option value="15" ${Number(item.reminder) === 15 ? 'selected' : ''}>15 Menit Sebelum</option>
+                    <option value="10" ${Number(item.reminder) === 10 ? 'selected' : ''}>10 Menit Sebelum</option>
+                    <option value="120" ${Number(item.reminder) === 120 ? 'selected' : ''}>2 Jam Sebelum</option>
+                    <option value="1440" ${Number(item.reminder) === 1440 ? 'selected' : ''}>1 Hari Sebelum</option>
+                    <option value="0" ${Number(item.reminder) === 0 ? 'selected' : ''}>Tanpa Pengingat</option>
+                  </select>
+                </div>
               </div>
               ${item.description ? `<p class="extracted-item-desc">${esc(item.description)}</p>` : ''}
             </div>
@@ -2158,8 +2177,10 @@ handleClick = function(action, id) {
     return;
   }
   if (action === 'run-deadline-extraction') {
-    const promptInput = document.getElementById('ai-deadline-prompt')?.value || document.getElementById('ai-extra-prompt')?.value || state.deadlineAiPrompt;
-    state.deadlineAiPrompt = promptInput;
+    const promptInput = document.getElementById('ai-deadline-prompt')?.value;
+    if (promptInput !== undefined) {
+      state.deadlineAiPrompt = promptInput;
+    }
     runDeadlineAiExtraction();
     return;
   }
@@ -2167,11 +2188,11 @@ handleClick = function(action, id) {
     // Read any edits from input fields
     document.querySelectorAll('.item-edit-title').forEach(el => {
       const idx = Number(el.dataset.idx);
-      if (state.extractedPreview[idx]) state.extractedPreview[idx].title = el.value;
+      if (state.extractedPreview[idx]) state.extractedPreview[idx].title = el.value.trim() || state.extractedPreview[idx].title;
     });
     document.querySelectorAll('[data-field="course"]').forEach(el => {
       const idx = Number(el.dataset.idx);
-      if (state.extractedPreview[idx]) state.extractedPreview[idx].course = el.value;
+      if (state.extractedPreview[idx]) state.extractedPreview[idx].course = el.value.trim() || 'Akademik';
     });
     document.querySelectorAll('[data-field="deadline"]').forEach(el => {
       const idx = Number(el.dataset.idx);
@@ -2180,6 +2201,15 @@ handleClick = function(action, id) {
     document.querySelectorAll('[data-field="time"]').forEach(el => {
       const idx = Number(el.dataset.idx);
       if (state.extractedPreview[idx]) state.extractedPreview[idx].time = el.value;
+    });
+    document.querySelectorAll('[data-field="priority"]').forEach(el => {
+      const idx = Number(el.dataset.idx);
+      if (state.extractedPreview[idx]) state.extractedPreview[idx].priority = el.value;
+    });
+    document.querySelectorAll('[data-field="reminder"]').forEach(el => {
+      const idx = Number(el.dataset.idx);
+      const val = parseInt(el.value, 10);
+      if (state.extractedPreview[idx]) state.extractedPreview[idx].reminder = isNaN(val) ? 60 : val;
     });
 
     const defaultReminder = parseInt(state.settings.gcalReminder ?? 30, 10);
@@ -2273,7 +2303,7 @@ document.addEventListener('click', e => {
   }
 });
 
-// Handle file input for screenshot upload
+// Handle file input for screenshot upload and live field edits
 document.addEventListener('change', e => {
   if (e.target.id === 'ai-screenshot-file') {
     const file = e.target.files?.[0];
@@ -2284,6 +2314,21 @@ document.addEventListener('change', e => {
         renderAiModal();
       };
       reader.readAsDataURL(file);
+    }
+  }
+  if (e.target.matches('[data-field="priority"]')) {
+    const idx = Number(e.target.dataset.idx);
+    const val = e.target.value;
+    if (state.extractedPreview[idx]) {
+      state.extractedPreview[idx].priority = val;
+    }
+    e.target.className = `prio-select prio-${val.toLowerCase()}`;
+  }
+  if (e.target.matches('[data-field="reminder"]')) {
+    const idx = Number(e.target.dataset.idx);
+    const val = parseInt(e.target.value, 10);
+    if (state.extractedPreview[idx]) {
+      state.extractedPreview[idx].reminder = isNaN(val) ? 60 : val;
     }
   }
 });
@@ -2314,7 +2359,6 @@ document.addEventListener('drop', e => {
       const reader = new FileReader();
       reader.onload = ev => {
         state.deadlineAiImage = ev.target.result;
-        state.deadlineTab = 'screenshot';
         renderAiModal();
       };
       reader.readAsDataURL(file);
@@ -2352,7 +2396,6 @@ document.addEventListener('paste', e => {
         const reader = new FileReader();
         reader.onload = ev => {
           state.deadlineAiImage = ev.target.result;
-          state.deadlineTab = 'screenshot';
           renderAiModal();
           toast('Screenshot dari clipboard berhasil ditempel!');
         };

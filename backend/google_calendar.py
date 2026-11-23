@@ -351,24 +351,33 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                 h = int(parts[0]) if parts else 23
                 m = int(parts[1]) if len(parts) > 1 else 59
                 
-                # The specified time is the DEADLINE (the end time of the task)
-                end_dt = f"{deadline_date}T{h:02d}:{m:02d}:00{tz_formatted}"
+                # Start time is the scheduled time
+                start_dt = f"{deadline_date}T{h:02d}:{m:02d}:00{tz_formatted}"
                 
-                # Start time is 30 minutes before the deadline for clear context
-                total_min = h * 60 + m
-                start_min = max(0, total_min - 30)
-                start_h = start_min // 60
-                start_m = start_min % 60
-                start_dt = f"{deadline_date}T{start_h:02d}:{start_m:02d}:00{tz_formatted}"
+                is_meeting = any(w in summary.lower() for w in ['meet', 'kuliah', 'perkuliahan', 'zoom', 'kelas', 'webinar', 'rapat', 'pertemuan', 'tatap muka'])
+                
+                # End time: use explicit end_time if provided, or default 60 min for meetings / 30 min for tasks
+                if item.get('end_time'):
+                    e_parts = str(item['end_time']).split(':')
+                    eh = int(e_parts[0]) if e_parts else min(23, h + 1)
+                    em = int(e_parts[1]) if len(e_parts) > 1 else m
+                    end_dt = f"{deadline_date}T{eh:02d}:{em:02d}:00{tz_formatted}"
+                else:
+                    total_min = h * 60 + m
+                    duration = 60 if is_meeting else 30
+                    end_min = min(23 * 60 + 59, total_min + duration)
+                    end_h = end_min // 60
+                    end_m = end_min % 60
+                    end_dt = f"{deadline_date}T{end_h:02d}:{end_m:02d}:00{tz_formatted}"
 
-                # Reminder notification setting from item
+                # Reminder notification setting from item (e.g. 60 min before for 4 PM meet -> popup at 3 PM)
                 rem_val = item.get('reminder')
                 if rem_val is None:
-                    rem_val = item.get('reminder_minutes', 30)
+                    rem_val = item.get('reminder_minutes', 60 if is_meeting else 30)
                 try:
                     rem_mins = int(rem_val)
                 except (ValueError, TypeError):
-                    rem_mins = 30
+                    rem_mins = 60 if is_meeting else 30
 
                 if rem_mins == 0:
                     reminders_body = {'useDefault': False, 'overrides': []}
@@ -377,9 +386,12 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
                 else:
                     reminders_body = {'useDefault': False, 'overrides': [{'method': 'popup', 'minutes': rem_mins}]}
 
+                prefix = "[Kuliah] " if is_meeting else "[Tenggat] "
+                event_summary = summary if summary.startswith("[") else f"{prefix}{summary}"
+
                 event_body = {
-                    'summary': f"[Tenggat] {summary}",
-                    'description': f"Batas Waktu Pengumpulan (Deadline): {deadline_date} pukul {time_str}\n\n{desc}",
+                    'summary': event_summary,
+                    'description': f"Jadwal: {deadline_date} pukul {time_str}\n\n{desc}".strip(),
                     'start': {'dateTime': start_dt},
                     'end': {'dateTime': end_dt},
                     'reminders': reminders_body

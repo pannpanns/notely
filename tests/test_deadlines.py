@@ -123,6 +123,24 @@ class DeadlinesTests(unittest.TestCase):
         self.assertEqual(items[1]['time'], '10:00')
         self.assertEqual(items[1]['deadline'], '2026-11-25')
 
+    def test_clean_json_output_sanitizes_kuliah_course(self):
+        sample = '''
+        [
+            {
+                "title": "Perkuliahan Google Meet",
+                "course": "Kuliah",
+                "deadline": "2026-11-23",
+                "time": "16:30",
+                "description": "Meet",
+                "priority": "sedang"
+            }
+        ]
+        '''
+        results = _clean_json_output(sample)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['course'], 'Akademik')
+        self.assertEqual(results[0]['reminder'], 60)
+
     def test_heuristic_extractor_google_meet_lecture(self):
         import datetime
         ref = datetime.date(2026, 11, 21)
@@ -130,8 +148,11 @@ class DeadlinesTests(unittest.TestCase):
         items = extract_deadlines_heuristically(text, ref_date=ref)
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]['title'], 'Perkuliahan Google Meet')
+        self.assertEqual(items[0]['course'], 'Akademik')
         self.assertEqual(items[0]['deadline'], '2026-11-21')
         self.assertEqual(items[0]['time'], '16:30')
+        self.assertEqual(items[0]['end_time'], '19:29')
+        self.assertEqual(items[0]['reminder'], 60)
         self.assertIn('meet.google.com', items[0]['description'])
 
     def test_conversational_questions_ignored(self):
