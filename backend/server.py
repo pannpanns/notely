@@ -654,6 +654,11 @@ class Handler(BaseHTTPRequestHandler):
                 p_end=str(args.get('endpoint',''))
                 def run_ext(update):
                     update({'message':'Menganalisis teks & gambar tugas…'})
+                    if p_prov == 'ollama':
+                        try:
+                            managed_ollama.ensure(lambda m: update({'message': m if isinstance(m, str) else m.get('message', '')}))
+                        except Exception as e:
+                            print("managed_ollama.ensure failed:", e)
                     return extract_deadlines(p_text,p_img,p_prov,p_mod,p_key,p_end,update)
                 out=svc.job('deadline_extract',run_ext)
             elif path=='/gcalendar/auth-url':

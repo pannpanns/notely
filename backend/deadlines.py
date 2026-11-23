@@ -341,15 +341,22 @@ def extract_deadlines_heuristically(text: str, ref_date: datetime.date = None) -
                         h += 12
                     elif 'sore' in period and h < 12:
                         h += 12
+                    elif not period and h in (7, 8, 9, 10, 11) and ('deadline' in c_lower or 'tenggat' in c_lower or 'kumpul' in c_lower):
+                        h += 12
                     target_time = f'{h:02d}:00'
 
         # 3. Clean Title & Course
-        clean_title = re.sub(r'(?i)\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|lagi|besok|lusa|depan|senin|selasa|rabu|kamis|jumat|sabtu|minggu|tanggal|tgl|\d{1,2}[:.]\d{2}|\d+\s*hari)\b.*$', '', chunk).strip()
-        clean_title = re.sub(r'[,:\-–]+$', '', clean_title).strip()
-        if not clean_title or len(clean_title) < 3:
-            clean_title = chunk[:40].strip()
+        m_task = re.search(r'\b((?:tugas|kuis|revisi|laporan|ujian|pr|presentasi|proyek|makalah|resume|uas|uts|kuliah|perkuliahan)\b(?:\s+(?!deadline|tenggat|jam|pukul|hari|besok|lusa|minggu|senin|selasa|rabu|kamis|jumat|sabtu|tanggal|tgl|tolong|dikumpul|kumpul|nya)[a-zA-Z0-9]+){0,5})', chunk, re.IGNORECASE)
+        if m_task:
+            clean_title = m_task.group(1).strip()
+        else:
+            clean_title = re.sub(r'(?i)\b(deadline|tenggat|dikumpul|kumpul|jam|pukul|hari|lagi|besok|lusa|depan|senin|selasa|rabu|kamis|jumat|sabtu|minggu|tanggal|tgl|\d{1,2}[:.]\d{2}|\d+\s*hari)\b.*$', '', chunk).strip()
+            clean_title = re.sub(r'^(?:halo|hai|tolong|mohon|buatkan|jadwalkan|catat|ingatkan|masukkan)?\s*(?:saya\s+ada|ada|terdapat)?\s*', '', clean_title, flags=re.IGNORECASE).strip()
+            clean_title = re.sub(r'[,:\-–]+$', '', clean_title).strip()
+            if not clean_title or len(clean_title) < 3:
+                clean_title = chunk[:40].strip()
 
-        title_formatted = ' '.join(w.capitalize() if not w.isupper() else w for w in clean_title.split())
+        title_formatted = ' '.join(w.upper() if w.upper() in ('UTS', 'UAS', 'AI', 'PR', 'TI', 'SI', 'DKV', 'PTI', 'PBO') else w.capitalize() for w in clean_title.split())
 
         course = 'Umum'
         for kw in ['fisika', 'matematika', 'kalkulus', 'basis data', 'pbo', 'ai', 'kecerdasan buatan', 'pemrograman', 'jaringan', 'algoritma', 'alpro', 'kimia', 'biologi', 'akuntansi', 'manajemen', 'pti', 'ti', 'si', 'if', 'dkv']:
@@ -467,6 +474,23 @@ def extract_deadlines(
     endpoint: str = "",
     progress=None
 ) -> dict:
+    if provider == 'ollama':
+        try:
+            try:
+                import backend.managed_ollama as managed_ollama
+                from backend.providers import models_for
+            except ImportError:
+                import managed_ollama
+                from providers import models_for
+            managed_ollama.ensure(progress if progress else lambda m: None)
+            avail = models_for('ollama')
+            if avail and (not model or model not in avail):
+                model = avail[0]
+            elif not model:
+                model = 'gemma4:latest'
+        except Exception as e:
+            print("managed_ollama auto-ensure failed in extract_deadlines:", e)
+
     ocr_text = ""
     if image_base64:
         # Strip data URL prefix if present

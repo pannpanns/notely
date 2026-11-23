@@ -141,5 +141,16 @@ class DeadlinesTests(unittest.TestCase):
         items = extract_deadlines_heuristically(text, ref_date=ref)
         self.assertEqual(len(items), 0)
 
+    def test_heuristic_conversational_task_prompt(self):
+        import datetime
+        ref = datetime.date(2026, 11, 23)
+        text = "hari ini saya ada tugas uts deadline nya jam 8 tolong buatkan"
+        items = extract_deadlines_heuristically(text, ref_date=ref)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['title'], 'Tugas UTS')
+        self.assertEqual(items[0]['deadline'], '2026-11-23')
+        self.assertEqual(items[0]['time'], '20:00')
+        self.assertEqual(items[0]['priority'], 'tinggi')
+
 if __name__ == '__main__':
     unittest.main()

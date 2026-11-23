@@ -1674,7 +1674,7 @@ function renderAiModal() {
       ${state.deadlineTab === 'prompt' ? `
       <div class="prompt-tab-panel">
         <label class="field-label" for="ai-deadline-prompt">Tulis atau tempel teks tugas / jadwal:</label>
-        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Contoh: 'Perkuliahan hari ini jam 16.30-19.29 link meet.google.com/xyz', atau 'Tugas resume bab 4 AI dikumpul 25 November jam 12 siang'…">${esc(state.deadlineAiPrompt)}</textarea>
+        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Tulis tugas atau jadwal di sini…&#10;Contoh: 'Hari ini saya ada tugas UTS deadline jam 8' atau 'Kuliah Google Meet jam 16.30'…">${esc(state.deadlineAiPrompt)}</textarea>
         <div class="quick-prompt-chips">
           <span class="chip-label">Contoh cepat:</span>
           <button class="chip-btn" data-action="apply-prompt-chip" data-id="Perkuliahan Google Meet hari ini jam 16:30 link meet.google.com/bfd-ghon-ght">Kuliah Meet</button>
@@ -2375,7 +2375,7 @@ async function runDeadlineAiExtraction() {
       prompt: state.deadlineAiPrompt || '',
       image: state.deadlineAiImage || '',
       provider: state.settings.provider || 'ollama',
-      model: state.settings.summaryModel || 'qwen2.5:7b',
+      model: state.settings.summaryModel || '',
       apiKey: state.apiKey || '',
       endpoint: state.settings.endpoint || ''
     };
