@@ -13,12 +13,12 @@ from .storage import compress_session_audio, discard_computer_audio
 from .core import (SAMPLE_RATE, default_output_root, export_transcript, new_session,
     nice_seconds, offline_summary, read_json, refresh_metadata, sort_segments,
     StreamingMono16kResampler, write_wav)
-CHUNK_SECONDS=8.0
+CHUNK_SECONDS=5.5
 OVERLAP_SECONDS=0.0
-PREVIEW_MIN_SECONDS=1.25
-PREVIEW_INTERVAL=.85
-PREVIEW_MIN_ADVANCE=.55
-VISUAL_UPDATE_INTERVAL=.25
+PREVIEW_MIN_SECONDS=0.55
+PREVIEW_INTERVAL=.30
+PREVIEW_MIN_ADVANCE=.24
+VISUAL_UPDATE_INTERVAL=.12
 
 class RecordingEngine:
     def __init__(self, ui, session, devices, model_name, language, gpu_choice="Otomatis", live_preview=False):
@@ -181,7 +181,7 @@ class RecordingEngine:
         import numpy as np
         suffix = 'komputer' if label == 'Peserta (komputer)' else 'mikrofon'
         permanent_wav = self.session / f'audio_{suffix}.wav'
-        chunker = PauseChunker(rate=SAMPLE_RATE, silence_seconds=.80,
+        chunker = PauseChunker(rate=SAMPLE_RATE, silence_seconds=.55,
                                max_seconds=CHUNK_SECONDS)
         resampler = None
         sample_count = 0
@@ -247,8 +247,8 @@ class RecordingEngine:
                         last_visual_publish = now
 
                     ready = chunker.feed(mono, rms=level)
-                    if self.live_preview_enabled and not ready and now - last_preview_publish >= .9:
-                        preview = chunker.preview(limit_seconds=3.0)
+                    if self.live_preview_enabled and not ready and now - last_preview_publish >= .25:
+                        preview = chunker.preview(limit_seconds=5.5)
                         if preview is not None and len(preview[1]) >= SAMPLE_RATE * PREVIEW_MIN_SECONDS:
                             preview_start_idx, audio = preview
                             with self.live_lock:
@@ -321,7 +321,7 @@ class RecordingEngine:
         while not (self.stop_event.is_set() or self.cancel_transcription.is_set() or self.finalized):
             candidate = self._preview_candidate()
             if candidate is None:
-                time.sleep(.06)
+                time.sleep(.03)
                 continue
             label, piece_id, start, samples, core_start = candidate
             self.preview_progress[label] = (piece_id, len(samples), time.monotonic())

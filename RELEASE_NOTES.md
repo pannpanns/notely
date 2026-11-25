@@ -1,3 +1,9 @@
+Pembaruan Notely v1.3.12:
+• Desain Ulang Dialog AI 3-Tahap Tanpa Scroll (Input → Analisis → Hasil): Memisahkan layar input, layar analisis AI, dan layar hasil ekstraksi ke dalam 3 tahap tersendiri lengkap dengan indikator langkah (*stepper*) dan transisi geser mulus, sehingga tidak lagi menumpuk memanjang ke bawah maupun memunculkan scrollbar di dalam dialog. Saat beberapa jadwal ditemukan sekaligus, pengguna dapat berpindah antar jadwal melalui tab kartu yang rapi tanpa scroll.
+• Akselerasi Transkripsi Langsung (3x Lebih Responsif): Memangkas latensi live preview pada mesin perekaman (interval preview 0.30 dtk, audio minimal 0.55 dtk, jeda flush 0.55 dtk, polling adaptif 180 ms saat merekam) serta menambahkan pembaruan DOM inkremental tanpa kedip lengkap dengan kursor ketik aktif & indikator gelombang suara "Mengetik langsung".
+• Sistem Animasi Spring-Physics Modern: Meningkatkan animasi di seluruh aplikasi dengan kurva pegas responsif (*modal spring-in*, transisi geser directional Kalender ↔ Daftar Tugas, *cascade* kartu tugas, *multi-ring orbit loader* & shimmer saat analisis AI, zoom halus pada lightbox gambar, dan animasi toast pegas).
+• Sinkronisasi Versi Aplikasi v1.3.12: Pembaruan versi pada antarmuka, Tauri, dan Cargo ke v1.3.12.
+
 Pembaruan Notely v1.3.11:
 • Dukungan Lampiran Banyak Gambar Sekaligus (Multi-Image Upload & OCR): Kini Anda dapat melampirkan beberapa tangkapan layar sekaligus (hingga 10 gambar) melalui tombol pilih file, drag & drop, maupun tempel berulang dengan Ctrl + V. Backend menjalankan OCR dan ekstraksi jadwal untuk seluruh gambar secara berurutan agar tidak ada agenda yang terlewat.
 • Pratinjau Gambar Layar Penuh (Click-to-Zoom Lightbox): Klik thumbnail gambar yang dilampirkan untuk membukanya dalam ukuran besar beserta navigasi tombol kiri/kanan (dan dukungan keyboard Esc / Panah) agar mudah mengecek kebenaran gambar sebelum diproses AI.

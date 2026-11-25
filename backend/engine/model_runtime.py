@@ -76,8 +76,10 @@ def transcribe_options(language: str | None, *, preview=False):
                 # Energy chunking alone also admits fan/hiss/music. Silero gates
                 # both provisional and final decoding without editing saved audio.
                 vad_filter=True,
-                vad_parameters=dict(threshold=.5, min_speech_duration_ms=160,
-                                    min_silence_duration_ms=400, speech_pad_ms=200),
+                vad_parameters=dict(threshold=.5,
+                                    min_speech_duration_ms=110 if preview else 160,
+                                    min_silence_duration_ms=240 if preview else 400,
+                                    speech_pad_ms=120 if preview else 200),
                 without_timestamps=False)
 
 

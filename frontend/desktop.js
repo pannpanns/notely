@@ -26,7 +26,7 @@ function showStartupSplash(){
     </div>
     <div class="splash-brand">
       <span>Notely</span>
-      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.11'}</span>
+      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.12'}</span>
     </div>
     <div class="splash-subtitle">Aplikasi Catatan & Transkripsi AI Lokal</div>
     
@@ -240,7 +240,12 @@ async function startup(){
 
  if(typeof loadLocalCatalog==='function')loadLocalCatalog();
  if(typeof loadTranscriptionSizes==='function')loadTranscriptionSizes();
- setInterval(poll,500);
+ (function schedulePoll(){
+  poll().finally(()=>{
+   const fast=engine.state==='recording'||engine.state==='stopping'||state.recording;
+   setTimeout(schedulePoll,fast?180:500);
+  });
+ })();
 
  await prepareModelOnStartup(gpuBadge);
 }
@@ -381,14 +386,56 @@ async function poll(){
 function updateLiveTranscript(m){
  const list=document.getElementById('transcript-list');
  if(!list)return;
- const bottom=list.scrollHeight-list.scrollTop-list.clientHeight<60;
- list.innerHTML=transcriptList(m);
- if(state.recording&&engine.previews?.length){
-  const draft=engine.previews.filter(p=>p.text).map(p=>`<div class="transcript-row transcript-draft"><span class="timestamp">[${ts(Number(p.start)||0)}]</span><p>${esc(p.text)} <small class="draft-label">· Diketik sementara</small></p></div>`).join('');
-  list.insertAdjacentHTML('beforeend',draft);
+ const bottom=list.scrollHeight-list.scrollTop-list.clientHeight<80;
+ const rows=m.rows||[];
+ const prevCount=Number(list.dataset.committedCount||'-1');
+ const sessionChanged=list.dataset.sessionId!==String(m.id||'');
+
+ if(sessionChanged||prevCount<0||rows.length<prevCount){
+  list.innerHTML=rows.length?rows.map(([sec,t])=>`<div class="transcript-row"><span class="timestamp">[${ts(Number(sec)||0)}]</span><p>${esc(t)}</p></div>`).join(''):'';
+  list.dataset.sessionId=String(m.id||'');
+  list.dataset.committedCount=String(rows.length);
+ }else if(rows.length>prevCount){
+  const emptyHint=list.querySelector('.muted-block');
+  if(emptyHint)emptyHint.remove();
+  const draftWrap=list.querySelector('#transcript-draft-wrap');
+  const frag=document.createElement('div');
+  frag.innerHTML=rows.slice(prevCount).map(([sec,t])=>`<div class="transcript-row transcript-row-new"><span class="timestamp">[${ts(Number(sec)||0)}]</span><p>${esc(t)}</p></div>`).join('');
+  while(frag.firstChild){
+   if(draftWrap)list.insertBefore(frag.firstChild,draftWrap);
+   else list.appendChild(frag.firstChild);
+  }
+  list.dataset.committedCount=String(rows.length);
  }
+
+ let draftWrap=list.querySelector('#transcript-draft-wrap');
+ const activeDrafts=state.recording?(engine.previews||[]).filter(p=>p.text):[];
+ if(activeDrafts.length){
+  if(!draftWrap){
+   draftWrap=document.createElement('div');
+   draftWrap.id='transcript-draft-wrap';
+   list.appendChild(draftWrap);
+  }
+  const emptyHint=list.querySelector('.muted-block');
+  if(emptyHint)emptyHint.remove();
+  draftWrap.innerHTML=activeDrafts.map(p=>`<div class="transcript-row transcript-draft"><span class="timestamp">[${ts(Number(p.start)||0)}]</span><p class="draft-live-text">${esc(p.text)}<span class="live-typing-cursor" aria-hidden="true"></span><span class="draft-live-pill"><span class="live-wave-dots" aria-hidden="true"><span></span><span></span><span></span></span>Mengetik langsung</span></p></div>`).join('');
+ }else if(state.recording&&!rows.length){
+  if(!draftWrap){
+   draftWrap=document.createElement('div');
+   draftWrap.id='transcript-draft-wrap';
+   list.appendChild(draftWrap);
+  }
+  draftWrap.innerHTML=`<div class="transcript-row transcript-draft listening-placeholder"><span class="timestamp">[00:00]</span><p class="draft-live-text"><span class="draft-live-pill"><span class="live-wave-dots" aria-hidden="true"><span></span><span></span><span></span></span>Mendengarkan suara…</span></p></div>`;
+ }else if(draftWrap){
+  draftWrap.remove();
+ }
+
+ if(!rows.length&&!state.recording&&!list.querySelector('.muted-block')){
+  list.innerHTML=`<p class="muted-block">Belum ada transkrip untuk sesi ini.</p>`;
+ }
+
  if(bottom)list.scrollTop=list.scrollHeight;
- const head=document.querySelector('.transcript-pane .pane-head .small');if(head)head.textContent=m.rows.length+' bagian';
+ const head=document.querySelector('.transcript-pane .pane-head .small');if(head)head.textContent=rows.length+' bagian';
 }
 async function startRecording(){
  if(!engine.ready)return alertError('Aplikasi belum siap');
