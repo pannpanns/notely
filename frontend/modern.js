@@ -54,7 +54,79 @@ function renderDownloads(){
  }).join('')}</div>`:''}`;
 }
 const baseHomePage=homePage;
-homePage=function(){return `<div class="calm-home"><div class="home-greeting"><span class="eyebrow">RUANG CATATAN ANDA</span><h1>${state.recording?'Fokus pada percakapan.':'Ide penting, tersimpan rapi.'}</h1><p>${state.recording?'Notely sedang mencatat. Anda bisa membuka transkrip langsung.':'Mulai rekaman baru atau lanjutkan catatan terakhir Anda.'}</p></div><div class="home-choices"><button class="home-choice featured" data-action="${state.recording?'open-note':'ask-demo'}" data-id="${esc(state.selected||'')}"><span class="choice-icon">${icon('mic')}</span><strong>${state.recording?'Buka rekaman':'Rekam percakapan'}</strong><span>Audio komputer dan mikrofon</span><b aria-hidden="true">↗</b></button><button class="home-choice" data-action="import-audio"><span class="choice-icon">${icon('upload')}</span><strong>Impor rekaman</strong><span>Ubah file audio menjadi catatan</span><b aria-hidden="true">↗</b></button></div><div class="recent-heading"><h2>Catatan terakhir</h2><button class="button ghost small" data-action="page" data-id="recordings">Lihat semua ${icon('chevron')}</button></div><div class="recent-notes">${meetings.length?meetings.slice(-3).reverse().map(m=>`<button class="recent-note" data-action="open-note" data-id="${esc(m.id)}"><span class="recent-icon">${icon('file')}</span><span><strong>${esc(m.title)}</strong><small>${esc(m.when)}</small></span>${icon('chevron')}</button>`).join(''):`<div class="quiet-empty">${icon('notes')}<p>Belum ada catatan. Mulai dengan rekaman pertama Anda.</p></div>`}</div><div class="privacy-foot">${icon('shield')} Transkripsi lokal · Catatan tersimpan di komputer</div></div>`;};
+homePage=function(){
+ const now=new Date();
+ const dateLabel=now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ const allDeadlines=Array.isArray(state.deadlines)?state.deadlines.filter(d=>d.status!=='completed'):[];
+ const sortedDeadlines=[...allDeadlines].sort((a,b)=>`${a.deadline||''} ${a.time||'23:59'}`.localeCompare(`${b.deadline||''} ${b.time||'23:59'}`));
+ const upcoming=sortedDeadlines.slice(0,3);
+ const todayStr=now.toISOString().slice(0,10);
+ const urgentCount=allDeadlines.filter(d=>d.priority==='tinggi'||(d.deadline&&d.deadline<=todayStr)).length;
+ const bulanShort=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+ const renderUpcomingItem=d=>{
+  const parts=String(d.deadline||'').split('-');
+  const dayNum=parts[2]||'--';
+  const monLbl=parts[1]?bulanShort[Math.max(0,Number(parts[1])-1)]||'':'';
+  const prio=(d.priority||'sedang').toLowerCase();
+  return `<button class="upcoming-mini-item" data-action="page" data-id="deadlines"><div class="upcoming-date-badge"><strong>${esc(dayNum)}</strong><span>${esc(monLbl)}</span></div><div class="upcoming-mini-info"><strong>${esc(d.title||'Tenggat Tugas')}</strong><span>${esc(d.course||'Akademik')} · ${esc(d.time||'23:59')} WIB</span></div><span class="upcoming-prio-dot ${esc(prio)}" title="Prioritas ${esc(prio)}"></span></button>`;
+ };
+ return `<div class="calm-home">
+  <div class="home-top-row">
+   <div class="home-greeting">
+    <span class="home-date-pill">${icon('calendar')} ${esc(dateLabel)}</span>
+    <h1>${state.recording?'Fokus pada percakapan.':'Ruang catatan dan jadwal Anda.'}</h1>
+    <p>${state.recording?'Notely sedang merekam dan mengetik transkrip secara langsung.':'Mulai rekaman baru, kelola transkrip, atau susun tenggat tugas.'}</p>
+   </div>
+   <div class="home-quick-stats">
+    <div class="home-stat-chip"><strong>${meetings.length}</strong><span>Total catatan</span></div>
+    <div class="home-stat-chip ${urgentCount?'urgent':''}"><strong>${allDeadlines.length}</strong><span>${urgentCount?`${urgentCount} mendesak`:'Tugas aktif'}</span></div>
+   </div>
+  </div>
+
+  <div class="home-choices home-bento-actions">
+   <button class="home-choice featured" data-action="${state.recording?'open-note':'ask-demo'}" data-id="${esc(state.selected||'')}">
+    <div>
+     <span class="choice-icon">${icon('mic')}</span>
+     <strong>${state.recording?'Buka rekaman aktif':'Rekam percakapan'}</strong>
+    </div>
+    <span class="choice-sub">${state.recording?'Transkripsi langsung sedang berjalan — klik untuk melihat teks':'Tangkap audio komputer & mikrofon dengan transkripsi lokal cepat'}</span>
+    <b aria-hidden="true">↗</b>
+   </button>
+   <div class="home-secondary-stack">
+    <button class="home-choice" data-action="import-audio">
+     <span class="choice-icon">${icon('upload')}</span>
+     <span class="home-choice-copy"><strong>Impor rekaman</strong><span class="choice-sub">Ubah file audio atau video menjadi transkrip & ringkasan</span></span>
+     <b aria-hidden="true">↗</b>
+    </button>
+    <button class="home-choice" data-action="page" data-id="deadlines">
+     <span class="choice-icon">${icon('calendar')}</span>
+     <span class="home-choice-copy"><strong>Tenggat & jadwal</strong><span class="choice-sub">${allDeadlines.length?`${allDeadlines.length} jadwal aktif tersinkron Google Calendar`:'Kelola kalender tugas atau ekstrak otomatis dengan AI'}</span></span>
+     <b aria-hidden="true">↗</b>
+    </button>
+   </div>
+  </div>
+
+  <div class="home-bento-lower">
+   <section class="bento-panel">
+    <div class="bento-panel-head">
+     <h2>Catatan terakhir</h2>
+     <button class="button ghost small" data-action="page" data-id="recordings">Lihat semua ${icon('chevron')}</button>
+    </div>
+    <div class="recent-notes">${meetings.length?meetings.slice(-4).reverse().map(m=>`<button class="recent-note" data-action="open-note" data-id="${esc(m.id)}"><span class="recent-icon">${icon('file')}</span><span><strong>${esc(m.title)}</strong><small>${esc(m.when)}</small></span>${icon('chevron')}</button>`).join(''):`<div class="quiet-empty">${icon('notes')}<p>Belum ada catatan. Mulai dengan rekaman pertama Anda.</p></div>`}</div>
+   </section>
+
+   <section class="bento-panel">
+    <div class="bento-panel-head">
+     <h2>Jadwal terdekat</h2>
+     <button class="button ghost small" data-action="page" data-id="deadlines">Buka kalender ${icon('chevron')}</button>
+    </div>
+    <div class="upcoming-mini-list">${upcoming.length?upcoming.map(renderUpcomingItem).join(''):`<div class="quiet-empty">${icon('calendar')}<p>Belum ada jadwal mendatang. Semua terkendali.</p></div>`}</div>
+   </section>
+  </div>
+
+  <div class="privacy-foot">${icon('shield')} Transkripsi lokal · Catatan &amp; audio tersimpan privat di komputer Anda</div>
+ </div>`;
+};
 summaryTab=function(){
  const local=state.settings.provider==='ollama';
  const p=providers[state.settings.provider]||providers.ollama;

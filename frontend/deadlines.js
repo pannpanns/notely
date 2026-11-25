@@ -851,6 +851,9 @@ async function loadDeadlinesData() {
     const local = safeStore.get('notelyDeadlines');
     if (Array.isArray(local)) state.deadlines = local;
   }
+  if (state.page === 'home' || state.page === 'deadlines') {
+    refreshPage();
+  }
 }
 
 // Save a single deadline

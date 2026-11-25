@@ -1,6 +1,6 @@
 
 'use strict';
-window.APP_VERSION = '1.3.13';
+window.APP_VERSION = '1.3.14';
 /* Notely browser UI prototype. No microphone, system-audio capture, external API,
    model download, or backend operations occur in this file. */
 const paths={
@@ -89,7 +89,7 @@ function sidebar(){const active=state.page;return `<aside class="sidebar">
  <button class="sidebtn neutral tiny" data-action="about">${icon('info')} Tentang</button>
  <div class="version">Notely · Desktop ${window.APP_VERSION}</div></div></aside>`;}
 function meetingList(){const q=state.search.trim().toLowerCase();const filtered=meetings.filter(m=>(m.title+' '+m.rows.map(r=>r[1]).join(' ')).toLowerCase().includes(q));return filtered.length?filtered.slice().reverse().map(m=>`<button class="meeting-link ${state.page==='notes'&&state.selected===m.id?'active':''}" data-action="open-note" data-id="${esc(m.id)}">${icon('file')}<div><strong>${esc(m.title)}</strong><span>${esc(m.when)}${m.type==='Simulasi'?' · Demo':''}</span></div></button>`).join(''):`<div class="no-search">Tidak ada catatan yang cocok.</div>`;}
-function appStrip(){return `<div class="app-strip"><span><strong>Notely</strong> &nbsp; / &nbsp; Desktop</span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
+function appStrip(){const pageTitle={home:'Beranda',notes:'Catatan Rekaman',recordings:'Semua Rekaman',deadlines:'Tenggat Tugas',settings:'Pengaturan'}[state.page]||'Desktop';return `<div class="app-strip"><span class="strip-crumb"><strong>Notely</strong><span class="strip-sep">/</span><span>${pageTitle}</span></span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
 function render(){document.getElementById('root').innerHTML=`<div class="app">${sidebar()}<main class="workspace">${appStrip()}<div class="page" id="main-page">${renderPage()}</div></main></div>`;if(state.recording)updateTimer();}
 function renderPage(){if(state.page==='recordings')return recordingsPage();if(state.page==='home')return homePage();if(state.page==='notes')return notesPage();if(state.page==='deadlines')return deadlinesPage();return settingsPage();}
 function homePage(){return `<div class="home"><div class="home-tools"><button class="button" data-action="change-home-language">${icon('globe')} ${state.settings.language==='id'?'Indonesia':'English'} ${icon('chevron')}</button></div>

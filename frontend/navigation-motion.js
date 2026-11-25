@@ -8,8 +8,8 @@ function animateNavigation(){
  const page=document.getElementById('main-page');
  const surface=state.page==='settings'?page?.querySelector('.settings-body'):page?.firstElementChild;
  surface?.animate?.([{opacity:0,transform:'translateY(12px) scale(.992)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:320,easing:'cubic-bezier(.22,1,.36,1)'});
- const cards=surface?.querySelectorAll('.folder-card,.library-recording,.setting-card,.recent-note,.local-model');
- [...(cards||[])].slice(0,8).forEach((card,i)=>card.animate?.([{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'translateY(0)'}],{duration:280,delay:i*30,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'}));
+ const cards=surface?.querySelectorAll('.home-choice,.bento-panel,.folder-card,.library-recording,.setting-card,.recent-note,.upcoming-mini-item,.local-model,.model-card,.deadline-card');
+ [...(cards||[])].slice(0,10).forEach((card,i)=>card.animate?.([{opacity:0,transform:'translateY(12px) scale(.99)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:300,delay:i*32,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'}));
 }
 const beforeMotionRender=render;
 render=function(){beforeMotionRender();animateNavigation();};
