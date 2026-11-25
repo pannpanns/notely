@@ -1618,9 +1618,100 @@ function renderDateDetailsModal(dateStr) {
 // --------------------------------------------------------------------------
 // MODAL: AI EXTRACTOR (Prompt AI / Screenshot Upload / Clipboard Ctrl+V)
 // --------------------------------------------------------------------------
+const MAX_AI_IMAGES = 10;
+
+function splitReminderMinutes(totalMins) {
+  const val = parseInt(totalMins, 10);
+  if (isNaN(val) || val < 0) return { amount: 30, unit: 'minutes' };
+  if (val === 0) return { amount: 0, unit: 'none' };
+  if (val % 10080 === 0) return { amount: val / 10080, unit: 'weeks' };
+  if (val % 1440 === 0) return { amount: val / 1440, unit: 'days' };
+  if (val % 60 === 0) return { amount: val / 60, unit: 'hours' };
+  return { amount: val, unit: 'minutes' };
+}
+
+function combineReminderMinutes(amount, unit) {
+  if (unit === 'none') return 0;
+  const n = Math.max(1, parseInt(amount, 10) || 1);
+  if (unit === 'hours') return n * 60;
+  if (unit === 'days') return n * 1440;
+  if (unit === 'weeks') return n * 10080;
+  return n;
+}
+
+function addAiImageFiles(fileList, sourceLabel = '') {
+  const files = Array.from(fileList || []).filter(f => f && f.type && f.type.startsWith('image/'));
+  if (!files.length) return;
+  if (!Array.isArray(state.deadlineAiImages)) state.deadlineAiImages = [];
+
+  const remaining = MAX_AI_IMAGES - state.deadlineAiImages.length;
+  if (remaining <= 0) {
+    toast(`Maksimal ${MAX_AI_IMAGES} gambar dapat dilampirkan sekaligus.`);
+    return;
+  }
+  const toRead = files.slice(0, remaining);
+  let loaded = 0;
+  toRead.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (ev.target?.result) {
+        state.deadlineAiImages.push(ev.target.result);
+      }
+      loaded++;
+      if (loaded === toRead.length) {
+        renderAiModal();
+        if (sourceLabel === 'paste') {
+          toast(`Gambar ke-${state.deadlineAiImages.length} berhasil ditempel. Klik gambar untuk memperbesar.`);
+        } else if (toRead.length > 1) {
+          toast(`${toRead.length} gambar berhasil dilampirkan.`);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function openAiImageLightbox(idx) {
+  const images = state.deadlineAiImages || [];
+  if (!images.length) return;
+  const safeIdx = Math.max(0, Math.min(Number(idx) || 0, images.length - 1));
+  state.deadlineAiLightboxIdx = safeIdx;
+
+  let lb = document.getElementById('ai-image-lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'ai-image-lightbox';
+    lb.className = 'ai-lightbox-overlay';
+    lb.addEventListener('click', e => {
+      if (e.target === lb) closeAiImageLightbox();
+    });
+    document.body.appendChild(lb);
+  }
+
+  const total = images.length;
+  lb.innerHTML = `<div class="ai-lightbox-content">
+    <div class="ai-lightbox-topbar">
+      <span class="ai-lightbox-counter">Gambar ${safeIdx + 1} dari ${total}</span>
+      <button type="button" class="ai-lightbox-close" data-action="close-ai-lightbox" title="Tutup (Esc)">×</button>
+    </div>
+    <div class="ai-lightbox-stage">
+      ${total > 1 ? `<button type="button" class="ai-lightbox-nav prev" data-action="lightbox-prev" title="Gambar sebelumnya">‹</button>` : ''}
+      <img src="${images[safeIdx]}" alt="Pratinjau gambar ${safeIdx + 1}" class="ai-lightbox-img">
+      ${total > 1 ? `<button type="button" class="ai-lightbox-nav next" data-action="lightbox-next" title="Gambar berikutnya">›</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function closeAiImageLightbox() {
+  state.deadlineAiLightboxIdx = null;
+  const lb = document.getElementById('ai-image-lightbox');
+  if (lb) lb.remove();
+}
+
 function openAiDeadlineModal() {
   state.deadlineAiPrompt = '';
-  state.deadlineAiImage = null;
+  state.deadlineAiImages = [];
+  state.deadlineAiLightboxIdx = null;
   state.deadlineAiLoading = false;
   state.deadlineAiStatus = '';
   state.extractedPreview = [];
@@ -1637,16 +1728,16 @@ function renderAiModal() {
   }
 
   const prov = state.settings.provider || 'ollama';
-  const model = state.settings.summaryModel || 'qwen2.5:7b';
   const isGcalConnected = !!state.gcalStatus.connected;
+  const images = Array.isArray(state.deadlineAiImages) ? state.deadlineAiImages : [];
 
-  modalEl.innerHTML = `<div class="modal ai-deadline-dialog" onclick="event.stopPropagation()">
+  modalEl.innerHTML = `<div class="modal ai-deadline-dialog">
     <div class="modal-head-row">
       <div class="dialog-title-group">
         <div class="spark-icon-circle">${icon('spark')}</div>
         <div>
           <h2>Ekstrak Deadline dengan AI</h2>
-          <p>Otomatis susun tugas & tenggat dari prompt teks atau tangkapan layar (screenshot).</p>
+          <p>Otomatis susun tugas & tenggat dari teks prompt atau tangkapan layar (screenshot).</p>
         </div>
       </div>
       <button class="dismiss" data-action="close-ai-modal">×</button>
@@ -1660,26 +1751,39 @@ function renderAiModal() {
     </div>
 
     <div class="ai-dialog-body">
-      <!-- Unified Prompt & Media Input (ChatGPT / Gemini style) -->
+      <!-- Unified Prompt & Multi-Image Input -->
       <div class="ai-unified-input-panel">
-        <label class="field-label" for="ai-deadline-prompt">Tulis instruksi / tempel teks tugas atau jadwal:</label>
-        <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Tulis instruksi atau tempel teks jadwal di sini…&#10;Contoh: 'Hari ini saya ada perkuliahan Google Meet jam 16.30' atau 'Tugas UTS AI deadline jam 8'…">${esc(state.deadlineAiPrompt || '')}</textarea>
+        <div class="ai-field-group">
+          <label class="field-label" for="ai-deadline-prompt">Tulis instruksi / tempel teks tugas atau jadwal:</label>
+          <textarea id="ai-deadline-prompt" class="ai-prompt-area" placeholder="Tulis instruksi atau tempel teks jadwal di sini…">${esc(state.deadlineAiPrompt || '')}</textarea>
+        </div>
 
-        <!-- Attachment Box / Bar -->
-        ${state.deadlineAiImage ? `
-          <div class="ai-attached-image-card" id="ai-screenshot-dropzone">
-            <div class="ai-attached-thumb-wrap">
-              <img src="${state.deadlineAiImage}" alt="Screenshot lampiran" class="ai-attached-thumb">
+        <!-- Multi-Image Attachment Gallery / Trigger -->
+        ${images.length ? `
+          <div class="ai-gallery-box" id="ai-screenshot-dropzone">
+            <div class="ai-gallery-header">
+              <div class="ai-gallery-title-group">
+                <span class="ai-attached-badge">${icon('image')} Gambar Terlampir (${images.length})</span>
+                <span class="ai-attached-hint">Klik gambar untuk memperbesar &amp; memeriksa</span>
+              </div>
+              <button type="button" class="ai-clear-all-btn" data-action="clear-all-ai-images">Hapus Semua</button>
             </div>
-            <div class="ai-attached-details">
-              <div class="ai-attached-title">
-                <span class="ai-attached-badge">${icon('image')} Gambar Terlampir</span>
-                <span class="ai-attached-hint">Akan dianalisis oleh AI bersama instruksi teks</span>
-              </div>
-              <div class="ai-attached-actions">
-                <button type="button" class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Ganti Gambar</button>
-                <button type="button" class="button small ghost text-danger" data-action="remove-ai-image">${icon('trash')} Hapus</button>
-              </div>
+            <div class="ai-image-gallery">
+              ${images.map((src, i) => `
+                <div class="ai-thumb-item">
+                  <button type="button" class="ai-thumb-zoom-btn" data-action="zoom-ai-image" data-id="${i}" title="Klik untuk memperbesar gambar ${i + 1}">
+                    <img src="${src}" alt="Lampiran ${i + 1}" class="ai-thumb-img">
+                    <span class="ai-thumb-zoom-hint">Perbesar</span>
+                  </button>
+                  <button type="button" class="ai-thumb-remove-btn" data-action="remove-ai-image" data-id="${i}" title="Hapus gambar ini">×</button>
+                </div>
+              `).join('')}
+              ${images.length < MAX_AI_IMAGES ? `
+                <button type="button" class="ai-thumb-add-tile" data-action="trigger-screenshot-upload" title="Tambah gambar lainnya (atau Ctrl+V)">
+                  <span class="ai-thumb-add-plus">+</span>
+                  <span>Tambah</span>
+                </button>
+              ` : ''}
             </div>
           </div>
         ` : `
@@ -1688,20 +1792,13 @@ function renderAiModal() {
               <div class="ai-attach-icon">${icon('image')}</div>
               <div class="ai-attach-text">
                 <strong>Lampirkan Screenshot / Gambar (Opsional)</strong>
-                <span>Klik untuk pilih file, seret gambar ke sini, atau tempel dengan <b>Ctrl + V</b></span>
+                <span>Bisa pilih banyak gambar sekaligus, seret ke sini, atau tempel dengan <b>Ctrl + V</b></span>
               </div>
             </div>
-            <button type="button" class="button small secondary" data-action="trigger-screenshot-upload">${icon('upload')} Pilih File</button>
+            <span class="button small secondary">${icon('upload')} Pilih File</span>
           </div>
         `}
-        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" hidden style="display:none !important">
-
-        <div class="quick-prompt-chips">
-          <span class="chip-label">Contoh cepat:</span>
-          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Perkuliahan Google Meet hari ini jam 16:30 link meet.google.com/bfd-ghon-ght">Kuliah Meet</button>
-          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Tugas makalah Kecerdasan Buatan dikumpul jumat depan jam 12:00, kuis Basis Data tanggal 25 jam 10:00">Tugas Kuliah</button>
-          <button type="button" class="chip-btn" data-action="apply-prompt-chip" data-id="Laporan praktikum fisika deadline 3 hari lagi jam 23:59, revisi proposal senin depan">Praktikum</button>
-        </div>
+        <input type="file" id="ai-screenshot-file" accept="image/png,image/jpeg,image/webp" multiple hidden style="display:none !important">
       </div>
 
       ${state.deadlineAiLoading ? `
@@ -1713,14 +1810,19 @@ function renderAiModal() {
 
       ${state.extractedPreview.length ? `
       <div class="extracted-results-container">
-        <div class="space-between" style="margin-bottom:8px">
+        <div class="extracted-results-head">
           <strong>Hasil Ekstraksi (${state.extractedPreview.length} tugas ditemukan):</strong>
-          <span class="field-help">Periksa dan klik "Tambahkan ke Kalender"</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="field-help">Periksa lalu tambahkan ke kalender</span>
+            <button type="button" class="button small ghost" data-action="run-deadline-extraction" ${state.deadlineAiLoading ? 'disabled' : ''}>Ekstrak Ulang</button>
+          </div>
         </div>
         <div class="extracted-items-scroll">
-          ${state.extractedPreview.map((item, idx) => `
+          ${state.extractedPreview.map((item, idx) => {
+            const rem = splitReminderMinutes(item.reminder !== undefined ? item.reminder : 30);
+            return `
             <div class="extracted-item-card">
-              <div class="space-between">
+              <div class="extracted-item-top">
                 <input type="text" class="textbox item-edit-title" data-idx="${idx}" data-field="title" value="${esc(item.title)}" placeholder="Judul Tugas / Acara" autocomplete="off" spellcheck="false">
                 <select class="prio-select prio-${(item.priority || 'sedang').toLowerCase()}" data-idx="${idx}" data-field="priority" title="Ubah Prioritas">
                   <option value="tinggi" ${(item.priority || '').toLowerCase() === 'tinggi' ? 'selected' : ''}>Tinggi</option>
@@ -1729,34 +1831,35 @@ function renderAiModal() {
                 </select>
               </div>
               <div class="extracted-item-grid">
-                <div>
+                <div class="extracted-field">
                   <small>KATEGORI</small>
                   <input type="text" class="textbox small" data-idx="${idx}" data-field="course" value="${esc(item.course || 'Akademik')}" placeholder="Kategori" autocomplete="off" spellcheck="false">
                 </div>
-                <div>
+                <div class="extracted-field">
                   <small>TANGGAL</small>
                   <input type="date" class="textbox small" data-idx="${idx}" data-field="deadline" value="${esc(item.deadline)}">
                 </div>
-                <div>
+                <div class="extracted-field">
                   <small>JAM</small>
                   <input type="time" class="textbox small" data-idx="${idx}" data-field="time" value="${esc(item.time || '23:59')}">
                 </div>
-                <div>
-                  <small>PENGINGAT GCAL</small>
-                  <select class="textbox small gcal-rem-select" data-idx="${idx}" data-field="reminder">
-                    <option value="60" ${Number(item.reminder ?? 60) === 60 ? 'selected' : ''}>1 Jam Sebelum</option>
-                    <option value="30" ${Number(item.reminder) === 30 ? 'selected' : ''}>30 Menit Sebelum</option>
-                    <option value="15" ${Number(item.reminder) === 15 ? 'selected' : ''}>15 Menit Sebelum</option>
-                    <option value="10" ${Number(item.reminder) === 10 ? 'selected' : ''}>10 Menit Sebelum</option>
-                    <option value="120" ${Number(item.reminder) === 120 ? 'selected' : ''}>2 Jam Sebelum</option>
-                    <option value="1440" ${Number(item.reminder) === 1440 ? 'selected' : ''}>1 Hari Sebelum</option>
-                    <option value="0" ${Number(item.reminder) === 0 ? 'selected' : ''}>Tanpa Pengingat</option>
-                  </select>
+                <div class="extracted-field">
+                  <small>PENGINGAT GOOGLE CALENDAR</small>
+                  <div class="extracted-rem-row">
+                    <input type="number" class="textbox small extracted-rem-num" min="1" max="999" data-idx="${idx}" data-field="reminder-num" value="${rem.unit === 'none' ? '' : rem.amount}" placeholder="-" ${rem.unit === 'none' ? 'disabled' : ''}>
+                    <select class="textbox small extracted-rem-unit" data-idx="${idx}" data-field="reminder-unit">
+                      <option value="minutes" ${rem.unit === 'minutes' ? 'selected' : ''}>Menit sebelum</option>
+                      <option value="hours" ${rem.unit === 'hours' ? 'selected' : ''}>Jam sebelum</option>
+                      <option value="days" ${rem.unit === 'days' ? 'selected' : ''}>Hari sebelum</option>
+                      <option value="weeks" ${rem.unit === 'weeks' ? 'selected' : ''}>Minggu sebelum</option>
+                      <option value="none" ${rem.unit === 'none' ? 'selected' : ''}>Tanpa pengingat</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               ${item.description ? `<p class="extracted-item-desc">${esc(item.description)}</p>` : ''}
-            </div>
-          `).join('')}
+            </div>`;
+          }).join('')}
         </div>
       </div>` : ''}
     </div>
@@ -1765,7 +1868,7 @@ function renderAiModal() {
       <div class="ai-provider-badge">
         ${icon(prov === 'ollama' ? 'cpu' : 'globe')} Model: <strong>${prov === 'ollama' ? 'AI Lokal' : 'AI Online'}</strong>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:10px">
         <button class="button" data-action="close-ai-modal">Batal</button>
         ${state.extractedPreview.length ? `
           <button class="button accent" data-action="save-extracted-deadlines">
@@ -2153,18 +2256,9 @@ handleClick = function(action, id) {
     return;
   }
   if (action === 'close-ai-modal') {
+    closeAiImageLightbox();
     const el = document.getElementById('deadline-ai-modal');
     if (el) el.remove();
-    return;
-  }
-  if (action === 'switch-ai-tab') {
-    state.deadlineTab = id;
-    renderAiModal();
-    return;
-  }
-  if (action === 'apply-prompt-chip') {
-    state.deadlineAiPrompt = id;
-    renderAiModal();
     return;
   }
   if (action === 'trigger-screenshot-upload') {
@@ -2172,8 +2266,41 @@ handleClick = function(action, id) {
     return;
   }
   if (action === 'remove-ai-image') {
-    state.deadlineAiImage = null;
+    const idx = Number(id);
+    if (Array.isArray(state.deadlineAiImages) && !isNaN(idx)) {
+      state.deadlineAiImages.splice(idx, 1);
+    }
     renderAiModal();
+    return;
+  }
+  if (action === 'clear-all-ai-images') {
+    state.deadlineAiImages = [];
+    closeAiImageLightbox();
+    renderAiModal();
+    return;
+  }
+  if (action === 'zoom-ai-image') {
+    openAiImageLightbox(Number(id));
+    return;
+  }
+  if (action === 'close-ai-lightbox') {
+    closeAiImageLightbox();
+    return;
+  }
+  if (action === 'lightbox-prev') {
+    const imgs = state.deadlineAiImages || [];
+    if (imgs.length > 1) {
+      const nextIdx = ((state.deadlineAiLightboxIdx || 0) - 1 + imgs.length) % imgs.length;
+      openAiImageLightbox(nextIdx);
+    }
+    return;
+  }
+  if (action === 'lightbox-next') {
+    const imgs = state.deadlineAiImages || [];
+    if (imgs.length > 1) {
+      const nextIdx = ((state.deadlineAiLightboxIdx || 0) + 1) % imgs.length;
+      openAiImageLightbox(nextIdx);
+    }
     return;
   }
   if (action === 'run-deadline-extraction') {
@@ -2206,10 +2333,12 @@ handleClick = function(action, id) {
       const idx = Number(el.dataset.idx);
       if (state.extractedPreview[idx]) state.extractedPreview[idx].priority = el.value;
     });
-    document.querySelectorAll('[data-field="reminder"]').forEach(el => {
-      const idx = Number(el.dataset.idx);
-      const val = parseInt(el.value, 10);
-      if (state.extractedPreview[idx]) state.extractedPreview[idx].reminder = isNaN(val) ? 60 : val;
+    document.querySelectorAll('[data-field="reminder-unit"]').forEach(unitEl => {
+      const idx = Number(unitEl.dataset.idx);
+      const numEl = document.querySelector(`[data-field="reminder-num"][data-idx="${idx}"]`);
+      if (state.extractedPreview[idx]) {
+        state.extractedPreview[idx].reminder = combineReminderMinutes(numEl?.value, unitEl.value);
+      }
     });
 
     const defaultReminder = parseInt(state.settings.gcalReminder ?? 30, 10);
@@ -2218,6 +2347,7 @@ handleClick = function(action, id) {
       reminder: item.reminder !== undefined ? item.reminder : defaultReminder
     }));
     persistDeadlinesBatch(itemsToSave).then(async () => {
+      closeAiImageLightbox();
       const el = document.getElementById('deadline-ai-modal');
       if (el) el.remove();
 
@@ -2306,14 +2436,9 @@ document.addEventListener('click', e => {
 // Handle file input for screenshot upload and live field edits
 document.addEventListener('change', e => {
   if (e.target.id === 'ai-screenshot-file') {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        state.deadlineAiImage = ev.target.result;
-        renderAiModal();
-      };
-      reader.readAsDataURL(file);
+    if (e.target.files?.length) {
+      addAiImageFiles(e.target.files, 'picker');
+      e.target.value = '';
     }
   }
   if (e.target.matches('[data-field="priority"]')) {
@@ -2324,16 +2449,32 @@ document.addEventListener('change', e => {
     }
     e.target.className = `prio-select prio-${val.toLowerCase()}`;
   }
-  if (e.target.matches('[data-field="reminder"]')) {
+  if (e.target.matches('[data-field="reminder-unit"]')) {
     const idx = Number(e.target.dataset.idx);
-    const val = parseInt(e.target.value, 10);
+    const unit = e.target.value;
+    const numEl = document.querySelector(`[data-field="reminder-num"][data-idx="${idx}"]`);
+    if (numEl) {
+      numEl.disabled = (unit === 'none');
+      if (unit === 'none') {
+        numEl.value = '';
+      } else if (!numEl.value || Number(numEl.value) < 1) {
+        numEl.value = unit === 'minutes' ? '30' : '1';
+      }
+    }
     if (state.extractedPreview[idx]) {
-      state.extractedPreview[idx].reminder = isNaN(val) ? 60 : val;
+      state.extractedPreview[idx].reminder = combineReminderMinutes(numEl?.value, unit);
+    }
+  }
+  if (e.target.matches('[data-field="reminder-num"]')) {
+    const idx = Number(e.target.dataset.idx);
+    const unitEl = document.querySelector(`[data-field="reminder-unit"][data-idx="${idx}"]`);
+    if (state.extractedPreview[idx]) {
+      state.extractedPreview[idx].reminder = combineReminderMinutes(e.target.value, unitEl?.value || 'minutes');
     }
   }
 });
 
-// Drag & drop support for screenshot dropzone
+// Drag & drop support for screenshot dropzone (supports multiple files)
 document.addEventListener('dragover', e => {
   const dropzone = e.target.closest('#ai-screenshot-dropzone');
   if (dropzone) {
@@ -2354,14 +2495,8 @@ document.addEventListener('drop', e => {
   if (dropzone) {
     e.preventDefault();
     dropzone.classList.remove('dragover');
-    const file = e.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        state.deadlineAiImage = ev.target.result;
-        renderAiModal();
-      };
-      reader.readAsDataURL(file);
+    if (e.dataTransfer?.files?.length) {
+      addAiImageFiles(e.dataTransfer.files, 'drop');
     }
   }
 });
@@ -2378,8 +2513,34 @@ document.addEventListener('input', e => {
       container.innerHTML = state.deadlineView === 'calendar' ? renderDeadlineCalendar() : renderDeadlineList(filtered);
     }
   }
-  if (e.target.id === 'ai-deadline-prompt' || e.target.id === 'ai-extra-prompt') {
+  if (e.target.id === 'ai-deadline-prompt') {
     state.deadlineAiPrompt = e.target.value;
+  }
+  if (e.target.matches('[data-field="reminder-num"]')) {
+    const idx = Number(e.target.dataset.idx);
+    const unitEl = document.querySelector(`[data-field="reminder-unit"][data-idx="${idx}"]`);
+    if (state.extractedPreview[idx]) {
+      state.extractedPreview[idx].reminder = combineReminderMinutes(e.target.value, unitEl?.value || 'minutes');
+    }
+  }
+});
+
+// Keyboard shortcuts for image lightbox (Escape / Left / Right)
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('ai-image-lightbox')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeAiImageLightbox();
+  } else if (e.key === 'ArrowLeft') {
+    const imgs = state.deadlineAiImages || [];
+    if (imgs.length > 1) {
+      openAiImageLightbox(((state.deadlineAiLightboxIdx || 0) - 1 + imgs.length) % imgs.length);
+    }
+  } else if (e.key === 'ArrowRight') {
+    const imgs = state.deadlineAiImages || [];
+    if (imgs.length > 1) {
+      openAiImageLightbox(((state.deadlineAiLightboxIdx || 0) + 1) % imgs.length);
+    }
   }
 });
 
@@ -2389,20 +2550,15 @@ document.addEventListener('paste', e => {
   if (!modalEl) return;
   const items = e.clipboardData?.items;
   if (!items) return;
+  const imageFiles = [];
   for (const item of items) {
     if (item.type.startsWith('image/')) {
       const file = item.getAsFile();
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = ev => {
-          state.deadlineAiImage = ev.target.result;
-          renderAiModal();
-          toast('Screenshot dari clipboard berhasil ditempel!');
-        };
-        reader.readAsDataURL(file);
-        break;
-      }
+      if (file) imageFiles.push(file);
     }
+  }
+  if (imageFiles.length) {
+    addAiImageFiles(imageFiles, 'paste');
   }
 });
 
@@ -2414,16 +2570,18 @@ async function runDeadlineAiExtraction() {
   renderAiModal();
 
   try {
+    const images = Array.isArray(state.deadlineAiImages) ? state.deadlineAiImages : [];
     const payload = {
       prompt: state.deadlineAiPrompt || '',
-      image: state.deadlineAiImage || '',
+      image: images[0] || '',
+      images,
       provider: state.settings.provider || 'ollama',
       model: state.settings.summaryModel || '',
       apiKey: state.apiKey || '',
       endpoint: state.settings.endpoint || ''
     };
 
-    if (!payload.prompt.trim() && !payload.image) {
+    if (!payload.prompt.trim() && !images.length) {
       throw Error('Masukkan prompt teks atau pilih gambar screenshot terlebih dahulu.');
     }
 

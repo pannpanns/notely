@@ -200,5 +200,35 @@ class DeadlinesTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
+    def test_extract_deadlines_multi_image_heuristic_fallback(self):
+        import base64
+        from unittest.mock import patch
+        from deadlines import extract_deadlines
+
+        fake_b64 = base64.b64encode(b'fakeimg').decode('ascii')
+        ocr_outputs = [
+            "Link google meet untuk perkuliahan hari ini jam 16.30-19.29 https://meet.google.com/abc-defg-hij",
+            "Tugas makalah Kecerdasan Buatan dikumpul besok jam 12:00"
+        ]
+        call_idx = {'i': 0}
+
+        def fake_ocr(_bytes):
+            out = ocr_outputs[call_idx['i']]
+            call_idx['i'] += 1
+            return out
+
+        with patch('deadlines.extract_text_from_image', side_effect=fake_ocr), \
+             patch('deadlines._ask', side_effect=RuntimeError('offline')):
+            res = extract_deadlines(
+                prompt="Tolong jadwalkan semua dari gambar",
+                images=[f"data:image/png;base64,{fake_b64}", f"data:image/png;base64,{fake_b64}"],
+                provider="openai",
+                model="test"
+            )
+            self.assertEqual(res['count'], 2)
+            titles = [d['title'] for d in res['deadlines']]
+            self.assertTrue(any('Meet' in t for t in titles))
+            self.assertTrue(any('Kecerdasan Buatan' in t or 'Makalah' in t for t in titles))
+
 if __name__ == '__main__':
     unittest.main()

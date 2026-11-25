@@ -501,7 +501,7 @@ class Handler(BaseHTTPRequestHandler):
                 finally:
                     if tmp:Path(tmp).unlink(missing_ok=True)
                 return self._json(result)
-            max_json = 25*1024*1024 if path=='/deadlines/extract' else 2*1024*1024
+            max_json = 60*1024*1024 if path=='/deadlines/extract' else 2*1024*1024
             if n>max_json:return self._json({'error':'Permintaan JSON terlalu besar.'},413)
             args=json.loads(self.rfile.read(n) or b'{}')
             if path in ('/start','/model/prepare','/cuda/prepare','/reprocess','/ollama/pull','/ollama/catalog','/ollama/delete','/ollama/status','/ollama/gpu-test','/provider/test'):
@@ -648,6 +648,7 @@ class Handler(BaseHTTPRequestHandler):
                 from deadlines import extract_deadlines
                 p_text=str(args.get('prompt',''))
                 p_img=str(args.get('image',''))
+                p_imgs=args.get('images') if isinstance(args.get('images'), list) else []
                 p_prov=str(args.get('provider') or 'ollama')
                 p_mod=str(args.get('model') or '')
                 p_key=str(args.get('apiKey',''))
@@ -659,7 +660,7 @@ class Handler(BaseHTTPRequestHandler):
                             managed_ollama.ensure(lambda m: update({'message': m if isinstance(m, str) else m.get('message', '')}))
                         except Exception as e:
                             print("managed_ollama.ensure failed:", e)
-                    return extract_deadlines(p_text,p_img,p_prov,p_mod,p_key,p_end,update)
+                    return extract_deadlines(p_text,p_img,p_prov,p_mod,p_key,p_end,update,images=p_imgs)
                 out=svc.job('deadline_extract',run_ext)
             elif path=='/gcalendar/auth-url':
                 from google_calendar import start_oauth_flow

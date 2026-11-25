@@ -111,6 +111,7 @@ Tugasmu adalah menganalisis teks sumber (bisa berasal dari teks langsung atau ta
    - 'tinggi': Ujian, UTS, UAS, kuis, pertemuan mendesak, atau tugas penting.
    - 'sedang': Perkuliahan/kuliah Google Meet reguler, tugas mingguan, laporan.
    - 'rendah': Bacaan opsional atau materi santai.
+6. Multi-Gambar: Jika terdapat lebih dari satu bagian `[Teks dari Tangkapan Layar 1]`, `[Teks dari Tangkapan Layar 2]`, dst., wajib mengekstrak SEMUA jadwal dan tugas dari setiap gambar ke dalam satu array JSON.
 
 [REFERENSI WAKTU SAAT INI]
 Hari ini adalah: {ref_date_str}
@@ -486,7 +487,8 @@ def extract_deadlines(
     model: str = "",
     api_key: str = "",
     endpoint: str = "",
-    progress=None
+    progress=None,
+    images: list | None = None
 ) -> dict:
     if provider == 'ollama':
         try:
@@ -505,22 +507,39 @@ def extract_deadlines(
         except Exception as e:
             print("managed_ollama auto-ensure failed in extract_deadlines:", e)
 
-    ocr_text = ""
-    if image_base64:
-        # Strip data URL prefix if present
-        if ',' in image_base64:
-            image_base64 = image_base64.split(',', 1)[1]
-        try:
-            img_bytes = base64.b64decode(image_base64)
-            if progress:
-                progress("Membaca teks dari gambar (OCR Windows)...")
-            ocr_text = extract_text_from_image(img_bytes)
-        except Exception as e:
-            print("Failed to decode or OCR image:", e)
+    img_list = []
+    if isinstance(images, list):
+        for im in images:
+            if isinstance(im, str) and im.strip():
+                img_list.append(im.strip())
+    if isinstance(image_base64, str) and image_base64.strip():
+        if image_base64.strip() not in img_list:
+            img_list.insert(0, image_base64.strip())
 
+    ocr_parts = []
+    total_imgs = len(img_list)
+    for idx, raw_img in enumerate(img_list, 1):
+        b64 = raw_img.split(',', 1)[1] if ',' in raw_img else raw_img
+        try:
+            img_bytes = base64.b64decode(b64)
+            if progress:
+                if total_imgs > 1:
+                    progress(f"Membaca teks dari gambar {idx}/{total_imgs} (OCR Windows)...")
+                else:
+                    progress("Membaca teks dari gambar (OCR Windows)...")
+            part_text = extract_text_from_image(img_bytes)
+            if part_text and part_text.strip():
+                ocr_parts.append(part_text.strip())
+        except Exception as e:
+            print(f"Failed to decode or OCR image #{idx}:", e)
+
+    ocr_text = "\n\n".join(ocr_parts)
     source_text = ""
-    if ocr_text:
-        source_text += f"[Teks dari Tangkapan Layar]:\n{ocr_text}\n"
+    if len(ocr_parts) == 1:
+        source_text += f"[Teks dari Tangkapan Layar]:\n{ocr_parts[0]}\n"
+    elif len(ocr_parts) > 1:
+        for idx, pt in enumerate(ocr_parts, 1):
+            source_text += f"[Teks dari Tangkapan Layar {idx}]:\n{pt}\n\n"
     if prompt:
         source_text += f"[Catatan / Teks Pengguna]:\n{prompt}\n"
 
@@ -548,9 +567,29 @@ def extract_deadlines(
 
     items = _clean_json_output(raw_response) if raw_response else []
     if not items:
-        # Fallback to deterministic heuristic Indonesian deadline extractor on clean source
-        combined_text = f"{ocr_text}\n{prompt}".strip()
-        items = extract_deadlines_heuristically(combined_text)
+        # Fallback to deterministic heuristic Indonesian deadline extractor per screenshot & prompt
+        seen_keys = set()
+        collected = []
+
+        def _add_unique(found_items):
+            for it in found_items:
+                key = (it.get('title', '').strip().lower(), it.get('deadline', ''), it.get('time', ''))
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    collected.append(it)
+
+        if ocr_parts:
+            for pt in ocr_parts:
+                found = extract_deadlines_heuristically(pt)
+                if not found and prompt:
+                    found = extract_deadlines_heuristically(f"{pt}\n{prompt}")
+                _add_unique(found)
+            if prompt and not re.search(r'sesuai\s+(?:di\s+)?gambar|dari\s+gambar|di\s+screenshot', prompt, re.IGNORECASE):
+                _add_unique(extract_deadlines_heuristically(prompt))
+        else:
+            _add_unique(extract_deadlines_heuristically(prompt))
+
+        items = collected
 
     return {
         'deadlines': items,
