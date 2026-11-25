@@ -314,8 +314,11 @@ def sync_event_to_google_calendar(data_root: str | Path, item: dict) -> dict:
     time_str = item.get('time') or '23:59'
 
     title = item.get('title', 'Tenggat Tugas')
-    course = item.get('course', '')
-    summary = f"{title} [{course}]" if course else title
+    course = item.get('course', '').strip()
+    if course and course.lower() not in ('umum', 'akademik', 'google calendar') and course.lower() not in title.lower():
+        summary = f"{title} [{course}]"
+    else:
+        summary = title
     desc = f"{item.get('description', '')}\n\nMata Kuliah / Kategori: {course or '-'}\nPrioritas: {item.get('priority', 'sedang').upper()}\n\n[Dibuat & Dikelola via Notely Desktop]".strip()
 
     # Pre-build direct Google Calendar URL
@@ -548,7 +551,12 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
             if not summary:
                 continue
 
-            clean_title = summary.removeprefix('[Tenggat]').strip() or 'Tugas Kalender'
+            raw_title = re.sub(r'^(?:\[(?:Tenggat|Kuliah)\]\s*)+', '', summary, flags=re.IGNORECASE).strip()
+            # Extract trailing [Course] bracket if present (e.g. "Tugas Makalah [PTI]")
+            m_trailing_course = re.search(r'\s*\[([^\]]+)\]\s*$', raw_title)
+            detected_course = m_trailing_course.group(1).strip() if m_trailing_course else ''
+            clean_title = re.sub(r'\s*\[([^\]]+)\]\s*$', '', raw_title).strip() if m_trailing_course else raw_title
+            clean_title = clean_title or 'Tugas Kalender'
             start = ev.get('start', {})
             end = ev.get('end', {})
 
@@ -576,16 +584,14 @@ def pull_events_from_google_calendar(data_root: str | Path) -> dict:
             html_link = ev.get('htmlLink') or 'https://calendar.google.com'
             desc = ev.get('description', '')
 
-            # Detect course from brackets e.g. "Tugas [PTI]" or keywords
-            m_course = re.search(r'\[(.*?)\]', summary)
-            detected_course = m_course.group(1).strip() if m_course else ''
+            # Fallback keyword course detection if no trailing bracket was present
             if not detected_course:
                 for kw in ['pti', 'pbo', 'ai', 'ti', 'si', 'if', 'dkv', 'basis data', 'algoritma', 'matematika', 'fisika']:
-                    if re.search(rf'\b{kw}\b', summary, re.IGNORECASE):
+                    if re.search(rf'\b{kw}\b', clean_title, re.IGNORECASE):
                         detected_course = kw.upper() if len(kw) <= 4 or kw in ('pbo', 'ai', 'pti', 'dkv') else kw.title()
                         break
             if not detected_course:
-                detected_course = 'Google Calendar'
+                detected_course = 'Akademik' if summary.lower().startswith('[kuliah]') else 'Google Calendar'
 
             priority = 'tinggi' if any(w in summary.lower() for w in ('kuis', 'ujian', 'uts', 'uas', 'deadline')) else 'sedang'
 

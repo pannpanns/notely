@@ -83,6 +83,23 @@ class RecordingOptimizationTests(unittest.TestCase):
         self.assertEqual(chunker.feed(speech, rms=0.1), [])
         self.assertTrue(chunker.active)
 
+    def test_whisper_terima_kasih_hallucination_rejected(self):
+        from text_quality import accept_speech_segment
+        phantom_youtube = types.SimpleNamespace(
+            text='Terima kasih telah menonton.', no_speech_prob=0.05, avg_logprob=-0.2, start=0.0, end=2.0
+        )
+        self.assertFalse(accept_speech_segment(phantom_youtube, audio_rms=0.05, preview=False))
+
+        phantom_pause = types.SimpleNamespace(
+            text='Terima kasih.', no_speech_prob=0.35, avg_logprob=-0.6, start=0.0, end=0.9
+        )
+        self.assertFalse(accept_speech_segment(phantom_pause, audio_rms=0.005, preview=True))
+
+        genuine_speech = types.SimpleNamespace(
+            text='Terima kasih semuanya atas waktunya hari ini.', no_speech_prob=0.04, avg_logprob=-0.18, start=0.0, end=2.5
+        )
+        self.assertTrue(accept_speech_segment(genuine_speech, audio_rms=0.04, preview=False))
+
 
 if __name__ == '__main__':
     unittest.main()

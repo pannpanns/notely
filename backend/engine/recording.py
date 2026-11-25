@@ -326,13 +326,14 @@ class RecordingEngine:
             label, piece_id, start, samples, core_start = candidate
             self.preview_progress[label] = (piece_id, len(samples), time.monotonic())
             try:
-                if float(np.sqrt(np.mean(samples * samples))) < .001:
+                sample_rms = float(np.sqrt(np.mean(samples * samples)))
+                if sample_rms < .0028:
                     self._emit('preview', (label, piece_id, core_start, ''))
                     continue
                 result, _ = model.transcribe(samples, **transcribe_options(self.language, preview=True))
                 parts = []
                 for seg in result:
-                    if not accept_speech_segment(seg):
+                    if not accept_speech_segment(seg, audio_rms=sample_rms, preview=True):
                         continue
                     if start + seg.end > core_start + .04 and seg.text.strip():
                         parts.append(seg.text.strip())
@@ -379,11 +380,12 @@ class RecordingEngine:
                 if model is not None:
                     import numpy as np
                     arr = np.asarray(arr, dtype=np.float32)
-                    if len(arr) and float(np.sqrt(np.mean(arr * arr))) > .0008:
+                    chunk_rms = float(np.sqrt(np.mean(arr * arr))) if len(arr) else 0.0
+                    if len(arr) and chunk_rms > .0015:
                         iterable, _ = model.transcribe(arr, **transcribe_options(self.language))
                         additions = []
                         for seg in iterable:
-                            if not accept_speech_segment(seg):
+                            if not accept_speech_segment(seg, audio_rms=chunk_rms, preview=False):
                                 continue
                             words, suspicious = sanitize_hypothesis((seg.text or '').strip())
                             if words and (start + seg.end) > core_start + .04:

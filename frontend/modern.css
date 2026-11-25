@@ -1665,6 +1665,405 @@ body:has(.deadlines-page) #recording-dock,
   justify-content: center;
 }
 
+/* ==========================================================================
+   NOTELY UNIFIED NATIVE DESKTOP POLISH & SPRING ANIMATION SYSTEM (v1.3.13)
+   ========================================================================== */
+
+/* 1. Native App Chrome: Non-selectable UI shell, crisp scrollbars everywhere */
+.sidebar, .app-strip, .top-heading, .tabs, .button, .navlink, .sidebtn,
+.recording-dock, .segmented, .filter-pill, .category-pill, .calendar-grid,
+.modal h2, .modal-actions, .eyebrow, .pane-head, .focus-toolbar {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.transcript-row p, .summary-paper, .real-summary, input, textarea, code {
+  user-select: text;
+  -webkit-user-select: text;
+}
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cdd8d2; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #9db0a6; border: 2px solid transparent; background-clip: content-box; }
+
+/* 2. Unified Premium Modals & Semantic Confirm Dialogs */
+.modal {
+  background: #fff !important;
+  border-radius: 20px !important;
+  border: 1px solid #e1ebe5 !important;
+  max-width: 470px;
+  width: min(470px, calc(100vw - 32px));
+  padding: 28px 30px !important;
+  box-shadow: 0 28px 72px rgba(14, 36, 27, 0.2), 0 4px 16px rgba(14, 36, 27, 0.06) !important;
+  animation: modalSpringIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+.modal > h2 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #193128 !important;
+  letter-spacing: -0.35px !important;
+  margin: 0 0 14px !important;
+  line-height: 1.3 !important;
+}
+.modal .modal-body {
+  font-size: 13.5px;
+  color: #4b6155;
+  line-height: 1.65;
+}
+.modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px !important;
+  padding-top: 18px;
+  border-top: 1px solid #ebf1ee;
+}
+.modal .modal-actions .button {
+  min-height: 38px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirm-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.confirm-dialog-lead {
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  color: #2f463a !important;
+  line-height: 1.65 !important;
+}
+.confirm-meta {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #74887d;
+}
+.confirm-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.confirm-callout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.confirm-callout-icon svg { width: 16px; height: 16px; }
+.confirm-callout.danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b42318;
+}
+.confirm-callout.danger .confirm-callout-icon { color: #dc2626; }
+.confirm-callout.neutral {
+  background: #f5f9f7;
+  border: 1px solid #dce8e1;
+  color: #466053;
+}
+.confirm-callout.neutral .confirm-callout-icon { color: #18786c; }
+.confirm-banner {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+.confirm-banner.success {
+  background: #eefaf3;
+  border: 1px solid #c3ebd3;
+}
+.confirm-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #18786c;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.confirm-banner-icon svg { width: 18px; height: 18px; }
+.confirm-banner h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #14533c;
+}
+.confirm-banner p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #2f6b51 !important;
+  line-height: 1.45 !important;
+}
+
+/* Refined Solid Danger CTA (for destructive modal confirmations) */
+.button.solid-danger {
+  background: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(220, 53, 69, 0.24);
+  transition: background 0.16s ease, transform 0.14s ease, box-shadow 0.16s ease;
+}
+.button.solid-danger:hover {
+  background: #c12636 !important;
+  border-color: #c12636 !important;
+  box-shadow: 0 6px 16px rgba(220, 53, 69, 0.32);
+  transform: translateY(-1px);
+}
+.button.accent {
+  box-shadow: 0 2px 8px rgba(24, 120, 108, 0.22);
+  transition: background 0.16s ease, transform 0.14s ease, box-shadow 0.16s ease;
+}
+.button.accent:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(24, 120, 108, 0.28);
+  transform: translateY(-1px);
+}
+.button {
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease;
+}
+
+/* 3. Sidebar Active Indicator & Fluid Navigation Motion */
+.app .sidebar {
+  transition: width 0.26s cubic-bezier(0.22, 1, 0.36, 1), min-width 0.26s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.navlink {
+  position: relative;
+  border-radius: 10px !important;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.navlink::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: #18786c;
+  opacity: 0;
+  transform: scaleY(0.3);
+  transition: opacity 0.2s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.navlink.active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+.navlink:hover svg {
+  transform: scale(1.08);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.navlink:active { transform: scale(0.98); }
+.meeting-row .meeting-link {
+  transition: background 0.16s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.meeting-row .meeting-link:hover { transform: translateX(2px); }
+
+/* 4. Beranda (Home) Staggered Entrance & Card Micro-Physics */
+@keyframes heroRise {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.calm-home .eyebrow { animation: heroRise 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.calm-home .home-greeting h1 { animation: heroRise 0.38s cubic-bezier(0.22, 1, 0.36, 1) 45ms both; }
+.calm-home .home-greeting p { animation: heroRise 0.4s cubic-bezier(0.22, 1, 0.36, 1) 90ms both; }
+.home-choice {
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.24s ease, background 0.2s ease !important;
+  animation: cardCascadeIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.home-choice:nth-child(1) { animation-delay: 110ms; }
+.home-choice:nth-child(2) { animation-delay: 175ms; }
+.home-choice:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 14px 32px rgba(20, 66, 52, 0.09) !important;
+  border-color: #88bca5 !important;
+}
+.home-choice:active { transform: translateY(-1px) scale(0.985) !important; }
+.home-choice .choice-icon {
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+.home-choice:hover .choice-icon { transform: scale(1.09) rotate(-3deg); }
+.home-choice b {
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
+}
+.home-choice:hover b { transform: translate(4px, -4px); color: #18786c; }
+
+.recent-notes {
+  animation: cardCascadeIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) 210ms both;
+  box-shadow: 0 2px 10px rgba(18, 45, 33, 0.025);
+}
+.recent-note {
+  transition: background 0.16s ease, padding-left 0.2s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.recent-note:hover {
+  background: #f7fbf9 !important;
+  padding-left: 26px !important;
+}
+.recent-note > svg {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), color 0.16s ease;
+}
+.recent-note:hover > svg {
+  transform: rotate(-90deg) translateY(3px) !important;
+  color: #18786c !important;
+}
+
+/* 5. Floating Recording Dock Glassmorphism & Live Halo */
+@keyframes dockHaloPulse {
+  0% { box-shadow: 0 0 0 0 rgba(243, 66, 72, 0.42); }
+  70% { box-shadow: 0 0 0 13px rgba(243, 66, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(243, 66, 72, 0); }
+}
+@keyframes popoverSpring {
+  0% { opacity: 0; transform: translateY(8px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.recording-dock {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(214, 228, 220, 0.85) !important;
+  box-shadow: 0 14px 36px rgba(16, 44, 34, 0.14), 0 2px 6px rgba(16, 44, 34, 0.05) !important;
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.24s ease !important;
+}
+.recording-dock:hover {
+  box-shadow: 0 18px 44px rgba(16, 44, 34, 0.18), 0 4px 10px rgba(16, 44, 34, 0.07) !important;
+}
+.dock-record {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.16s ease !important;
+}
+.dock-record:hover { transform: scale(1.07); }
+.dock-record:active { transform: scale(0.95); }
+.is-recording .dock-record {
+  animation: dockHaloPulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.dock-size-popover {
+  animation: popoverSpring 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 6. Catatan Rekaman (Notes) Smooth Tab Panel & Clean Reader */
+.tabbed-notes .transcript-pane:not([hidden]),
+.tabbed-notes .summary-pane:not([hidden]) {
+  animation: viewFadeSlide 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.focused-notes .transcript-row {
+  padding: 6px 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+.focused-notes .transcript-row:hover {
+  background: #f7faf8;
+}
+
+/* 7. Semua Rekaman (Folder & Recording Library) Animations */
+.folder-card {
+  animation: cardCascadeIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.24s ease, border-color 0.2s ease !important;
+}
+.folder-card:nth-child(2) { animation-delay: 45ms; }
+.folder-card:nth-child(3) { animation-delay: 90ms; }
+.folder-card:nth-child(4) { animation-delay: 135ms; }
+.folder-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 14px 30px rgba(24, 76, 55, 0.1) !important;
+}
+.folder-card .folder-glyph {
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.folder-card:hover .folder-glyph { transform: scale(1.08) translateY(-2px); }
+.folder-card .folder-arrow {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), color 0.16s ease;
+}
+.folder-card:hover .folder-arrow { transform: translate(3px, -3px); color: #18786c; }
+
+.library-recording {
+  animation: cardCascadeIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s ease, box-shadow 0.2s ease !important;
+}
+.library-recording:nth-child(2) { animation-delay: 40ms; }
+.library-recording:nth-child(3) { animation-delay: 80ms; }
+.library-recording:nth-child(4) { animation-delay: 120ms; }
+.library-recording:hover {
+  transform: translateY(-2px);
+  border-color: #b4d1c2 !important;
+  box-shadow: 0 8px 22px rgba(18, 52, 38, 0.06);
+}
+.recording-context-menu {
+  animation: popoverSpring 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 8. Pengaturan (Settings) Tactile Spring Switches & Card Cascade */
+.settings-body {
+  animation: viewFadeSlide 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.setting-card {
+  transition: border-color 0.18s ease, box-shadow 0.2s ease !important;
+}
+.setting-card:hover {
+  border-color: #c8dcd1 !important;
+  box-shadow: 0 6px 20px rgba(18, 45, 33, 0.045) !important;
+}
+.switch {
+  transition: background 0.22s ease, box-shadow 0.2s ease !important;
+}
+.switch:before {
+  transition: left 0.26s cubic-bezier(0.34, 1.5, 0.64, 1), transform 0.18s ease !important;
+}
+.switch:active:before {
+  transform: scale(0.92);
+}
+.local-model, .model-card, .ai-mode {
+  animation: cardCascadeIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s ease, box-shadow 0.22s ease, background 0.18s ease !important;
+}
+.local-model:nth-child(2), .model-card:nth-child(2) { animation-delay: 45ms; }
+.local-model:nth-child(3), .model-card:nth-child(3) { animation-delay: 90ms; }
+.local-model:nth-child(4), .model-card:nth-child(4) { animation-delay: 135ms; }
+.local-model:hover, .model-card:hover, .ai-mode:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 26px rgba(18, 52, 38, 0.075) !important;
+}
+
+/* 9. Calendar Cells & Task Pills Micro-Interactions */
+.calendar-cell {
+  transition: background 0.16s ease, border-color 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease !important;
+}
+.calendar-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(18, 52, 38, 0.06);
+}
+.task-pill {
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), filter 0.16s ease !important;
+}
+.task-pill:hover {
+  transform: translateX(2px);
+  filter: brightness(0.97);
+}
+.gcal-dropdown-menu {
+  animation: popoverSpring 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
 
 
 

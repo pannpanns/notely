@@ -919,11 +919,11 @@ function promptDeleteDeadline(id) {
   const title = item ? item.title : 'tugas ini';
 
   const content = `
-    <div style="font-size:13.5px;color:#435c4e;line-height:1.6;padding:4px 0;">
-      <p style="margin:0 0 12px;">Apakah Anda yakin ingin menghapus tugas <strong>"${esc(title)}"</strong>?</p>
-      <div style="background:#fdf2f2;border:1px solid #f9d5d8;border-radius:10px;padding:10px 14px;color:#ba3939;font-size:12px;display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-flex;color:#ba3939">${icon('trash')}</span>
-        <span>Tugas yang telah dihapus tidak dapat dipulihkan kembali.</span>
+    <div class="confirm-dialog-body">
+      <p class="confirm-dialog-lead">Apakah Anda yakin ingin menghapus tugas <strong>"${esc(title)}"</strong>?</p>
+      <div class="confirm-callout danger">
+        <span class="confirm-callout-icon">${icon('trash')}</span>
+        <span>Tugas yang telah dihapus akan dibersihkan dari Notely &amp; Google Calendar dan tidak dapat dipulihkan.</span>
       </div>
     </div>
   `;
@@ -931,8 +931,8 @@ function promptDeleteDeadline(id) {
   window.__deadlineIdToDelete = id;
 
   modal('Hapus Tenggat Tugas', content, [
-    ['Batal', 'close-modal', 'ghost'],
-    ['Hapus Tugas', 'confirm-delete-deadline', 'danger']
+    ['Batal', 'close-modal', ''],
+    ['Hapus Tugas', 'confirm-delete-deadline', 'danger solid-danger']
   ]);
 }
 
@@ -942,19 +942,20 @@ function promptCompleteAndRemoveDeadline(id) {
   if (!d) return;
 
   const content = `
-    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
-      <div style="display:flex;align-items:center;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 14px;border-radius:12px">
-        <div style="width:36px;height:36px;border-radius:50%;background:#22c55e;color:#fff;display:grid;place-items:center;font-size:18px;font-weight:700">✓</div>
+    <div class="confirm-dialog-body">
+      <div class="confirm-banner success">
+        <span class="confirm-banner-icon">${icon('check')}</span>
         <div>
-          <h4 style="margin:0 0 2px;font-size:14px;color:#15803d;font-weight:700">Tandai Tugas Selesai?</h4>
-          <p style="margin:0;font-size:12px;color:#166534">Tugas yang diselesaikan akan otomatis dibersihkan dari jadwal kalender.</p>
+          <h4>Tandai Tugas Selesai?</h4>
+          <p>Tugas yang diselesaikan akan otomatis dibersihkan dari jadwal kalender.</p>
         </div>
       </div>
-      <p style="font-size:13.5px;color:#374151;margin:0;line-height:1.6">
-        Apakah Anda menyatakan tugas <strong>"${esc(d.title)}"</strong> (${esc(d.course || 'Umum')}) telah selesai?
+      <p class="confirm-dialog-lead">
+        Apakah Anda menyatakan tugas <strong>"${esc(d.title)}"</strong> (${esc(d.course || 'Akademik')}) telah selesai?
       </p>
-      <div style="font-size:12px;color:#6b7280;background:#f9fafb;padding:10px 12px;border-radius:8px;border:1px solid #e5e7eb">
-        ✓ Tugas akan dituntaskan dan otomatis dihapus dari daftar tenggat agar kalender Anda tetap bersih dan terorganisir.
+      <div class="confirm-callout neutral">
+        <span class="confirm-callout-icon">${icon('check')}</span>
+        <span>Tugas akan dituntaskan dan otomatis dihapus dari daftar tenggat agar kalender tetap rapi.</span>
       </div>
     </div>
   `;
@@ -962,8 +963,8 @@ function promptCompleteAndRemoveDeadline(id) {
   window.__deadlineIdToComplete = id;
 
   modal('Konfirmasi Tugas Selesai', content, [
-    ['Batal', 'cancel-complete-deadline', 'ghost'],
-    ['✓ Ya, Selesaikan & Hapus', 'confirm-complete-deadline', 'accent']
+    ['Batal', 'cancel-complete-deadline', ''],
+    ['Ya, Selesaikan & Hapus', 'confirm-complete-deadline', 'accent']
   ]);
 }
 
@@ -986,7 +987,7 @@ async function completeAndRemoveDeadlineWithAnimation(id) {
       const remaining = state.deadlines.filter(x => x.deadline === state.selectedDeadlineDate);
       if (!remaining.length) state.selectedDeadlineDate = null;
     }
-    toast(`🎉 Hebat! Tugas "${d.title}" selesai & dibersihkan.`);
+    toast(`Tugas "${d.title}" selesai dan telah dibersihkan dari jadwal.`);
     refreshPage();
   }, 360);
 }

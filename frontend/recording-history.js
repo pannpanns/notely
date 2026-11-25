@@ -18,7 +18,7 @@ handleClick=function(action,id){
  if(action==='delete-folder'){
   const folder=(state.folders||[]).find(f=>f.id===(id||state.libraryFolder));if(!folder)return;
   state.pendingFolderDelete=folder.id;
-  return modal('Hapus folder',`Folder <strong>${esc(folder.name)}</strong> akan dihapus. Semua rekaman di dalamnya dipindahkan ke <strong>halaman utama Semua rekaman</strong>. Audio dan catatan tetap tersimpan.`,[['Batal','close-modal',''],['Hapus folder','confirm-delete-folder','danger']]);
+  return modal('Hapus folder',`<div class="confirm-dialog-body"><p class="confirm-dialog-lead">Folder <strong>${esc(folder.name)}</strong> akan dihapus. Semua rekaman di dalamnya dipindahkan ke <strong>halaman utama Semua rekaman</strong>.</p><div class="confirm-callout neutral"><span class="confirm-callout-icon">${icon('folder')}</span><span>Audio dan catatan di dalam folder tetap aman tersimpan.</span></div></div>`,[['Batal','close-modal',''],['Hapus folder','confirm-delete-folder','danger solid-danger']]);
  }
  if(action==='confirm-delete-folder'){
   if(state.organizeBusy||!state.pendingFolderDelete)return;
@@ -61,7 +61,7 @@ handleClick=function(action,id){
   const m=meetings.find(m=>m.id===id);if(!m)return;
   if(state.recording||engine.summaryJob||engine.transcribeJob)return toast('Selesaikan proses aktif terlebih dahulu.');
   state.pendingDelete=id;
-  return modal('Hapus rekaman?',`<strong>${esc(m.title)}</strong><p>Audio: ${recordingMB(m.audioBytes)} · Total: ${recordingMB(m.sizeBytes)}</p><p>Hapus audio saja untuk mempertahankan transkrip dan ringkasan, atau hapus seluruh catatan. Penghapusan bersifat permanen.</p>`,[['Batal','close-modal',''],['Audio saja','delete-audio-confirm',''],['Hapus semua','delete-all-confirm','accent']]);
+  return modal('Hapus rekaman?',`<div class="confirm-dialog-body"><p class="confirm-dialog-lead"><strong>${esc(m.title)}</strong><br><span class="confirm-meta">Audio: ${recordingMB(m.audioBytes)} · Total: ${recordingMB(m.sizeBytes)}</span></p><div class="confirm-callout danger"><span class="confirm-callout-icon">${icon('trash')}</span><span>Hapus audio saja untuk mempertahankan transkrip &amp; ringkasan, atau hapus seluruh catatan secara permanen.</span></div></div>`,[['Batal','close-modal',''],['Audio saja','delete-audio-confirm',''],['Hapus semua','delete-all-confirm','danger solid-danger']]);
  }
  if(action==='delete-audio-confirm'||action==='delete-all-confirm'){
   if(state.deletingRecording)return;
