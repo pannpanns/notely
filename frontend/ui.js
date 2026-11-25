@@ -1,6 +1,6 @@
 
 'use strict';
-window.APP_VERSION = '1.3.14';
+window.APP_VERSION = '1.3.15';
 /* Notely browser UI prototype. No microphone, system-audio capture, external API,
    model download, or backend operations occur in this file. */
 const paths={
@@ -76,20 +76,20 @@ const ts=sec=>`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(Math.floor
 const transcriptText=m=>m.rows.map(r=>r[1]).join('\n\n');
 const saveDemos=()=>safeStore.set('notelyPreviewSessions',meetings.filter(m=>!SEED.some(x=>x.id===m.id)));
 function sidebar(){const active=state.page;return `<aside class="sidebar">
- <div class="brand"><img class="brand-logo" width="36" height="36" src="assets/notely.svg" alt="">Notely</div>
+ <div class="brand"><img class="brand-logo" width="36" height="36" src="assets/notely.svg" alt=""><span>Notely</span></div>
  <label class="search">${icon('search')}<input id="sidebar-search" placeholder="Cari catatan transkripsi..." value="${esc(state.search)}" autocomplete="off" aria-label="Cari catatan transkripsi"></label>
- <div class="sidebar-scroll"><button class="navlink ${active==='home'?'active':''}" data-action="page" data-id="home">${icon('home')} Beranda</button>
- <button class="navlink ${active==='notes'?'active':''}" data-action="page" data-id="notes">${icon('notes')} Catatan Rekaman</button>
- <button class="navlink ${active==='recordings'?'active':''}" data-action="page" data-id="recordings">${icon('folder')} Semua rekaman</button>
- <button class="navlink ${active==='deadlines'?'active':''}" data-action="page" data-id="deadlines">${icon('calendar')} Tenggat Tugas</button>
+ <div class="sidebar-scroll"><button class="navlink ${active==='home'?'active':''}" data-action="page" data-id="home" title="Beranda">${icon('home')} <span>Beranda</span></button>
+ <button class="navlink ${active==='notes'?'active':''}" data-action="page" data-id="notes" title="Catatan Rekaman">${icon('notes')} <span>Catatan Rekaman</span></button>
+ <button class="navlink ${active==='recordings'?'active':''}" data-action="page" data-id="recordings" title="Semua Rekaman">${icon('folder')} <span>Semua rekaman</span></button>
+ <button class="navlink ${active==='deadlines'?'active':''}" data-action="page" data-id="deadlines" title="Tenggat Tugas">${icon('calendar')} <span>Tenggat Tugas</span></button>
  <div class="list-label">Riwayat rekaman</div><div id="meeting-list">${meetingList()}</div></div>
- <div class="sidebar-bottom"><button class="sidebtn primary" data-action="${state.recording?'stop-demo':'ask-demo'}">${icon(state.recording?'stop':'mic')} ${state.recording?'Hentikan & simpan':'Mulai rekam'}</button>
- <button class="sidebtn secondary" data-action="import-audio">${icon('upload')} Impor audio</button>
- <button class="sidebtn neutral tiny" data-action="page" data-id="settings">${icon('settings')} Pengaturan</button>
- <button class="sidebtn neutral tiny" data-action="about">${icon('info')} Tentang</button>
+ <div class="sidebar-bottom"><button class="sidebtn primary" data-action="${state.recording?'stop-demo':'ask-demo'}" title="${state.recording?'Hentikan & simpan':'Mulai rekam'}">${icon(state.recording?'stop':'mic')} <span>${state.recording?'Hentikan & simpan':'Mulai rekam'}</span></button>
+ <button class="sidebtn secondary" data-action="import-audio" title="Impor audio">${icon('upload')} <span>Impor audio</span></button>
+ <button class="sidebtn neutral tiny" data-action="page" data-id="settings" title="Pengaturan">${icon('settings')} <span>Pengaturan</span></button>
+ <button class="sidebtn neutral tiny" data-action="about" title="Tentang">${icon('info')} <span>Tentang</span></button>
  <div class="version">Notely · Desktop ${window.APP_VERSION}</div></div></aside>`;}
 function meetingList(){const q=state.search.trim().toLowerCase();const filtered=meetings.filter(m=>(m.title+' '+m.rows.map(r=>r[1]).join(' ')).toLowerCase().includes(q));return filtered.length?filtered.slice().reverse().map(m=>`<button class="meeting-link ${state.page==='notes'&&state.selected===m.id?'active':''}" data-action="open-note" data-id="${esc(m.id)}">${icon('file')}<div><strong>${esc(m.title)}</strong><span>${esc(m.when)}${m.type==='Simulasi'?' · Demo':''}</span></div></button>`).join(''):`<div class="no-search">Tidak ada catatan yang cocok.</div>`;}
-function appStrip(){const pageTitle={home:'Beranda',notes:'Catatan Rekaman',recordings:'Semua Rekaman',deadlines:'Tenggat Tugas',settings:'Pengaturan'}[state.page]||'Desktop';return `<div class="app-strip"><span class="strip-crumb"><strong>Notely</strong><span class="strip-sep">/</span><span>${pageTitle}</span></span><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span></div>`;}
+function appStrip(){const pageTitle={home:'Beranda',notes:'Catatan Rekaman',recordings:'Semua Rekaman',deadlines:'Tenggat Tugas',settings:'Pengaturan'}[state.page]||'Desktop';const gcalOn=!!state.gcalStatus?.connected;return `<div class="app-strip"><span class="strip-crumb"><strong>Notely</strong><span class="strip-sep">/</span><span>${pageTitle}</span></span><div class="strip-status-stack"><span class="preview-note"><span class="dot"></span>${window.__notelyStatus||'Menghubungkan mesin transkripsi…'}</span><span class="gcal-strip-indicator ${gcalOn?'connected':'disconnected'}" id="gcal-strip-indicator" aria-label="Status Google Calendar"><span class="gcal-strip-dot"></span><span>Google Calendar</span></span></div></div>`;}
 function render(){document.getElementById('root').innerHTML=`<div class="app">${sidebar()}<main class="workspace">${appStrip()}<div class="page" id="main-page">${renderPage()}</div></main></div>`;if(state.recording)updateTimer();}
 function renderPage(){if(state.page==='recordings')return recordingsPage();if(state.page==='home')return homePage();if(state.page==='notes')return notesPage();if(state.page==='deadlines')return deadlinesPage();return settingsPage();}
 function homePage(){return `<div class="home"><div class="home-tools"><button class="button" data-action="change-home-language">${icon('globe')} ${state.settings.language==='id'?'Indonesia':'English'} ${icon('chevron')}</button></div>

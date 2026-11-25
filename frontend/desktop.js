@@ -19,36 +19,36 @@ function showStartupSplash(){
  const el=document.createElement('div');
  el.id='startup-splash';
  el.innerHTML=`
-  <div class="splash-container">
-    <div class="splash-logo-wrap">
-      <div class="splash-logo-glow"></div>
-      <img src="assets/notely.svg" alt="Notely" class="splash-logo">
+  <div class="splash-minimal">
+    <div class="splash-brand-row">
+      <img src="assets/notely.svg" alt="Notely" class="splash-logo-clean">
+      <div class="splash-brand-copy">
+        <span class="splash-brand-name">Notely</span>
+        <span class="splash-version-tag">v${window.APP_VERSION||'1.3.15'}</span>
+      </div>
     </div>
-    <div class="splash-brand">
-      <span>Notely</span>
-      <span class="splash-version-tag">v${window.APP_VERSION||'1.3.14'}</span>
-    </div>
-    <div class="splash-subtitle">Aplikasi Catatan & Transkripsi AI Lokal</div>
-    
-    <div class="splash-card">
-      <div class="splash-status-text" id="splash-status-text">Memulai Notely...</div>
-      <div class="splash-substatus-text" id="splash-substatus-text">Menyiapkan komponen audio dan model AI</div>
-      
+
+    <div class="splash-bar-block">
       <div class="splash-progress-track">
         <div class="splash-progress-fill indeterminate" id="splash-progress-bar"></div>
       </div>
-      
-      <div class="splash-meta-row">
-        <span class="splash-hardware-badge" id="splash-gpu-chip">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
-          <span id="splash-gpu-text">Memeriksa perangkat audio & GPU...</span>
-        </span>
+      <div class="splash-status-line">
+        <span class="splash-status-text" id="splash-status-text">Memulai Notely…</span>
+        <span class="splash-percent-text" id="splash-percent-text"></span>
       </div>
+      <div class="splash-substatus-text" id="splash-substatus-text">Menyiapkan komponen lokal dan memeriksa pembaruan</div>
+    </div>
 
-      <div class="splash-actions" id="splash-actions" style="display:none;">
-        <button class="button" id="splash-skip-btn" type="button">Lanjutkan ke Beranda</button>
-        <button class="button accent" id="splash-retry-btn" type="button">Coba Lagi</button>
-      </div>
+    <div class="splash-meta-row">
+      <span class="splash-hardware-badge" id="splash-gpu-chip">
+        <span class="splash-hw-dot"></span>
+        <span id="splash-gpu-text">Memeriksa perangkat audio & GPU…</span>
+      </span>
+    </div>
+
+    <div class="splash-actions" id="splash-actions" style="display:none;">
+      <button class="button" id="splash-skip-btn" type="button">Lanjutkan ke Beranda</button>
+      <button class="button accent" id="splash-retry-btn" type="button">Coba Lagi</button>
     </div>
   </div>`;
  document.body.appendChild(el);
@@ -66,16 +66,20 @@ function updateSplash(title,subtitle,percent,gpuText){
  const t=document.getElementById('splash-status-text');
  const s=document.getElementById('splash-substatus-text');
  const b=document.getElementById('splash-progress-bar');
+ const pct=document.getElementById('splash-percent-text');
  const g=document.getElementById('splash-gpu-text');
  if(t&&title)t.textContent=title;
  if(s&&subtitle)s.textContent=subtitle;
  if(b){
    if(typeof percent==='number'){
+     const clamped=Math.max(0,Math.min(100,Math.round(percent)));
      b.className='splash-progress-fill';
-     b.style.width=Math.max(0,Math.min(100,percent))+'%';
+     b.style.width=clamped+'%';
+     if(pct)pct.textContent=clamped+'%';
    }else{
      b.className='splash-progress-fill indeterminate';
      b.style.width='';
+     if(pct)pct.textContent='';
    }
  }
  if(g&&gpuText)g.textContent=gpuText;
@@ -148,16 +152,18 @@ async function prepareModelOnStartup(gpuBadge){
     engine.modelReady=true;
     safeStore.set('notelySetupComplete',true);
     window.__notelyStatus='Model siap · '+(job?.result?.backend||'');
-    updateSplash('Model AI Siap Digunakan!',`${targetLabel} aktif di memori. Membuka Notely...`,100,gpuBadge);
-    await new Promise(r=>setTimeout(r,350));
+    updateSplash('Memeriksa pembaruan aplikasi…','Mengecek versi terbaru Notely…',90,gpuBadge);
+    await new Promise(r=>setTimeout(r,320));
+    updateSplash('Siap digunakan',`${targetLabel} aktif di memori`,100,gpuBadge);
+    await new Promise(r=>setTimeout(r,260));
     hideStartupSplash();
     return;
    }
    if(job?.status==='running'){
     attempts=Math.min(attempts,10);
-    const msg=job.message||'Memuat model ke memori...';
-    const pct=typeof job.percent==='number'?Math.round(job.percent):null;
-    updateSplash(`Memuat ${targetLabel}...`,msg,pct,gpuBadge);
+    const msg=job.message||'Memuat model ke memori…';
+    const pct=typeof job.percent==='number'?Math.min(88,Math.max(60,Math.round(60+(job.percent*0.28)))):72;
+    updateSplash(`Memuat model AI (${targetLabel})…`,msg,pct,gpuBadge);
    }else if(job?.status==='error'){
     engine.currentJob='';
     console.warn('Model prep error:',job.message);

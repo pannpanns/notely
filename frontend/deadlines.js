@@ -68,6 +68,13 @@ function startGcalBackgroundPolling() {
   }, 25000);
 }
 
+function syncGcalStripIndicator() {
+  const el = document.getElementById('gcal-strip-indicator');
+  if (!el) return;
+  const connected = !!state.gcalStatus?.connected;
+  el.className = `gcal-strip-indicator ${connected ? 'connected' : 'disconnected'}`;
+}
+
 async function loadGcalStatus() {
   try {
     if (typeof api === 'function' && engine.ready) {
@@ -75,6 +82,7 @@ async function loadGcalStatus() {
       if (data && typeof data.connected === 'boolean') {
         state.gcalStatus = data;
         safeStore.set('notelyGcalStatus', data);
+        syncGcalStripIndicator();
         if (data.connected) {
           startGcalBackgroundPolling();
           if (!window.__lastGcalPullTime || Date.now() - window.__lastGcalPullTime > 15000) {
@@ -82,7 +90,7 @@ async function loadGcalStatus() {
             api('/gcalendar/pull', {}).then(res => {
               if (res && (res.imported > 0 || res.updated > 0)) {
                 loadDeadlinesData().then(() => {
-                  if (state.page === 'deadlines') refreshPage();
+                  if (state.page === 'deadlines' || state.page === 'home') refreshPage();
                 });
               }
             }).catch(() => {});
@@ -92,6 +100,7 @@ async function loadGcalStatus() {
     } else {
       const local = safeStore.get('notelyGcalStatus');
       if (local) state.gcalStatus = local;
+      syncGcalStripIndicator();
     }
   } catch (e) {
     const local = safeStore.get('notelyGcalStatus');
@@ -1143,36 +1152,15 @@ function deadlinesPage() {
       </div>
 
       <div class="deadlines-actions">
-        <!-- Google Calendar Indicator (Configurable in Settings: hidden by default or toggleable) -->
-        ${showIndicator ? (isGcalConnected ? `
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="button small ghost gcal-quick-sync-btn" data-action="gcal-sync-all" title="Sinkronkan dua arah sekarang dengan Google Calendar">
-              ${icon('bolt')} Sinkronkan
-            </button>
-            <div class="gcal-popover-wrap">
-              <button class="gcal-status-pill connected" data-action="toggle-gcal-menu" title="Google Calendar: Tersambung (Klik untuk opsi)">
-                <span class="gcal-dot green"></span>
-                <span>Google Calendar</span>
-                ${icon('chevron')}
-              </button>
-              ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
-            </div>
-          </div>
-        ` : isWebMode ? `
-          <div class="gcal-popover-wrap">
-            <button class="gcal-status-pill web-mode" data-action="toggle-gcal-menu" title="Google Calendar: Mode Cepat Web (Klik untuk opsi)">
-              <span class="gcal-dot blue"></span>
-              <span>Google Calendar (Web)</span>
-              ${icon('chevron')}
-            </button>
-            ${state.gcalMenuOpen ? renderGcalDropdownMenu() : ''}
-          </div>
-        ` : `
-          <button class="gcal-status-pill disconnected" data-action="open-gcal-connect-modal" title="Google Calendar: Belum tersambung (Klik untuk opsi)">
-            <span class="gcal-dot red"></span>
-            <span>Google Calendar</span>
+        ${isGcalConnected ? `
+          <button class="button small ghost gcal-quick-sync-btn" data-action="gcal-sync-all" title="Sinkronkan dua arah sekarang dengan Google Calendar">
+            ${icon('bolt')} Sinkronkan
           </button>
-        `) : ''}
+        ` : `
+          <button class="button small ghost" data-action="open-gcal-connect-modal" title="Sambungkan Google Calendar">
+            ${icon('calendar')} Sambungkan Kalender
+          </button>
+        `}
       </div>
     </div>
 

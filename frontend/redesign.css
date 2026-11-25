@@ -86,20 +86,68 @@ html, body {
 
 .app .page {
   background: var(--n-surface-subtle);
-  padding-bottom: 84px !important;
+  padding-bottom: 0 !important;
 }
 
 /* Top App Strip */
 .app-strip {
-  height: 46px !important;
+  height: 54px !important;
   padding: 0 20px !important;
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--n-border) !important;
   font-size: 12px !important;
   color: var(--n-ink-muted) !important;
   gap: 10px;
+}
+
+.strip-status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 55%;
+}
+.strip-status-stack .preview-note {
+  max-width: 100% !important;
+  padding: 2px 10px !important;
+  font-size: 11px !important;
+}
+
+.gcal-strip-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--n-ink-muted);
+  padding-right: 4px;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.2;
+}
+.gcal-strip-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gcal-strip-indicator.connected .gcal-strip-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+.gcal-strip-indicator.connected {
+  color: #1f6a44;
+}
+.gcal-strip-indicator.disconnected .gcal-strip-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
+}
+.gcal-strip-indicator.disconnected {
+  color: #9e3a3a;
 }
 
 .app-strip .sidebar-toggle {
@@ -1086,6 +1134,249 @@ html, body {
   background: var(--n-danger-hover) !important;
   border-color: var(--n-danger-hover) !important;
   box-shadow: 0 6px 16px rgba(217, 56, 69, 0.32);
+}
+
+/* Hide redundant sidebar recording history (now cleanly in Beranda -> Rekaman terakhir & Semua rekaman) */
+.sidebar .list-label,
+.sidebar #meeting-list,
+.sidebar .storage-total {
+  display: none !important;
+}
+
+/* Collapsed Sidebar Rail — Crisp Centered Icons, Zero Overflowing Text */
+.app.sidebar-collapsed .sidebar {
+  width: 72px !important;
+  min-width: 72px !important;
+  padding: 18px 10px 14px !important;
+  align-items: center;
+}
+.app.sidebar-collapsed .sidebar .brand {
+  font-size: 0 !important;
+  gap: 0 !important;
+  margin: 0 0 18px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  width: 100%;
+}
+.app.sidebar-collapsed .sidebar .brand span {
+  display: none !important;
+}
+.app.sidebar-collapsed .sidebar .search,
+.app.sidebar-collapsed .sidebar .version,
+.app.sidebar-collapsed .sidebar .sidebar-resize {
+  display: none !important;
+}
+.app.sidebar-collapsed .sidebar .sidebar-scroll {
+  width: 100%;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.app.sidebar-collapsed .sidebar .navlink {
+  width: 44px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  margin: 0 0 6px !important;
+  gap: 0 !important;
+  font-size: 0 !important;
+  justify-content: center !important;
+}
+.app.sidebar-collapsed .sidebar .navlink span,
+.app.sidebar-collapsed .sidebar .sidebtn span {
+  display: none !important;
+}
+.app.sidebar-collapsed .sidebar .navlink::before {
+  left: 0;
+}
+.app.sidebar-collapsed .sidebar .sidebar-bottom {
+  width: 100%;
+  align-items: center;
+  gap: 8px !important;
+}
+.app.sidebar-collapsed .sidebar .sidebtn {
+  width: 44px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  font-size: 0 !important;
+  justify-content: center !important;
+}
+.app.sidebar-collapsed .sidebar .navlink svg,
+.app.sidebar-collapsed .sidebar .sidebtn svg {
+  width: 19px !important;
+  height: 19px !important;
+  margin: 0 !important;
+}
+
+/* Scroll clearance ONLY inside views where the floating recording dock hovers */
+.calm-home {
+  padding-bottom: 92px !important;
+}
+.recordings-page {
+  padding-bottom: 92px !important;
+}
+.tabbed-notes .transcript-list {
+  padding-bottom: 96px !important;
+}
+
+/* Settings: True Optical Centering & Zero Excess Bottom Scroll */
+.settings {
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--n-surface-subtle);
+}
+.settings-scroll {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  background: var(--n-surface-subtle) !important;
+}
+.settings-inner {
+  max-width: 920px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 32px 24px !important;
+  box-sizing: border-box !important;
+}
+.settings-inner .top-heading {
+  height: 70px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--n-border) !important;
+}
+.settings-inner .tabs {
+  height: 50px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--n-border) !important;
+  gap: 8px !important;
+}
+.settings-inner .settings-body {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 24px 0 8px !important;
+  box-sizing: border-box !important;
+}
+.settings-inner .setting-card:last-child,
+.settings-inner .model-group:last-child,
+.settings-inner .local-model-grid:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Minimalist Startup Loading Bar Screen */
+#startup-splash {
+  background: #ffffff !important;
+}
+.splash-minimal {
+  width: min(360px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  animation: modalSpringIn 0.36s var(--ease-spring) both;
+}
+.splash-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.splash-logo-clean {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  box-shadow: 0 6px 20px rgba(24, 120, 108, 0.2);
+}
+.splash-brand-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.splash-brand-name {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  color: var(--n-ink);
+}
+.splash-minimal .splash-version-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--n-accent);
+  background: var(--n-accent-soft);
+  border: 1px solid var(--n-accent-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.splash-bar-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.splash-minimal .splash-progress-track {
+  width: 100%;
+  height: 5px !important;
+  border-radius: 999px;
+  background: #e6efe9 !important;
+  overflow: hidden;
+  margin: 0 !important;
+}
+.splash-minimal .splash-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--n-accent) !important;
+  transition: width 0.42s var(--ease-spring) !important;
+}
+.splash-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+}
+.splash-minimal .splash-status-text {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--n-ink) !important;
+  margin: 0 !important;
+  min-height: 18px;
+}
+.splash-percent-text {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--n-accent);
+  font-variant-numeric: tabular-nums;
+}
+.splash-minimal .splash-substatus-text {
+  font-size: 12px !important;
+  color: var(--n-ink-muted) !important;
+  text-align: left;
+  margin: 0 !important;
+  line-height: 1.45;
+}
+.splash-minimal .splash-hardware-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--n-surface-subtle);
+  border: 1px solid var(--n-border);
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--n-ink-2);
+}
+.splash-hw-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--n-accent);
 }
 
 /* ==========================================================================

@@ -109,10 +109,10 @@ homePage=function(){
   <div class="home-bento-lower">
    <section class="bento-panel">
     <div class="bento-panel-head">
-     <h2>Catatan terakhir</h2>
+     <h2>Rekaman terakhir</h2>
      <button class="button ghost small" data-action="page" data-id="recordings">Lihat semua ${icon('chevron')}</button>
     </div>
-    <div class="recent-notes">${meetings.length?meetings.slice(-4).reverse().map(m=>`<button class="recent-note" data-action="open-note" data-id="${esc(m.id)}"><span class="recent-icon">${icon('file')}</span><span><strong>${esc(m.title)}</strong><small>${esc(m.when)}</small></span>${icon('chevron')}</button>`).join(''):`<div class="quiet-empty">${icon('notes')}<p>Belum ada catatan. Mulai dengan rekaman pertama Anda.</p></div>`}</div>
+    <div class="recent-notes">${meetings.length?meetings.slice(-4).reverse().map(m=>{const cleanWhen=String(m.when||'').replace(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2}).*$/,(_,y,mo,da,hm)=>`${Number(da)} ${bulanShort[Math.max(0,Number(mo)-1)]||mo} ${y} · ${hm}`);return `<button class="recent-note" data-action="open-note" data-id="${esc(m.id)}"><span class="recent-icon">${icon('file')}</span><span><strong>${esc(m.title)}</strong><small>${esc(cleanWhen)}</small></span>${icon('chevron')}</button>`;}).join(''):`<div class="quiet-empty">${icon('notes')}<p>Belum ada rekaman. Mulai dengan rekaman pertama Anda.</p></div>`}</div>
    </section>
 
    <section class="bento-panel">
