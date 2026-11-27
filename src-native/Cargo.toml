@@ -1,0 +1,32 @@
+[package]
+name = "notely-desktop"
+version = "2.0.0"
+description = "Notely — Aplikasi Catatan, Transkripsi AI Lokal, dan Manajemen Tenggat (100% Native Rust)"
+authors = ["Notely Contributors"]
+edition = "2021"
+
+[[bin]]
+name = "notely-desktop"
+path = "src/main.rs"
+
+[dependencies]
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+rfd = "0.15"
+arboard = "3"
+base64 = "0.22"
+chrono = "0.4"
+dirs = "5"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

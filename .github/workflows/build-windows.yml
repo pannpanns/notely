@@ -1,4 +1,4 @@
-name: Build Notely Lite Windows Installer
+name: Build Notely Native Rust Windows Installer
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   windows-installer:
-    name: Windows x64 - compact NSIS
+    name: Windows x64 - 100% Native Rust + Compact NSIS
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
@@ -28,15 +28,12 @@ jobs:
         with:
           python-version: '3.11'
           architecture: x64
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: src-native -> target
 
       - name: Install isolated engine dependencies
         shell: pwsh
@@ -49,88 +46,69 @@ jobs:
           New-Item -ItemType Directory -Force build_reports | Out-Null
           ./.build-venv/Scripts/python.exe -m pip freeze | Out-File -Encoding utf8 build_reports/python-resolved.txt
 
-      - name: Test source and audio conversion
+      - name: Test Python backend and contracts
         shell: pwsh
         run: |
           ./.build-venv/Scripts/python.exe -m unittest discover -s tests -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.build-venv/Scripts/python.exe -m compileall -q backend scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node tests/test_summary_format.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check frontend/recording-history.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check frontend/desktop.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check frontend/modern.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --check frontend/ui.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Test recording controls and sidebar
-        shell: pwsh
-        run: |
-          npm ci --prefix test-tools --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $env:NODE_PATH = Join-Path $PWD 'test-tools/node_modules'
-          node tests/test_audio_import.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node tests/test_ui_100.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node tests/test_recording_dock.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Build compact engine without bundled CUDA
+      - name: Build compact AI sidecar engine without bundled CUDA
         shell: pwsh
         run: |
           ./.build-venv/Scripts/python.exe scripts/build_engine.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.build-venv/Scripts/python.exe scripts/smoke_engine.py dist/notely-engine/notely-engine.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ./.build-venv/Scripts/python.exe scripts/stage_engine.py
+
+      - name: Build 100% Native Rust Desktop UI (notely-desktop.exe)
+        working-directory: src-native
+        run: cargo build --release
+
+      - name: Package Windows NSIS installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-native | Out-Null
+          $ver = (Select-String -Path src-native/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches.Groups[1].Value
+          if (-not $ver) { $ver = "2.0.0" }
+          $makensis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if (-not (Test-Path $makensis)) {
+            $makensis = (Get-Command makensis -ErrorAction Stop).Source
+          }
+          & $makensis "/DAPP_VERSION=$ver" scripts/notely-native.nsi
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version '^2' --locked
-
-      - name: Configure signed GitHub updater
-        env:
-          NOTELY_UPDATER_PUBLIC_KEY: ${{ vars.NOTELY_UPDATER_PUBLIC_KEY }}
-        run: python scripts/configure_updates.py
-
-      - name: Build Windows NSIS installer
-        working-directory: src-tauri
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: cargo tauri build --bundles nsis
 
       - name: Verify installed layout and real uninstall
         shell: pwsh
         run: |
-          $installer = Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
-          if (-not $installer) { throw 'Installer missing' }
+          $installer = Get-ChildItem dist-native/*.exe | Select-Object -First 1
+          if (-not $installer) { throw 'Installer missing in dist-native/' }
           ./scripts/test_installer.ps1 -Installer $installer.FullName
 
       - name: Record installer sizes and checksums
         shell: pwsh
         run: |
-          $files = @(Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe)
+          $files = @(Get-ChildItem dist-native/*.exe)
           if ($files.Count -eq 0) { throw 'Installer not found' }
           $rows = foreach ($f in $files) {
             $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash
             "$($f.Name): $([math]::Round($f.Length/1MB,2)) MiB; SHA256 $hash"
           }
           $rows | Out-File -Encoding utf8 build_reports/installer-size.txt
-          Get-Content build_reports/engine-size.md | Add-Content $env:GITHUB_STEP_SUMMARY
+          if (Test-Path build_reports/engine-size.md) {
+            Get-Content build_reports/engine-size.md | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
           $rows | Add-Content $env:GITHUB_STEP_SUMMARY
-          Copy-Item src-tauri/Cargo.lock build_reports/Cargo.lock
+          if (Test-Path src-native/Cargo.lock) {
+            Copy-Item src-native/Cargo.lock build_reports/Cargo.lock
+          }
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: Notely-Lite-Windows-Installer
-          path: src-tauri/target/release/bundle/nsis/*.exe
+          name: Notely-Native-Windows-Installer
+          path: dist-native/*.exe
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -146,10 +124,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Generate updater manifest
-        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-        run: python scripts/release_manifest.py
-
       - name: Publish direct installer to GitHub Releases
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -157,11 +131,11 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ format('Notely {0}', github.ref_name) }}
           body: |
+            **Notely v2.0.0 — 100% Pure Native Rust Desktop UI (Tanpa WebView2 / Browser)**
+
             Unduh file installer **.exe** langsung di bawah ini pada bagian **Assets** (langsung dapat dijalankan tanpa perlu ekstrak file .zip).
           files: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.sig
-            src-tauri/target/release/bundle/nsis/latest.json
+            dist-native/*.exe
           draft: false
           prerelease: false
         env:

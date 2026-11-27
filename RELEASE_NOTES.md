@@ -1,3 +1,12 @@
+Pembaruan Notely v2.0.0 (100% Native Rust UI):
+• Migrasi Penuh ke Antarmuka Desktop 100% Native Rust (`egui`/`eframe`): Menghapus ketergantungan WebView2/HTML/CSS/JS sepenuhnya — seluruh antarmuka kini dirender langsung oleh mesin GPU native Rust 60 FPS dengan konsumsi RAM jauh lebih ringan dan respons instan, sembari tetap mempertahankan palet warna khas Notely (*Forest Teal* `#18786C`, *Soft Sage* `#F3F6F4`, *Deep Pine Ink* `#172A23`).
+• Perombakan Total Layar Loading Awal (*Compact Borderless Native Splash*): Aplikasi kini dibuka dalam jendela splash ringkas presisi di tengah layar (`460×290`, tanpa jendela kosong putih lebar), menampilkan logo Notely, bar progres halus dengan animasi *shimmer*, tahapan inisialisasi langsung (menghubungkan mesin lokal, audio & GPU, memuat catatan & model AI, memeriksa pembaruan), serta transisi mulus ke jendela utama begitu siap.
+• Penyempurnaan Seluruh Ruang Kerja Native:
+  - Sidebar dapat diciutkan mulus (*collapsible rail*) dengan ikon vektor bersih tanpa teks terpotong, tanpa bagian *Riwayat rekaman* yang redundan.
+  - Bilah atas menampilkan indikator *CUDA / CPU* dan indikator *Google Calendar* non-interaktif (titik hijau/merah) tepat di bawahnya.
+  - Beranda Bento menampilkan *Rekaman terakhir* dan *Jadwal terdekat*, Catatan Rekaman menempatkan *Prompt AI* rapat di bagian bawah, Pengaturan tersusun rapi di tengah tanpa kelebihan scroll, dan Tenggat Tugas dilengkapi dialog Ekstrak AI 3-tahap tanpa scroll, lampiran banyak gambar sekaligus (*Ctrl+V* / seret / pilih file), *Zoom Lightbox* layar penuh, serta pengingat fleksibel.
+• Auto-Updater Native Rust & Installer NSIS Baru: Memeriksa pembaruan otomatis langsung dari GitHub Releases, mengunduh installer `.exe` terbaru, dan tetap melindungi folder model AI (`NotelyModels`) saat pembaruan atau uninstall.
+
 Pembaruan Notely v1.3.15:
 • Perbaikan Sidebar Saat Diciutkan (*Collapsed Rail*): Memperbaiki bug teks sidebar yang sebelumnya terpotong/meluber saat sidebar dikecilkan; kini ikon tampil bersih di tengah lengkap dengan tooltip saat di-hover.
 • Pembersihan Sidebar & Pembaruan Beranda: Menghapus bagian *Riwayat rekaman* yang redundan dari sidebar agar navigasi lebih bersih, mengganti label *Catatan terakhir* di Beranda menjadi *Rekaman terakhir*, serta merapikan format tanggal/jam rekaman agar lebih mudah dibaca.
