@@ -107,7 +107,7 @@ jobs:
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: Notely-Native-Windows-Installer
+          name: Notely-Lite-Windows-Installer
           path: dist-native/*.exe
           if-no-files-found: error
           retention-days: 14
