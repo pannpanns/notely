@@ -1,7 +1,7 @@
 use crate::api::{open_external_url, open_folder_in_explorer, ApiClient, EngineBridge};
 use crate::theme::{
-    self, ACCENT, ACCENT_BORDER, ACCENT_DEEP, ACCENT_SOFT, BORDER, CANVAS, DANGER, DANGER_HOVER,
-    GREEN, GREEN_SOFT, INK, INK_2, INK_MUTED, SIDEBAR_BG, SURFACE, SURFACE_HOVER, SURFACE_SUBTLE,
+    self, ACCENT, ACCENT_DEEP, ACCENT_SOFT, BORDER, CANVAS, DANGER, DANGER_HOVER, GREEN,
+    GREEN_SOFT, INK, INK_2, INK_MUTED, SIDEBAR_BG, SURFACE, SURFACE_HOVER, SURFACE_SUBTLE,
 };
 use crate::types::{
     format_ts, split_reminder, AiStep, AppPrefs, AttachedImage, DeadlineFilter, DeadlineItem,
@@ -1988,10 +1988,11 @@ impl NotelyApp {
             self.poll_in_flight = true;
             self.last_poll_at = Instant::now();
             let since = self.last_event_id;
+            let api_poll = api.clone();
             let tx = self.bg_tx.clone();
             std::thread::spawn(move || {
                 let path = format!("/status?since={}", since);
-                if let Ok(st) = api.get_json::<EngineStatus>(&path) {
+                if let Ok(st) = api_poll.get_json::<EngineStatus>(&path) {
                     let _ = tx.send(BgMsg::StatusUpdate(st));
                 } else {
                     let _ = tx.send(BgMsg::StatusUpdate(EngineStatus::default()));

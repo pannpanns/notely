@@ -5,7 +5,7 @@ use crate::theme::{
 };
 use crate::types::{format_bytes, SettingsTab, APP_VERSION};
 use eframe::egui::{
-    self, Align, Color32, CornerRadius, Frame, Layout, Margin, RichText, Sense, Stroke, Vec2,
+    self, Align, Color32, CornerRadius, Frame, Layout, Margin, RichText, Stroke, Vec2,
 };
 
 pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {

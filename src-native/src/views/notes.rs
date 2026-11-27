@@ -1,7 +1,7 @@
 use crate::app::NotelyApp;
 use crate::theme::{
-    self, ACCENT, ACCENT_BORDER, ACCENT_DEEP, ACCENT_SOFT, BORDER, DANGER, DANGER_SOFT, INK,
-    INK_2, INK_MUTED, SURFACE, SURFACE_SUBTLE,
+    self, ACCENT, ACCENT_BORDER, ACCENT_DEEP, ACCENT_SOFT, BORDER, DANGER, INK, INK_2, INK_MUTED,
+    SURFACE, SURFACE_SUBTLE,
 };
 use crate::types::{format_ts, format_when_pretty, NoteTab, Page};
 use eframe::egui::{
