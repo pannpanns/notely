@@ -1,6 +1,6 @@
 [package]
 name = "notely-desktop"
-version = "2.0.0"
+version = "2.0.1"
 description = "Notely — Aplikasi Catatan, Transkripsi AI Lokal, dan Manajemen Tenggat (100% Native Rust)"
 authors = ["Notely Contributors"]
 edition = "2021"
@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow"] }
+egui_extras = { version = "0.31", features = ["svg"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -23,14 +23,15 @@ fn load_window_icon() -> Option<IconData> {
 }
 
 fn main() -> eframe::Result<()> {
-    // Launch compact, borderless, centered startup splash (460x290).
-    // Once backend & models are ready, NotelyApp transitions smoothly to the decorated main window.
+    // Launch directly into the crisp, decorated, High-DPI desktop window.
+    // While the local engine starts, an integrated in-app loading screen displays cleanly on the canvas.
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("Notely")
-        .with_inner_size(Vec2::new(460.0, 290.0))
-        .with_decorations(false)
-        .with_resizable(false)
-        .with_transparent(false);
+        .with_inner_size(Vec2::new(1260.0, 800.0))
+        .with_min_inner_size(Vec2::new(900.0, 600.0))
+        .with_decorations(true)
+        .with_resizable(true)
+        .with_maximized(true);
 
     if let Some(icon) = load_window_icon() {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -38,6 +39,9 @@ fn main() -> eframe::Result<()> {
 
     let options = eframe::NativeOptions {
         viewport,
+        multisampling: 4,
+        vsync: true,
+        hardware_acceleration: eframe::HardwareAcceleration::Preferred,
         centered: true,
         ..Default::default()
     };

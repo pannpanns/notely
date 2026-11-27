@@ -1,3 +1,9 @@
+Pembaruan Notely v2.0.1 (Perbaikan Tajam High-DPI, Ikon SVG Lucide, & Layar Loading Terintegrasi):
+• Peluncuran Langsung di Jendela Utama + Layar Loading Terintegrasi: Menghapus kotak splash kecil tanpa bingkai (`460×290`) yang terasa patah; kini Notely langsung terbuka di jendela desktop penuh berlatar *Soft Sage* (`#F3F6F4`) dengan kartu loading studio yang rapi dan bersih (tanpa kapsul duplikat di bawahnya).
+• Ketajaman Layar High-DPI (PerMonitorV2 + 4x MSAA): Menambahkan manifest Windows `PerMonitorV2` dan *multisampling 4x* agar seluruh teks dan batas kartu tetap tajam di skala layar Windows 125%–200% (bebas blur).
+• Tipografi Segoe UI Sebenarnya & Ikon Vektor Lucide SVG: Memuat font `Segoe UI Bold` & `Semibold` asli serta mengganti ikon garis kasar dengan ikon SVG Lucide anti-aliased di seluruh aplikasi.
+• Arsitektur *Elevated Paper-on-Sage Studio Shell*: Menyelaraskan tampilan workspace putih melayang bersudut membulat (`16px`) di atas kanvas *Soft Sage* dengan sidebar tanpa garis pembatas kaku.
+
 Pembaruan Notely v2.0.0 (100% Native Rust UI):
 • Migrasi Penuh ke Antarmuka Desktop 100% Native Rust (`egui`/`eframe`): Menghapus ketergantungan WebView2/HTML/CSS/JS sepenuhnya — seluruh antarmuka kini dirender langsung oleh mesin GPU native Rust 60 FPS dengan konsumsi RAM jauh lebih ringan dan respons instan, sembari tetap mempertahankan palet warna khas Notely (*Forest Teal* `#18786C`, *Soft Sage* `#F3F6F4`, *Deep Pine Ink* `#172A23`).
 • Perombakan Total Layar Loading Awal (*Compact Borderless Native Splash*): Aplikasi kini dibuka dalam jendela splash ringkas presisi di tengah layar (`460×290`, tanpa jendela kosong putih lebar), menampilkan logo Notely, bar progres halus dengan animasi *shimmer*, tahapan inisialisasi langsung (menghubungkan mesin lokal, audio & GPU, memuat catatan & model AI, memeriksa pembaruan), serta transisi mulus ke jendela utama begitu siap.

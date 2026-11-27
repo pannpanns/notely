@@ -5,7 +5,7 @@ use crate::theme::{
 };
 use crate::types::{format_ts, format_when_pretty, NoteTab, Page};
 use eframe::egui::{
-    self, Align, Color32, CornerRadius, Frame, Layout, Margin, RichText, Sense, Stroke, Vec2,
+    self, Align, Color32, CornerRadius, Frame, Layout, Margin, Sense, Stroke, Vec2,
 };
 
 pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -16,33 +16,31 @@ pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
     if is_rec {
         Frame::new()
             .fill(ACCENT_SOFT)
-            .stroke(Stroke::new(1.0, ACCENT_BORDER))
+            .stroke(Stroke::new(1.0_f32, ACCENT_BORDER))
             .inner_margin(Margin::symmetric(20, 8))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    let pulse = (0.55 + 0.45 * (time * 5.0).sin() as f32).clamp(0.35, 1.0);
+                    let pulse =
+                        (0.55_f32 + 0.45_f32 * (time * 5.0).sin() as f32).clamp(0.35_f32, 1.0_f32);
                     let dot = Color32::from_rgba_unmultiplied(
                         DANGER.r(),
                         DANGER.g(),
                         DANGER.b(),
-                        (pulse * 255.0) as u8,
+                        (pulse * 255.0_f32) as u8,
                     );
-                    let (r, _) = ui.allocate_exact_size(Vec2::splat(10.0), Sense::hover());
-                    ui.painter().circle_filled(r.center(), 4.2, dot);
-                    ui.label(
-                        RichText::new("Mendengarkan secara langsung")
-                            .size(12.5)
-                            .color(ACCENT_DEEP)
-                            .strong(),
-                    );
+                    let (r, _) = ui.allocate_exact_size(Vec2::splat(10.0_f32), Sense::hover());
+                    ui.painter().circle_filled(r.center(), 4.2_f32, dot);
+                    ui.label(theme::semi(
+                        "Mendengarkan secara langsung",
+                        12.5_f32,
+                        ACCENT_DEEP,
+                    ));
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.label(
-                            RichText::new(format_ts(app.status.elapsed.unwrap_or(0.0)))
-                                .monospace()
-                                .size(12.5)
-                                .color(ACCENT_DEEP)
-                                .strong(),
-                        );
+                        ui.label(theme::mono(
+                            format_ts(app.status.elapsed.unwrap_or(0.0)),
+                            12.5_f32,
+                            ACCENT_DEEP,
+                        ));
                     });
                 });
             });
@@ -51,38 +49,36 @@ pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
     // ── Top Segmented Switcher & Session Actions ──
     Frame::new()
         .fill(SURFACE)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .inner_margin(Margin::symmetric(20, 10))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                // Clean Neutral Segmented Switcher (Transkrip | Ringkasan)
                 Frame::new()
                     .fill(SURFACE_SUBTLE)
-                    .stroke(Stroke::new(1.0, BORDER))
+                    .stroke(Stroke::new(1.0_f32, BORDER))
                     .corner_radius(CornerRadius::same(10))
                     .inner_margin(Margin::same(3))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 2.0;
+                            ui.spacing_mut().item_spacing.x = 2.0_f32;
                             for (tab, label) in [
                                 (NoteTab::Transcript, "Transkrip"),
                                 (NoteTab::Summary, "Ringkasan"),
                             ] {
                                 let active = app.note_tab == tab;
-                                let btn = egui::Button::new(
-                                    RichText::new(label)
-                                        .size(12.5)
-                                        .color(if active { INK } else { INK_MUTED })
-                                        .strong(),
-                                )
+                                let btn = egui::Button::new(theme::semi(
+                                    label,
+                                    12.5_f32,
+                                    if active { INK } else { INK_MUTED },
+                                ))
                                 .fill(if active { SURFACE } else { Color32::TRANSPARENT })
                                 .stroke(if active {
-                                    Stroke::new(1.0, BORDER)
+                                    Stroke::new(1.0_f32, BORDER)
                                 } else {
                                     Stroke::NONE
                                 })
                                 .corner_radius(CornerRadius::same(8))
-                                .min_size(Vec2::new(88.0, 28.0));
+                                .min_size(Vec2::new(92.0_f32, 29.0_f32));
                                 let resp = ui.add(btn);
                                 if resp.hovered() {
                                     ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
@@ -94,16 +90,16 @@ pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
                         });
                     });
 
-                ui.add_space(10.0);
+                ui.add_space(10.0_f32);
 
                 if let Some(sess) = &app.active_session {
                     ui.vertical(|ui| {
-                        ui.label(RichText::new(&sess.title).size(13.5).color(INK).strong());
-                        ui.label(
-                            RichText::new(format_when_pretty(&sess.when))
-                                .size(11.0)
-                                .color(INK_MUTED),
-                        );
+                        ui.label(theme::semi(&sess.title, 13.5_f32, INK));
+                        ui.label(theme::regular(
+                            format_when_pretty(&sess.when),
+                            11.0_f32,
+                            INK_MUTED,
+                        ));
                     });
                 }
 
@@ -125,10 +121,9 @@ pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
             });
         });
 
-    // ── Main Content Area ──
     let avail_w = ui.available_width();
-    let content_w = avail_w.min(780.0).max(320.0);
-    let side_pad = ((avail_w - content_w) * 0.5).max(16.0);
+    let content_w = avail_w.min(780.0_f32).max(320.0_f32);
+    let side_pad = ((avail_w - content_w) * 0.5_f32).max(16.0_f32);
 
     match app.note_tab {
         NoteTab::Transcript => {
@@ -139,7 +134,6 @@ pub fn show(app: &mut NotelyApp, ctx: &egui::Context, ui: &mut egui::Ui) {
         }
     }
 
-    // ── Edit Transcript Modal ──
     if app.show_edit_transcript_modal {
         show_edit_modal(app, ctx);
     }
@@ -160,46 +154,39 @@ fn show_transcript_tab(
         .auto_shrink([false, false])
         .stick_to_bottom(is_rec)
         .show(ui, |ui| {
-            ui.add_space(18.0);
+            ui.add_space(18.0_f32);
             ui.horizontal(|ui| {
                 ui.add_space(side_pad);
                 ui.allocate_ui_with_layout(
-                    Vec2::new(content_w, 0.0),
+                    Vec2::new(content_w, 0.0_f32),
                     Layout::top_down(Align::LEFT),
                     |ui| {
-                        // Case 1: Active live recording or live preview available
                         if is_rec {
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    RichText::new("Transkrip Langsung")
-                                        .size(16.0)
-                                        .color(INK)
-                                        .strong(),
-                                );
+                                ui.label(theme::bold("Transkrip Langsung", 16.5_f32, INK));
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                     let count = app.live_segments.len();
                                     Frame::new()
                                         .fill(SURFACE)
-                                        .stroke(Stroke::new(1.0, BORDER))
+                                        .stroke(Stroke::new(1.0_f32, BORDER))
                                         .corner_radius(CornerRadius::same(8))
                                         .inner_margin(Margin::symmetric(9, 3))
                                         .show(ui, |ui| {
-                                            ui.label(
-                                                RichText::new(format!("{} bagian", count))
-                                                    .size(11.5)
-                                                    .color(INK_2),
-                                            );
+                                            ui.label(theme::semi(
+                                                format!("{} bagian", count),
+                                                11.5_f32,
+                                                INK_2,
+                                            ));
                                         });
                                 });
                             });
-                            ui.add_space(10.0);
+                            ui.add_space(10.0_f32);
 
                             for seg in &app.live_segments {
                                 draw_transcript_card(ui, content_w, seg.start, &seg.text, false, time);
-                                ui.add_space(8.0);
+                                ui.add_space(8.0_f32);
                             }
 
-                            // Streaming draft card
                             if let Some(draft) = app.status.preview.last() {
                                 if !draft.text.trim().is_empty() {
                                     draw_transcript_card(
@@ -210,21 +197,19 @@ fn show_transcript_tab(
                                         true,
                                         time,
                                     );
-                                    ui.add_space(8.0);
+                                    ui.add_space(8.0_f32);
                                 }
                             } else if app.live_segments.is_empty() {
                                 theme::card_frame().show(ui, |ui| {
-                                    ui.set_width(content_w - 34.0);
+                                    ui.set_width(content_w - 38.0_f32);
                                     ui.horizontal(|ui| {
                                         theme::draw_wave_bars(ui, time, ACCENT);
-                                        ui.add_space(6.0);
-                                        ui.label(
-                                            RichText::new(
-                                                "Mendengarkan percakapan... Teks akan muncul otomatis saat suara terdeteksi.",
-                                            )
-                                            .size(13.0)
-                                            .color(INK_2),
-                                        );
+                                        ui.add_space(6.0_f32);
+                                        ui.label(theme::regular(
+                                            "Mendengarkan percakapan... Teks akan muncul otomatis saat suara terdeteksi.",
+                                            13.0_f32,
+                                            INK_2,
+                                        ));
                                     });
                                 });
                             }
@@ -236,80 +221,72 @@ fn show_transcript_tab(
                             };
 
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    RichText::new("Transkrip").size(16.0).color(INK).strong(),
-                                );
+                                ui.label(theme::bold("Transkrip", 16.5_f32, INK));
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                     let count = rows.len();
                                     Frame::new()
                                         .fill(SURFACE)
-                                        .stroke(Stroke::new(1.0, BORDER))
+                                        .stroke(Stroke::new(1.0_f32, BORDER))
                                         .corner_radius(CornerRadius::same(8))
                                         .inner_margin(Margin::symmetric(9, 3))
                                         .show(ui, |ui| {
-                                            ui.label(
-                                                RichText::new(format!("{} bagian", count))
-                                                    .size(11.5)
-                                                    .color(INK_2),
-                                            );
+                                            ui.label(theme::semi(
+                                                format!("{} bagian", count),
+                                                11.5_f32,
+                                                INK_2,
+                                            ));
                                         });
                                 });
                             });
-                            ui.add_space(10.0);
+                            ui.add_space(10.0_f32);
 
                             if !rows.is_empty() && !sess.edited {
                                 for r in rows {
                                     if !r.text.trim().is_empty() {
                                         draw_transcript_card(ui, content_w, r.start, &r.text, false, time);
-                                        ui.add_space(8.0);
+                                        ui.add_space(8.0_f32);
                                     }
                                 }
                             } else if !sess.transcript.trim().is_empty() {
                                 theme::card_frame().show(ui, |ui| {
-                                    ui.set_width(content_w - 34.0);
-                                    ui.label(
-                                        RichText::new(&sess.transcript).size(13.5).color(INK),
-                                    );
+                                    ui.set_width(content_w - 38.0_f32);
+                                    ui.label(theme::regular(&sess.transcript, 13.5_f32, INK));
                                 });
                             } else {
                                 theme::card_frame().show(ui, |ui| {
-                                    ui.set_width(content_w - 34.0);
+                                    ui.set_width(content_w - 38.0_f32);
                                     ui.vertical_centered(|ui| {
-                                        ui.add_space(12.0);
-                                        ui.label(
-                                            RichText::new("Transkrip belum tersedia untuk rekaman ini.")
-                                                .size(13.5)
-                                                .color(INK_MUTED),
-                                        );
-                                        ui.add_space(12.0);
+                                        ui.add_space(14.0_f32);
+                                        ui.label(theme::regular(
+                                            "Transkrip belum tersedia untuk rekaman ini.",
+                                            13.5_f32,
+                                            INK_MUTED,
+                                        ));
+                                        ui.add_space(14.0_f32);
                                     });
                                 });
                             }
                         } else {
-                            // Empty state
-                            ui.add_space(36.0);
+                            ui.add_space(36.0_f32);
                             theme::card_frame().show(ui, |ui| {
-                                ui.set_width(content_w - 34.0);
+                                ui.set_width(content_w - 38.0_f32);
                                 ui.vertical_centered(|ui| {
-                                    ui.add_space(16.0);
-                                    ui.label(
-                                        RichText::new("Belum ada rekaman yang dibuka")
-                                            .size(17.0)
-                                            .color(INK)
-                                            .strong(),
-                                    );
-                                    ui.add_space(6.0);
-                                    ui.label(
-                                        RichText::new(
-                                            "Mulai rekaman baru atau buka salah satu rekaman tersimpan untuk membaca transkrip & membuat ringkasan AI.",
-                                        )
-                                        .size(13.0)
-                                        .color(INK_2),
-                                    );
-                                    ui.add_space(16.0);
+                                    ui.add_space(18.0_f32);
+                                    ui.label(theme::bold(
+                                        "Belum ada rekaman yang dibuka",
+                                        17.0_f32,
+                                        INK,
+                                    ));
+                                    ui.add_space(6.0_f32);
+                                    ui.label(theme::regular(
+                                        "Mulai rekaman baru atau buka salah satu rekaman tersimpan untuk membaca transkrip & membuat ringkasan AI.",
+                                        13.0_f32,
+                                        INK_2,
+                                    ));
+                                    ui.add_space(16.0_f32);
                                     ui.horizontal(|ui| {
-                                        let btn_w = 240.0;
-                                        ui.add_space(((ui.available_width() - btn_w) * 0.5).max(0.0));
+                                        let btn_w = 240.0_f32;
+                                        ui.add_space(((ui.available_width() - btn_w) * 0.5_f32).max(0.0_f32));
                                         if theme::primary_btn(ui, "Mulai Rekam").clicked() {
                                             app.start_recording();
                                         }
@@ -317,12 +294,12 @@ fn show_transcript_tab(
                                             app.page = Page::Recordings;
                                         }
                                     });
-                                    ui.add_space(16.0);
+                                    ui.add_space(18.0_f32);
                                 });
                             });
                         }
 
-                        ui.add_space(96.0);
+                        ui.add_space(96.0_f32);
                     },
                 );
             });
@@ -340,57 +317,50 @@ fn draw_transcript_card(
     let frame = if is_live_draft {
         Frame::new()
             .fill(ACCENT_SOFT)
-            .stroke(Stroke::new(1.2, ACCENT_BORDER))
+            .stroke(Stroke::new(1.2_f32, ACCENT_BORDER))
             .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::symmetric(16, 12))
     } else {
         Frame::new()
             .fill(SURFACE)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(CornerRadius::same(12))
             .inner_margin(Margin::symmetric(16, 12))
     };
 
     frame.show(ui, |ui| {
-        ui.set_width(width - 34.0);
+        ui.set_width(width - 34.0_f32);
         ui.horizontal(|ui| {
             Frame::new()
                 .fill(if is_live_draft { SURFACE } else { SURFACE_SUBTLE })
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .corner_radius(CornerRadius::same(6))
                 .inner_margin(Margin::symmetric(7, 2))
                 .show(ui, |ui| {
-                    ui.label(
-                        RichText::new(format!("[{}]", format_ts(start)))
-                            .monospace()
-                            .size(11.0)
-                            .color(ACCENT_DEEP)
-                            .strong(),
-                    );
+                    ui.label(theme::mono(
+                        format!("[{}]", format_ts(start)),
+                        11.0_f32,
+                        ACCENT_DEEP,
+                    ));
                 });
 
             if is_live_draft {
-                ui.add_space(6.0);
+                ui.add_space(6.0_f32);
                 Frame::new()
                     .fill(SURFACE)
-                    .stroke(Stroke::new(1.0, ACCENT_BORDER))
+                    .stroke(Stroke::new(1.0_f32, ACCENT_BORDER))
                     .corner_radius(CornerRadius::same(10))
                     .inner_margin(Margin::symmetric(8, 2))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
                             theme::draw_wave_bars(ui, time, ACCENT);
-                            ui.label(
-                                RichText::new("Mengetik langsung")
-                                    .size(11.0)
-                                    .color(ACCENT_DEEP)
-                                    .strong(),
-                            );
+                            ui.label(theme::semi("Mengetik langsung", 11.0_f32, ACCENT_DEEP));
                         });
                     });
             }
         });
 
-        ui.add_space(6.0);
+        ui.add_space(6.0_f32);
 
         if is_live_draft {
             let caret = if ((time * 2.2) as i64) % 2 == 0 {
@@ -398,13 +368,13 @@ fn draw_transcript_card(
             } else {
                 ""
             };
-            ui.label(
-                RichText::new(format!("{}{}", text.trim(), caret))
-                    .size(13.5)
-                    .color(INK),
-            );
+            ui.label(theme::regular(
+                format!("{}{}", text.trim(), caret),
+                13.5_f32,
+                INK,
+            ));
         } else {
-            ui.label(RichText::new(text.trim()).size(13.5).color(INK));
+            ui.label(theme::regular(text.trim(), 13.5_f32, INK));
         }
     });
 }
@@ -417,42 +387,39 @@ fn show_summary_tab(
     side_pad: f32,
     time: f64,
 ) {
-    // Reserve clean fixed height at bottom for the Prompt AI composer (NEVER floating at top!)
-    let composer_h = 128.0;
-    let scroll_h = (ui.available_height() - composer_h).max(160.0);
+    let composer_h = 128.0_f32;
+    let scroll_h = (ui.available_height() - composer_h).max(160.0_f32);
 
-    // ── Scrollable Summary Body ──
     egui::ScrollArea::vertical()
         .id_salt("notes_summary_scroll")
         .max_height(scroll_h)
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            ui.add_space(18.0);
+            ui.add_space(18.0_f32);
             ui.horizontal(|ui| {
                 ui.add_space(side_pad);
                 ui.allocate_ui_with_layout(
-                    Vec2::new(content_w, 0.0),
+                    Vec2::new(content_w, 0.0_f32),
                     Layout::top_down(Align::LEFT),
                     |ui| {
                         if app.summary_running {
                             theme::card_frame().show(ui, |ui| {
-                                ui.set_width(content_w - 34.0);
+                                ui.set_width(content_w - 38.0_f32);
                                 ui.horizontal(|ui| {
-                                    theme::draw_orbit_loader(ui, 12.0, time);
-                                    ui.add_space(8.0);
+                                    theme::draw_orbit_loader(ui, 12.0_f32, time);
+                                    ui.add_space(8.0_f32);
                                     ui.vertical(|ui| {
-                                        ui.label(
-                                            RichText::new("Menyusun ringkasan AI...")
-                                                .size(14.0)
-                                                .color(INK)
-                                                .strong(),
-                                        );
+                                        ui.label(theme::bold(
+                                            "Menyusun ringkasan AI...",
+                                            14.0_f32,
+                                            INK,
+                                        ));
                                         if !app.summary_status_msg.is_empty() {
-                                            ui.label(
-                                                RichText::new(&app.summary_status_msg)
-                                                    .size(12.0)
-                                                    .color(INK_2),
-                                            );
+                                            ui.label(theme::regular(
+                                                &app.summary_status_msg,
+                                                12.0_f32,
+                                                INK_2,
+                                            ));
                                         }
                                     });
                                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -463,79 +430,81 @@ fn show_summary_tab(
                                 });
 
                                 if !app.summary_stream_text.trim().is_empty() {
-                                    ui.add_space(12.0);
+                                    ui.add_space(12.0_f32);
                                     ui.separator();
-                                    ui.add_space(10.0);
+                                    ui.add_space(10.0_f32);
                                     theme::render_markdown_clean(ui, &app.summary_stream_text);
                                 }
                             });
                         } else if let Some(sess) = app.active_session.clone() {
                             if !sess.summary.trim().is_empty() {
                                 theme::card_frame().show(ui, |ui| {
-                                    ui.set_width(content_w - 34.0);
+                                    ui.set_width(content_w - 38.0_f32);
                                     theme::render_markdown_clean(ui, &sess.summary);
                                 });
                             } else {
                                 theme::card_frame().show(ui, |ui| {
-                                    ui.set_width(content_w - 34.0);
+                                    ui.set_width(content_w - 38.0_f32);
                                     ui.vertical_centered(|ui| {
-                                        ui.add_space(18.0);
-                                        ui.label(
-                                            RichText::new("Ringkasan belum dibuat")
-                                                .size(16.0)
-                                                .color(INK)
-                                                .strong(),
-                                        );
-                                        ui.add_space(6.0);
-                                        ui.label(
-                                            RichText::new(
-                                                "Pilih gaya ringkasan atau tulis instruksi khusus pada Prompt AI di bawah.",
-                                            )
-                                            .size(13.0)
-                                            .color(INK_2),
-                                        );
-                                        ui.add_space(18.0);
+                                        ui.add_space(18.0_f32);
+                                        ui.label(theme::bold(
+                                            "Ringkasan belum dibuat",
+                                            16.0_f32,
+                                            INK,
+                                        ));
+                                        ui.add_space(6.0_f32);
+                                        ui.label(theme::regular(
+                                            "Pilih gaya ringkasan atau tulis instruksi khusus pada Prompt AI di bawah.",
+                                            13.0_f32,
+                                            INK_2,
+                                        ));
+                                        ui.add_space(18.0_f32);
                                     });
                                 });
                             }
                         } else {
                             theme::card_frame().show(ui, |ui| {
-                                ui.set_width(content_w - 34.0);
+                                ui.set_width(content_w - 38.0_f32);
                                 ui.vertical_centered(|ui| {
-                                    ui.add_space(18.0);
-                                    ui.label(
-                                        RichText::new("Buka rekaman terlebih dahulu untuk membuat ringkasan AI.")
-                                            .size(13.5)
-                                            .color(INK_MUTED),
-                                    );
-                                    ui.add_space(18.0);
+                                    ui.add_space(18.0_f32);
+                                    ui.label(theme::regular(
+                                        "Buka rekaman terlebih dahulu untuk membuat ringkasan AI.",
+                                        13.5_f32,
+                                        INK_MUTED,
+                                    ));
+                                    ui.add_space(18.0_f32);
                                 });
                             });
                         }
 
-                        ui.add_space(20.0);
+                        ui.add_space(20.0_f32);
                     },
                 );
             });
         });
 
-    // ── Bottom-Anchored Prompt AI Composer (Flush at bottom!) ──
-    ui.add_space(4.0);
+    // ── Bottom-Anchored Prompt AI Composer (Flush at bottom) ──
+    ui.add_space(4.0_f32);
     Frame::new()
         .fill(SURFACE)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
+        .corner_radius(CornerRadius {
+            nw: 0,
+            ne: 0,
+            sw: 16,
+            se: 16,
+        })
         .inner_margin(Margin::symmetric(16, 12))
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.add_space((side_pad - 16.0).max(0.0));
+                ui.add_space((side_pad - 16.0_f32).max(0.0_f32));
                 ui.allocate_ui_with_layout(
-                    Vec2::new(content_w, 0.0),
+                    Vec2::new(content_w, 0.0_f32),
                     Layout::top_down(Align::LEFT),
                     |ui| {
-                        // Top Row: Template selector + Model info
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new("Prompt AI").size(12.5).color(ACCENT_DEEP).strong());
-                            ui.add_space(8.0);
+                            ui.label(theme::semi("Prompt AI", 12.5_f32, ACCENT_DEEP));
+                            ui.add_space(8.0_f32);
                             for (key, lbl) in [
                                 ("materi", "Materi"),
                                 ("rapat", "Rapat"),
@@ -543,18 +512,18 @@ fn show_summary_tab(
                                 ("tanya", "Tanya Jawab"),
                             ] {
                                 let selected = app.prefs.template == key;
-                                let btn = egui::Button::new(
-                                    RichText::new(lbl)
-                                        .size(11.5)
-                                        .color(if selected { ACCENT_DEEP } else { INK_2 }),
-                                )
+                                let btn = egui::Button::new(theme::semi(
+                                    lbl,
+                                    11.5_f32,
+                                    if selected { ACCENT_DEEP } else { INK_2 },
+                                ))
                                 .fill(if selected { ACCENT_SOFT } else { SURFACE_SUBTLE })
                                 .stroke(Stroke::new(
-                                    1.0,
+                                    1.0_f32,
                                     if selected { ACCENT_BORDER } else { BORDER },
                                 ))
                                 .corner_radius(CornerRadius::same(12))
-                                .min_size(Vec2::new(0.0, 24.0));
+                                .min_size(Vec2::new(0.0_f32, 24.0_f32));
                                 if ui.add(btn).clicked() {
                                     app.prefs.template = key.to_string();
                                     app.save_local_prefs();
@@ -567,17 +536,16 @@ fn show_summary_tab(
                                 } else {
                                     format!("Cloud: {}", app.prefs.provider)
                                 };
-                                ui.label(RichText::new(model_lbl).size(11.0).color(INK_MUTED));
+                                ui.label(theme::regular(model_lbl, 11.0_f32, INK_MUTED));
                             });
                         });
 
-                        ui.add_space(8.0);
+                        ui.add_space(8.0_f32);
 
-                        // Prompt Input + Generate Button
                         ui.horizontal(|ui| {
-                            let input_w = (content_w - 146.0).max(160.0);
+                            let input_w = (content_w - 146.0_f32).max(160.0_f32);
                             let resp = ui.add_sized(
-                                Vec2::new(input_w, 38.0),
+                                Vec2::new(input_w, 38.0_f32),
                                 egui::TextEdit::singleline(&mut app.summary_prompt)
                                     .hint_text("Tulis instruksi tambahan (opsional), misal: 'Buat poin persiapan ujian'...")
                                     .margin(Margin::symmetric(10, 9)),
@@ -585,16 +553,21 @@ fn show_summary_tab(
                             let enter_pressed = resp.lost_focus()
                                 && ui.input(|i| i.key_pressed(egui::Key::Enter));
 
-                            let can_run =
-                                app.active_session.is_some() && !app.summary_running && !app.is_recording();
+                            let can_run = app.active_session.is_some()
+                                && !app.summary_running
+                                && !app.is_recording();
                             ui.add_enabled_ui(can_run, |ui| {
                                 let btn_lbl = if app.summary_running {
                                     "Memproses..."
                                 } else {
                                     "Buat Ringkasan"
                                 };
-                                if theme::primary_btn_sized(ui, btn_lbl, Vec2::new(134.0, 38.0))
-                                    .clicked()
+                                if theme::primary_btn_sized(
+                                    ui,
+                                    btn_lbl,
+                                    Vec2::new(134.0_f32, 38.0_f32),
+                                )
+                                .clicked()
                                     || (enter_pressed && can_run)
                                 {
                                     app.run_summary();
@@ -608,7 +581,6 @@ fn show_summary_tab(
 }
 
 fn show_edit_modal(app: &mut NotelyApp, ctx: &egui::Context) {
-    // Scrim backdrop
     egui::Area::new(egui::Id::new("edit_transcript_scrim"))
         .order(egui::Order::Middle)
         .fixed_pos(egui::Pos2::ZERO)
@@ -628,31 +600,31 @@ fn show_edit_modal(app: &mut NotelyApp, ctx: &egui::Context) {
         .resizable(false)
         .title_bar(false)
         .anchor(egui::Align2::CENTER_CENTER, Vec2::ZERO)
-        .fixed_size(Vec2::new(660.0, 480.0))
+        .fixed_size(Vec2::new(660.0_f32, 480.0_f32))
         .frame(theme::modal_frame())
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Edit Transkrip").size(17.0).color(INK).strong());
+                ui.label(theme::bold("Edit Transkrip", 17.0_f32, INK));
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if theme::ghost_btn(ui, "Tutup").clicked() {
                         app.show_edit_transcript_modal = false;
                     }
                 });
             });
-            ui.add_space(10.0);
+            ui.add_space(10.0_f32);
 
             egui::ScrollArea::vertical()
-                .max_height(350.0)
+                .max_height(350.0_f32)
                 .show(ui, |ui| {
                     ui.add_sized(
-                        Vec2::new(ui.available_width(), 340.0),
+                        Vec2::new(ui.available_width(), 340.0_f32),
                         egui::TextEdit::multiline(&mut app.edit_transcript_buf)
                             .desired_width(f32::INFINITY)
                             .margin(Margin::same(10)),
                     );
                 });
 
-            ui.add_space(14.0);
+            ui.add_space(14.0_f32);
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if theme::primary_btn(ui, "Simpan Perubahan").clicked() {

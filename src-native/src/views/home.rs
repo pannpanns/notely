@@ -1,12 +1,12 @@
 use crate::app::NotelyApp;
 use crate::theme::{
-    self, ACCENT, ACCENT_DEEP, ACCENT_HOVER, ACCENT_SOFT, AMBER, BORDER, DANGER, INK, INK_2,
-    INK_MUTED, SURFACE, SURFACE_HOVER, SURFACE_SUBTLE,
+    self, ACCENT, ACCENT_BORDER, ACCENT_DEEP, ACCENT_HOVER, ACCENT_SOFT, AMBER, BORDER, DANGER,
+    INK, INK_2, INK_MUTED, SURFACE, SURFACE_HOVER, SURFACE_SUBTLE,
 };
 use crate::types::{format_when_pretty, Page};
 use chrono::{Datelike, Local};
 use eframe::egui::{
-    self, Align, Color32, CornerRadius, Frame, Layout, Margin, RichText, Sense, Stroke, Vec2,
+    self, Align, Color32, CornerRadius, Frame, Layout, Margin, Sense, Stroke, StrokeKind, Vec2,
 };
 
 fn indonesian_today() -> String {
@@ -50,47 +50,42 @@ fn short_month_upper(m: u32) -> &'static str {
 
 pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {
     let avail_w = ui.available_width();
-    let content_w = avail_w.min(980.0).max(320.0);
-    let side_pad = ((avail_w - content_w) * 0.5).max(16.0);
+    let content_w = avail_w.min(960.0_f32).max(340.0_f32);
+    let side_pad = ((avail_w - content_w) * 0.5_f32).max(20.0_f32);
 
     egui::ScrollArea::vertical()
+        .id_salt("home_studio_scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            ui.add_space(20.0);
+            ui.add_space(24.0_f32);
             ui.horizontal(|ui| {
                 ui.add_space(side_pad);
                 ui.allocate_ui_with_layout(
-                    Vec2::new(content_w, 0.0),
+                    Vec2::new(content_w, 0.0_f32),
                     Layout::top_down(Align::LEFT),
                     |ui| {
                         // ── Date Pill ──
                         Frame::new()
                             .fill(SURFACE)
-                            .stroke(Stroke::new(1.0, BORDER))
+                            .stroke(Stroke::new(1.0_f32, BORDER))
                             .corner_radius(CornerRadius::same(10))
-                            .inner_margin(Margin::symmetric(10, 5))
+                            .inner_margin(Margin::symmetric(11, 5))
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                    let (r, _) =
-                                        ui.allocate_exact_size(Vec2::splat(14.0), Sense::hover());
-                                    theme::draw_nav_icon(
-                                        ui.painter(),
-                                        r,
+                                    ui.spacing_mut().item_spacing.x = 7.0_f32;
+                                    theme::icon_widget(
+                                        ui,
                                         theme::NavIcon::Calendar,
+                                        14.0_f32,
                                         ACCENT,
                                     );
-                                    ui.label(
-                                        RichText::new(indonesian_today())
-                                            .size(12.0)
-                                            .color(INK_2)
-                                            .strong(),
-                                    );
+                                    ui.label(theme::semi(indonesian_today(), 12.0_f32, INK_2));
                                 });
                             });
 
-                        ui.add_space(12.0);
+                        ui.add_space(12.0_f32);
 
-                        // ── Header + Stat Chips ──
+                        // ── Header + Aligned KPI Chips ──
                         let active_deadlines: Vec<_> = app
                             .deadlines
                             .iter()
@@ -104,101 +99,96 @@ pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {
 
                         ui.horizontal(|ui| {
                             ui.vertical(|ui| {
-                                ui.label(
-                                    RichText::new("Ruang catatan dan jadwal Anda.")
-                                        .size(25.0)
-                                        .color(INK)
-                                        .strong(),
-                                );
-                                ui.add_space(2.0);
-                                ui.label(
-                                    RichText::new(
-                                        "Mulai rekaman baru, kelola transkrip, atau susun tenggat tugas.",
-                                    )
-                                    .size(13.5)
-                                    .color(INK_2),
-                                );
+                                ui.spacing_mut().item_spacing.y = 4.0_f32;
+                                ui.label(theme::bold(
+                                    "Ruang catatan dan jadwal Anda.",
+                                    26.0_f32,
+                                    INK,
+                                ));
+                                ui.label(theme::regular(
+                                    "Mulai rekaman baru, kelola transkrip, atau susun tenggat tugas.",
+                                    13.5_f32,
+                                    INK_2,
+                                ));
                             });
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                // Urgent / Active tasks chip
+                                // Tasks / Urgent KPI card
                                 Frame::new()
                                     .fill(SURFACE)
-                                    .stroke(Stroke::new(1.0, BORDER))
+                                    .stroke(Stroke::new(1.0_f32, BORDER))
                                     .corner_radius(CornerRadius::same(12))
                                     .inner_margin(Margin::symmetric(16, 10))
                                     .show(ui, |ui| {
+                                        ui.set_min_width(82.0_f32);
                                         ui.vertical(|ui| {
                                             let num_col = if urgent_count > 0 {
                                                 DANGER
                                             } else {
                                                 ACCENT
                                             };
-                                            ui.label(
-                                                RichText::new(active_deadlines.len().to_string())
-                                                    .size(20.0)
-                                                    .color(num_col)
-                                                    .strong(),
-                                            );
+                                            ui.label(theme::bold(
+                                                active_deadlines.len().to_string(),
+                                                22.0_f32,
+                                                num_col,
+                                            ));
                                             let sub = if urgent_count > 0 {
                                                 format!("{} mendesak", urgent_count)
                                             } else {
                                                 "Tugas aktif".to_string()
                                             };
-                                            ui.label(
-                                                RichText::new(sub).size(11.5).color(INK_MUTED),
-                                            );
+                                            ui.label(theme::regular(sub, 11.5_f32, INK_MUTED));
                                         });
                                     });
 
-                                ui.add_space(8.0);
+                                ui.add_space(8.0_f32);
 
-                                // Total recordings chip
+                                // Total recordings KPI card
                                 Frame::new()
                                     .fill(SURFACE)
-                                    .stroke(Stroke::new(1.0, BORDER))
+                                    .stroke(Stroke::new(1.0_f32, BORDER))
                                     .corner_radius(CornerRadius::same(12))
                                     .inner_margin(Margin::symmetric(16, 10))
                                     .show(ui, |ui| {
+                                        ui.set_min_width(82.0_f32);
                                         ui.vertical(|ui| {
-                                            ui.label(
-                                                RichText::new(app.sessions.len().to_string())
-                                                    .size(20.0)
-                                                    .color(INK)
-                                                    .strong(),
-                                            );
-                                            ui.label(
-                                                RichText::new("Total rekaman")
-                                                    .size(11.5)
-                                                    .color(INK_MUTED),
-                                            );
+                                            ui.label(theme::bold(
+                                                app.sessions.len().to_string(),
+                                                22.0_f32,
+                                                INK,
+                                            ));
+                                            ui.label(theme::regular(
+                                                "Total rekaman",
+                                                11.5_f32,
+                                                INK_MUTED,
+                                            ));
                                         });
                                     });
                             });
                         });
 
-                        ui.add_space(20.0);
+                        ui.add_space(22.0_f32);
 
-                        // ── Asymmetric Action Bento ──
-                        let narrow = content_w < 680.0;
+                        // ── Asymmetric Action Bento Grid ──
+                        let narrow = content_w < 680.0_f32;
                         if narrow {
                             show_hero_record_card(app, ui, content_w);
-                            ui.add_space(12.0);
+                            ui.add_space(12.0_f32);
                             show_import_action_card(app, ui, content_w);
-                            ui.add_space(10.0);
+                            ui.add_space(10.0_f32);
                             show_deadline_action_card(app, ui, content_w, active_deadlines.len());
                         } else {
-                            let gap = 14.0;
-                            let left_w = (content_w - gap) * 0.54;
+                            let gap = 14.0_f32;
+                            let left_w = ((content_w - gap) * 0.54_f32).round();
                             let right_w = content_w - gap - left_w;
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing.x = gap;
                                 show_hero_record_card(app, ui, left_w);
                                 ui.allocate_ui_with_layout(
-                                    Vec2::new(right_w, 178.0),
+                                    Vec2::new(right_w, 182.0_f32),
                                     Layout::top_down(Align::LEFT),
                                     |ui| {
-                                        ui.spacing_mut().item_spacing.y = 12.0;
+                                        ui.spacing_mut().item_spacing.y = 12.0_f32;
                                         show_import_action_card(app, ui, right_w);
                                         show_deadline_action_card(
                                             app,
@@ -211,19 +201,19 @@ pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {
                             });
                         }
 
-                        ui.add_space(16.0);
+                        ui.add_space(16.0_f32);
 
                         // ── Bottom 2-Column Bento: Rekaman terakhir + Jadwal terdekat ──
-                        let gap = 14.0;
+                        let gap = 14.0_f32;
                         let col_w = if narrow {
                             content_w
                         } else {
-                            (content_w - gap) * 0.5
+                            (content_w - gap) * 0.5_f32
                         };
 
                         if narrow {
                             show_recent_recordings_card(app, ui, col_w);
-                            ui.add_space(14.0);
+                            ui.add_space(14.0_f32);
                             show_upcoming_deadlines_card(app, ui, col_w, &active_deadlines);
                         } else {
                             ui.horizontal_top(|ui| {
@@ -233,8 +223,7 @@ pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {
                             });
                         }
 
-                        // Breathing room for floating dock
-                        ui.add_space(92.0);
+                        ui.add_space(92.0_f32);
                     },
                 );
             });
@@ -243,7 +232,7 @@ pub fn show(app: &mut NotelyApp, _ctx: &egui::Context, ui: &mut egui::Ui) {
 
 fn show_hero_record_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
     let is_rec = app.is_recording();
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 178.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 182.0_f32), Sense::click());
     if resp.hovered() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
     }
@@ -263,63 +252,70 @@ fn show_hero_record_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
     let painter = ui.painter();
     painter.rect_filled(rect, CornerRadius::same(16), bg);
 
-    // Subtle organic highlight circle in top-right corner
+    // Layered ambient highlight circle top-right
     painter.circle_filled(
-        egui::pos2(rect.right() - 28.0, rect.top() + 28.0),
-        74.0,
-        Color32::from_rgba_unmultiplied(255, 255, 255, 14),
+        egui::pos2(rect.right() - 26.0_f32, rect.top() + 26.0_f32),
+        86.0_f32,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 16),
+    );
+    painter.circle_filled(
+        egui::pos2(rect.right() - 18.0_f32, rect.top() + 18.0_f32),
+        46.0_f32,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 12),
     );
 
-    // Inner layout
-    let inner = rect.shrink(22.0);
+    let inner = rect.shrink(22.0_f32);
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                // Soft translucent icon badge
-                let (icon_box, _) = ui.allocate_exact_size(Vec2::splat(40.0), Sense::hover());
+                let (icon_box, _) =
+                    ui.allocate_exact_size(Vec2::splat(42.0_f32), Sense::hover());
                 ui.painter().rect_filled(
                     icon_box,
                     CornerRadius::same(11),
-                    Color32::from_rgba_unmultiplied(255, 255, 255, 34),
+                    Color32::from_rgba_unmultiplied(255, 255, 255, 36),
                 );
-                theme::draw_nav_icon(
-                    ui.painter(),
-                    icon_box.shrink(9.0),
-                    theme::NavIcon::Mic,
+                theme::paint_icon(
+                    ui,
+                    icon_box.shrink(10.0_f32),
+                    if is_rec {
+                        theme::NavIcon::Square
+                    } else {
+                        theme::NavIcon::Mic
+                    },
                     Color32::WHITE,
                 );
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.label(
-                        RichText::new(if is_rec { "Sedang merekam" } else { "Mulai" })
-                            .size(12.0)
-                            .color(Color32::from_rgba_unmultiplied(255, 255, 255, 210))
-                            .strong(),
+                    theme::icon_widget(
+                        ui,
+                        theme::NavIcon::ArrowUpRight,
+                        17.0_f32,
+                        Color32::from_rgba_unmultiplied(255, 255, 255, 210),
                     );
                 });
             });
 
-            ui.add_space(28.0);
-            ui.label(
-                RichText::new(if is_rec {
+            ui.add_space(32.0_f32);
+            ui.label(theme::bold(
+                if is_rec {
                     "Hentikan rekaman"
                 } else {
                     "Rekam percakapan"
-                })
-                .size(20.0)
-                .color(Color32::WHITE)
-                .strong(),
-            );
-            ui.add_space(4.0);
-            ui.label(
-                RichText::new(if is_rec {
+                },
+                20.5_f32,
+                Color32::WHITE,
+            ));
+            ui.add_space(4.0_f32);
+            ui.label(theme::regular(
+                if is_rec {
                     "Klik untuk menghentikan rekaman & melihat hasil transkrip lengkap"
                 } else {
                     "Tangkap audio komputer & mikrofon dengan transkripsi lokal cepat"
-                })
-                .size(12.5)
-                .color(Color32::from_rgba_unmultiplied(234, 245, 240, 225)),
-            );
+                },
+                12.5_f32,
+                Color32::from_rgba_unmultiplied(234, 245, 240, 230),
+            ));
         });
     });
 
@@ -333,7 +329,7 @@ fn show_hero_record_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
 }
 
 fn show_import_action_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 83.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 85.0_f32), Sense::click());
     if resp.hovered() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
     }
@@ -343,24 +339,37 @@ fn show_import_action_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
     ui.painter().rect_stroke(
         rect,
         CornerRadius::same(14),
-        Stroke::new(1.0, border),
-        egui::StrokeKind::Inside,
+        Stroke::new(1.0_f32, border),
+        StrokeKind::Inside,
     );
 
-    let inner = rect.shrink(16.0);
+    let inner = rect.shrink2(Vec2::new(16.0_f32, 14.0_f32));
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
         ui.horizontal_centered(|ui| {
-            let (icon_box, _) = ui.allocate_exact_size(Vec2::splat(38.0), Sense::hover());
+            let (icon_box, _) = ui.allocate_exact_size(Vec2::splat(38.0_f32), Sense::hover());
             ui.painter()
                 .rect_filled(icon_box, CornerRadius::same(10), ACCENT_SOFT);
-            theme::draw_nav_icon(ui.painter(), icon_box.shrink(8.0), theme::NavIcon::Upload, ACCENT);
-            ui.add_space(10.0);
+            theme::paint_icon(
+                ui,
+                icon_box.shrink(9.0_f32),
+                theme::NavIcon::Upload,
+                ACCENT,
+            );
+            ui.add_space(10.0_f32);
             ui.vertical(|ui| {
-                ui.label(RichText::new("Impor rekaman").size(14.5).color(INK).strong());
-                ui.label(
-                    RichText::new("Ubah file audio atau video menjadi transkrip & ringkasan")
-                        .size(12.0)
-                        .color(INK_MUTED),
+                ui.label(theme::semi("Impor rekaman", 14.5_f32, INK));
+                ui.label(theme::regular(
+                    "Ubah file audio atau video menjadi transkrip & ringkasan",
+                    12.0_f32,
+                    INK_MUTED,
+                ));
+            });
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                theme::icon_widget(
+                    ui,
+                    theme::NavIcon::ArrowUpRight,
+                    15.0_f32,
+                    if resp.hovered() { ACCENT } else { INK_MUTED },
                 );
             });
         });
@@ -377,7 +386,7 @@ fn show_deadline_action_card(
     width: f32,
     active_count: usize,
 ) {
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 83.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 85.0_f32), Sense::click());
     if resp.hovered() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
     }
@@ -387,36 +396,42 @@ fn show_deadline_action_card(
     ui.painter().rect_stroke(
         rect,
         CornerRadius::same(14),
-        Stroke::new(1.0, border),
-        egui::StrokeKind::Inside,
+        Stroke::new(1.0_f32, border),
+        StrokeKind::Inside,
     );
 
-    let inner = rect.shrink(16.0);
+    let inner = rect.shrink2(Vec2::new(16.0_f32, 14.0_f32));
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
         ui.horizontal_centered(|ui| {
-            let (icon_box, _) = ui.allocate_exact_size(Vec2::splat(38.0), Sense::hover());
+            let (icon_box, _) = ui.allocate_exact_size(Vec2::splat(38.0_f32), Sense::hover());
             ui.painter()
                 .rect_filled(icon_box, CornerRadius::same(10), ACCENT_SOFT);
-            theme::draw_nav_icon(
-                ui.painter(),
-                icon_box.shrink(8.0),
+            theme::paint_icon(
+                ui,
+                icon_box.shrink(9.0_f32),
                 theme::NavIcon::Calendar,
                 ACCENT,
             );
-            ui.add_space(10.0);
+            ui.add_space(10.0_f32);
             ui.vertical(|ui| {
-                ui.label(
-                    RichText::new("Tenggat & jadwal")
-                        .size(14.5)
-                        .color(INK)
-                        .strong(),
-                );
+                ui.label(theme::semi("Tenggat & jadwal", 14.5_f32, INK));
                 let sub = if app.gcal.connected {
                     format!("{} jadwal aktif tersinkron Google Calendar", active_count)
                 } else {
-                    format!("{} jadwal aktif · Ekstrak otomatis dari teks & gambar", active_count)
+                    format!(
+                        "{} jadwal aktif · Ekstrak otomatis dari teks & gambar",
+                        active_count
+                    )
                 };
-                ui.label(RichText::new(sub).size(12.0).color(INK_MUTED));
+                ui.label(theme::regular(sub, 12.0_f32, INK_MUTED));
+            });
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                theme::icon_widget(
+                    ui,
+                    theme::NavIcon::ArrowUpRight,
+                    15.0_f32,
+                    if resp.hovered() { ACCENT } else { INK_MUTED },
+                );
             });
         });
     });
@@ -428,18 +443,13 @@ fn show_deadline_action_card(
 
 fn show_recent_recordings_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f32) {
     ui.allocate_ui_with_layout(
-        Vec2::new(width, 0.0),
+        Vec2::new(width, 0.0_f32),
         Layout::top_down(Align::LEFT),
         |ui| {
             theme::card_frame().show(ui, |ui| {
-                ui.set_width(width - 34.0);
+                ui.set_width(width - 38.0_f32);
                 ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new("Rekaman terakhir")
-                            .size(15.0)
-                            .color(INK)
-                            .strong(),
-                    );
+                    ui.label(theme::bold("Rekaman terakhir", 15.0_f32, INK));
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if theme::ghost_btn(ui, "Lihat semua").clicked() {
                             app.page = Page::Recordings;
@@ -447,27 +457,28 @@ fn show_recent_recordings_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f3
                     });
                 });
 
-                ui.add_space(8.0);
+                ui.add_space(10.0_f32);
 
                 if app.sessions.is_empty() {
                     Frame::new()
                         .fill(SURFACE_SUBTLE)
+                        .stroke(Stroke::new(1.0_f32, BORDER))
                         .corner_radius(CornerRadius::same(10))
-                        .inner_margin(Margin::symmetric(14, 22))
+                        .inner_margin(Margin::symmetric(14, 24))
                         .show(ui, |ui| {
                             ui.vertical_centered(|ui| {
-                                ui.label(
-                                    RichText::new("Belum ada rekaman tersimpan.")
-                                        .size(13.0)
-                                        .color(INK_MUTED),
-                                );
+                                ui.label(theme::regular(
+                                    "Belum ada rekaman tersimpan.",
+                                    13.0_f32,
+                                    INK_MUTED,
+                                ));
                             });
                         });
                 } else {
                     let preview: Vec<_> = app.sessions.iter().take(5).cloned().collect();
                     for item in preview {
                         let (row_rect, row_resp) = ui.allocate_exact_size(
-                            Vec2::new(ui.available_width(), 54.0),
+                            Vec2::new(ui.available_width(), 56.0_f32),
                             Sense::click(),
                         );
                         if row_resp.hovered() {
@@ -480,31 +491,54 @@ fn show_recent_recordings_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f3
                         };
                         ui.painter()
                             .rect_filled(row_rect, CornerRadius::same(10), row_bg);
+                        if row_resp.hovered() {
+                            ui.painter().rect_stroke(
+                                row_rect,
+                                CornerRadius::same(10),
+                                Stroke::new(1.0_f32, ACCENT_BORDER),
+                                StrokeKind::Inside,
+                            );
+                        }
 
-                        let inner = row_rect.shrink2(Vec2::new(12.0, 8.0));
+                        let inner = row_rect.shrink2(Vec2::new(12.0_f32, 8.0_f32));
                         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
                             ui.horizontal_centered(|ui| {
-                                let (ic, _) =
-                                    ui.allocate_exact_size(Vec2::splat(30.0), Sense::hover());
+                                let (ic, _) = ui.allocate_exact_size(
+                                    Vec2::splat(32.0_f32),
+                                    Sense::hover(),
+                                );
                                 ui.painter().rect_filled(ic, CornerRadius::same(8), SURFACE);
-                                theme::draw_nav_icon(
-                                    ui.painter(),
-                                    ic.shrink(6.0),
+                                ui.painter().rect_stroke(
+                                    ic,
+                                    CornerRadius::same(8),
+                                    Stroke::new(1.0_f32, BORDER),
+                                    StrokeKind::Inside,
+                                );
+                                theme::paint_icon(
+                                    ui,
+                                    ic.shrink(7.0_f32),
                                     theme::NavIcon::Notes,
                                     ACCENT,
                                 );
-                                ui.add_space(6.0);
+                                ui.add_space(6.0_f32);
                                 ui.vertical(|ui| {
-                                    ui.label(
-                                        RichText::new(&item.title)
-                                            .size(13.0)
-                                            .color(INK)
-                                            .strong(),
-                                    );
-                                    ui.label(
-                                        RichText::new(format_when_pretty(&item.when))
-                                            .size(11.5)
-                                            .color(INK_MUTED),
+                                    ui.label(theme::semi(&item.title, 13.0_f32, INK));
+                                    ui.label(theme::regular(
+                                        format_when_pretty(&item.when),
+                                        11.5_f32,
+                                        INK_MUTED,
+                                    ));
+                                });
+                                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                    theme::icon_widget(
+                                        ui,
+                                        theme::NavIcon::ChevronRight,
+                                        14.0_f32,
+                                        if row_resp.hovered() {
+                                            ACCENT
+                                        } else {
+                                            INK_MUTED
+                                        },
                                     );
                                 });
                             });
@@ -513,7 +547,7 @@ fn show_recent_recordings_card(app: &mut NotelyApp, ui: &mut egui::Ui, width: f3
                         if row_resp.clicked() {
                             app.open_session(&item.id);
                         }
-                        ui.add_space(6.0);
+                        ui.add_space(6.0_f32);
                     }
                 }
             });
@@ -528,18 +562,13 @@ fn show_upcoming_deadlines_card(
     active_deadlines: &[crate::types::DeadlineItem],
 ) {
     ui.allocate_ui_with_layout(
-        Vec2::new(width, 0.0),
+        Vec2::new(width, 0.0_f32),
         Layout::top_down(Align::LEFT),
         |ui| {
             theme::card_frame().show(ui, |ui| {
-                ui.set_width(width - 34.0);
+                ui.set_width(width - 38.0_f32);
                 ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new("Jadwal terdekat")
-                            .size(15.0)
-                            .color(INK)
-                            .strong(),
-                    );
+                    ui.label(theme::bold("Jadwal terdekat", 15.0_f32, INK));
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if theme::ghost_btn(ui, "Buka kalender").clicked() {
                             app.page = Page::Deadlines;
@@ -547,20 +576,21 @@ fn show_upcoming_deadlines_card(
                     });
                 });
 
-                ui.add_space(8.0);
+                ui.add_space(10.0_f32);
 
                 if active_deadlines.is_empty() {
                     Frame::new()
                         .fill(SURFACE_SUBTLE)
+                        .stroke(Stroke::new(1.0_f32, BORDER))
                         .corner_radius(CornerRadius::same(10))
-                        .inner_margin(Margin::symmetric(14, 22))
+                        .inner_margin(Margin::symmetric(14, 24))
                         .show(ui, |ui| {
                             ui.vertical_centered(|ui| {
-                                ui.label(
-                                    RichText::new("Tidak ada tenggat mendatang.")
-                                        .size(13.0)
-                                        .color(INK_MUTED),
-                                );
+                                ui.label(theme::regular(
+                                    "Tidak ada tenggat mendatang.",
+                                    13.0_f32,
+                                    INK_MUTED,
+                                ));
                             });
                         });
                 } else {
@@ -572,7 +602,7 @@ fn show_upcoming_deadlines_card(
                     });
                     for item in sorted.into_iter().take(5) {
                         let (row_rect, row_resp) = ui.allocate_exact_size(
-                            Vec2::new(ui.available_width(), 56.0),
+                            Vec2::new(ui.available_width(), 56.0_f32),
                             Sense::click(),
                         );
                         if row_resp.hovered() {
@@ -585,6 +615,14 @@ fn show_upcoming_deadlines_card(
                         };
                         ui.painter()
                             .rect_filled(row_rect, CornerRadius::same(10), row_bg);
+                        if row_resp.hovered() {
+                            ui.painter().rect_stroke(
+                                row_rect,
+                                CornerRadius::same(10),
+                                Stroke::new(1.0_f32, ACCENT_BORDER),
+                                StrokeKind::Inside,
+                            );
+                        }
 
                         let (day_str, mon_str) = parse_day_month(&item.deadline);
                         let dot_col = match item.priority.as_str() {
@@ -593,39 +631,23 @@ fn show_upcoming_deadlines_card(
                             _ => AMBER,
                         };
 
-                        let inner = row_rect.shrink2(Vec2::new(12.0, 8.0));
+                        let inner = row_rect.shrink2(Vec2::new(12.0_f32, 8.0_f32));
                         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
                             ui.horizontal_centered(|ui| {
-                                // Date pill badge
                                 Frame::new()
                                     .fill(SURFACE)
-                                    .stroke(Stroke::new(1.0, BORDER))
+                                    .stroke(Stroke::new(1.0_f32, BORDER))
                                     .corner_radius(CornerRadius::same(8))
                                     .inner_margin(Margin::symmetric(8, 3))
                                     .show(ui, |ui| {
                                         ui.vertical_centered(|ui| {
-                                            ui.label(
-                                                RichText::new(day_str)
-                                                    .size(13.0)
-                                                    .color(ACCENT_DEEP)
-                                                    .strong(),
-                                            );
-                                            ui.label(
-                                                RichText::new(mon_str)
-                                                    .size(9.5)
-                                                    .color(INK_MUTED)
-                                                    .strong(),
-                                            );
+                                            ui.label(theme::bold(day_str, 13.0_f32, ACCENT_DEEP));
+                                            ui.label(theme::semi(mon_str, 9.5_f32, INK_MUTED));
                                         });
                                     });
-                                ui.add_space(8.0);
+                                ui.add_space(8.0_f32);
                                 ui.vertical(|ui| {
-                                    ui.label(
-                                        RichText::new(&item.title)
-                                            .size(13.0)
-                                            .color(INK)
-                                            .strong(),
-                                    );
+                                    ui.label(theme::semi(&item.title, 13.0_f32, INK));
                                     let meta = format!(
                                         "{} · {} WIB",
                                         if item.course.is_empty() {
@@ -639,12 +661,14 @@ fn show_upcoming_deadlines_card(
                                             &item.time
                                         }
                                     );
-                                    ui.label(RichText::new(meta).size(11.5).color(INK_MUTED));
+                                    ui.label(theme::regular(meta, 11.5_f32, INK_MUTED));
                                 });
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                    let (dr, _) =
-                                        ui.allocate_exact_size(Vec2::splat(10.0), Sense::hover());
-                                    ui.painter().circle_filled(dr.center(), 4.2, dot_col);
+                                    let (dr, _) = ui.allocate_exact_size(
+                                        Vec2::splat(10.0_f32),
+                                        Sense::hover(),
+                                    );
+                                    ui.painter().circle_filled(dr.center(), 4.2_f32, dot_col);
                                 });
                             });
                         });
@@ -652,7 +676,7 @@ fn show_upcoming_deadlines_card(
                         if row_resp.clicked() {
                             app.page = Page::Deadlines;
                         }
-                        ui.add_space(6.0);
+                        ui.add_space(6.0_f32);
                     }
                 }
             });

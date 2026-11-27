@@ -14,8 +14,8 @@ use crate::views;
 use base64::Engine as _;
 use chrono::{Datelike, Local};
 use eframe::egui::{
-    self, Align, Color32, ColorImage, CornerRadius, Frame, Layout, Margin, RichText, Sense, Shadow,
-    Stroke, TextureHandle, TextureOptions, Vec2,
+    self, Align, Color32, ColorImage, CornerRadius, Frame, Layout, Margin, Sense, Shadow, Stroke,
+    StrokeKind, TextureHandle, TextureOptions, Vec2,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -187,6 +187,7 @@ pub struct NotelyApp {
 
 impl NotelyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        egui_extras::install_image_loaders(&cc.egui_ctx);
         theme::apply_notely_theme(&cc.egui_ctx);
 
         let logo_texture = load_texture_from_png(&cc.egui_ctx, "notely_brand_logo", NOTELY_LOGO_PNG);
@@ -204,11 +205,11 @@ impl NotelyApp {
             bg_tx,
             bg_rx,
             in_splash: true,
-            splash_target_progress: 0.12,
-            splash_visual_progress: 0.05,
+            splash_target_progress: 0.14_f32,
+            splash_visual_progress: 0.06_f32,
             splash_step_title: "Menghubungkan mesin lokal...".to_string(),
             splash_step_detail: "Menyalakan layanan transkripsi & AI Notely".to_string(),
-            splash_hw_chip: "Memeriksa perangkat audio & GPU...".to_string(),
+            splash_hw_chip: String::new(),
             splash_error: None,
             splash_ready_at: None,
             logo_texture,
@@ -299,10 +300,10 @@ impl NotelyApp {
     pub(crate) fn restart_boot_sequence(&mut self) {
         self.splash_error = None;
         self.splash_ready_at = None;
-        self.splash_target_progress = 0.14;
+        self.splash_target_progress = 0.14_f32;
         self.splash_step_title = "Menghubungkan mesin lokal...".to_string();
         self.splash_step_detail = "Menyalakan layanan transkripsi & AI Notely".to_string();
-        self.splash_hw_chip = "Memeriksa perangkat audio & GPU...".to_string();
+        self.splash_hw_chip.clear();
 
         let tx = self.bg_tx.clone();
         let saved_model = self.prefs.model.clone();
@@ -432,16 +433,8 @@ impl NotelyApp {
         });
     }
 
-    pub(crate) fn finish_splash_transition(&mut self, ctx: &egui::Context) {
-        if !self.in_splash {
-            return;
-        }
+    pub(crate) fn finish_splash_transition(&mut self, _ctx: &egui::Context) {
         self.in_splash = false;
-        ctx.send_viewport_cmd(egui::ViewportCommand::Decorations(true));
-        ctx.send_viewport_cmd(egui::ViewportCommand::Resizable(true));
-        ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(Vec2::new(820.0, 560.0)));
-        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(Vec2::new(1240.0, 780.0)));
-        ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(true));
     }
 
     pub(crate) fn is_recording(&self) -> bool {
@@ -2019,14 +2012,14 @@ impl NotelyApp {
         }
     }
 
-    // ── Sidebar Chrome (NO redundant "Riwayat Rekaman", smooth rail animation) ──
+    // ── Sidebar Chrome (Borderless Soft Sage outer rail, crisp Lucide SVG icons) ──
     fn draw_sidebar(&mut self, ctx: &egui::Context) {
         let expanded_t = ctx.animate_bool(
             egui::Id::new("notely_sidebar_anim"),
             !self.prefs.sidebar_collapsed,
         );
-        let width = egui::lerp(66.0..=222.0, expanded_t);
-        let show_labels = expanded_t > 0.45;
+        let width = egui::lerp(66.0_f32..=222.0_f32, expanded_t);
+        let show_labels = expanded_t > 0.45_f32;
 
         egui::SidePanel::left("notely_sidebar")
             .resizable(false)
@@ -2034,33 +2027,34 @@ impl NotelyApp {
             .frame(
                 Frame::new()
                     .fill(SIDEBAR_BG)
-                    .stroke(Stroke::new(1.0, BORDER))
+                    .stroke(Stroke::NONE)
                     .inner_margin(Margin::symmetric(10, 14)),
             )
             .show(ctx, |ui| {
                 // Brand mark row
                 ui.horizontal(|ui| {
                     if !show_labels {
-                        ui.add_space(4.0);
+                        ui.add_space(4.0_f32);
                     }
                     if let Some(tex) = &self.logo_texture {
                         let sized = egui::load::SizedTexture::new(tex.id(), tex.size_vec2());
                         ui.add(
                             egui::Image::from_texture(sized)
-                                .fit_to_exact_size(Vec2::splat(34.0))
+                                .fit_to_exact_size(Vec2::splat(34.0_f32))
                                 .corner_radius(CornerRadius::same(9)),
                         );
                     } else {
-                        let (r, _) = ui.allocate_exact_size(Vec2::splat(34.0), Sense::hover());
+                        let (r, _) =
+                            ui.allocate_exact_size(Vec2::splat(34.0_f32), Sense::hover());
                         ui.painter().rect_filled(r, CornerRadius::same(9), ACCENT);
                     }
                     if show_labels {
-                        ui.add_space(4.0);
-                        ui.label(RichText::new("Notely").size(17.5).color(INK).strong());
+                        ui.add_space(4.0_f32);
+                        ui.label(theme::bold("Notely", 17.5_f32, INK));
                     }
                 });
 
-                ui.add_space(20.0);
+                ui.add_space(20.0_f32);
 
                 // Main Nav Items (Beranda, Catatan Rekaman, Semua Rekaman, Tenggat Tugas)
                 let nav_items = [
@@ -2074,7 +2068,7 @@ impl NotelyApp {
                     let active = self.page == target;
                     let row_w = ui.available_width();
                     let (rect, resp) =
-                        ui.allocate_exact_size(Vec2::new(row_w, 38.0), Sense::click());
+                        ui.allocate_exact_size(Vec2::new(row_w, 38.0_f32), Sense::click());
                     if resp.hovered() {
                         ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
                     }
@@ -2085,11 +2079,17 @@ impl NotelyApp {
                     } else {
                         Color32::TRANSPARENT
                     };
-                    ui.painter().rect_filled(rect, CornerRadius::same(9), bg);
+                    ui.painter().rect_filled(rect, CornerRadius::same(10), bg);
                     if active {
+                        ui.painter().rect_stroke(
+                            rect,
+                            CornerRadius::same(10),
+                            Stroke::new(1.0_f32, theme::ACCENT_BORDER),
+                            StrokeKind::Inside,
+                        );
                         let bar = egui::Rect::from_min_size(
-                            egui::pos2(rect.left() + 2.0, rect.top() + 8.0),
-                            Vec2::new(3.0, rect.height() - 16.0),
+                            egui::pos2(rect.left() + 3.0_f32, rect.top() + 9.0_f32),
+                            Vec2::new(3.0_f32, rect.height() - 18.0_f32),
                         );
                         ui.painter().rect_filled(bar, CornerRadius::same(2), ACCENT);
                     }
@@ -2097,21 +2097,30 @@ impl NotelyApp {
                     let icon_col = if active { ACCENT_DEEP } else { INK_2 };
                     let icon_rect = if show_labels {
                         egui::Rect::from_center_size(
-                            egui::pos2(rect.left() + 20.0, rect.center().y),
-                            Vec2::splat(17.0),
+                            egui::pos2(rect.left() + 22.0_f32, rect.center().y),
+                            Vec2::splat(17.0_f32),
                         )
                     } else {
-                        egui::Rect::from_center_size(rect.center(), Vec2::splat(18.0))
+                        egui::Rect::from_center_size(rect.center(), Vec2::splat(18.0_f32))
                     };
-                    theme::draw_nav_icon(ui.painter(), icon_rect, icon, icon_col);
+                    theme::paint_icon(ui, icon_rect, icon, icon_col);
 
                     if show_labels {
-                        ui.painter().text(
-                            egui::pos2(rect.left() + 38.0, rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            label,
-                            egui::FontId::proportional(13.0),
-                            if active { ACCENT_DEEP } else { INK },
+                        let text_rect = egui::Rect::from_min_max(
+                            egui::pos2(rect.left() + 39.0_f32, rect.top()),
+                            rect.max,
+                        );
+                        ui.allocate_new_ui(
+                            egui::UiBuilder::new().max_rect(text_rect),
+                            |ui| {
+                                ui.horizontal_centered(|ui| {
+                                    ui.label(if active {
+                                        theme::semi(label, 13.0_f32, ACCENT_DEEP)
+                                    } else {
+                                        theme::regular(label, 13.0_f32, INK)
+                                    });
+                                });
+                            },
                         );
                     } else {
                         resp.clone().on_hover_text(label);
@@ -2120,7 +2129,7 @@ impl NotelyApp {
                     if resp.clicked() {
                         self.page = target;
                     }
-                    ui.add_space(4.0);
+                    ui.add_space(4.0_f32);
                 }
 
                 // Bottom Pinned Controls (Start/Stop Record, Import Audio, Settings)
@@ -2128,7 +2137,7 @@ impl NotelyApp {
                     // Settings Button
                     let settings_active = self.page == Page::Settings;
                     let (s_rect, s_resp) = ui.allocate_exact_size(
-                        Vec2::new(ui.available_width(), 38.0),
+                        Vec2::new(ui.available_width(), 38.0_f32),
                         Sense::click(),
                     );
                     if s_resp.hovered() {
@@ -2141,28 +2150,37 @@ impl NotelyApp {
                     } else {
                         Color32::TRANSPARENT
                     };
-                    ui.painter().rect_filled(s_rect, CornerRadius::same(9), s_bg);
+                    ui.painter().rect_filled(s_rect, CornerRadius::same(10), s_bg);
                     let s_icon = if show_labels {
                         egui::Rect::from_center_size(
-                            egui::pos2(s_rect.left() + 20.0, s_rect.center().y),
-                            Vec2::splat(17.0),
+                            egui::pos2(s_rect.left() + 22.0_f32, s_rect.center().y),
+                            Vec2::splat(17.0_f32),
                         )
                     } else {
-                        egui::Rect::from_center_size(s_rect.center(), Vec2::splat(18.0))
+                        egui::Rect::from_center_size(s_rect.center(), Vec2::splat(18.0_f32))
                     };
-                    theme::draw_nav_icon(
-                        ui.painter(),
+                    theme::paint_icon(
+                        ui,
                         s_icon,
                         theme::NavIcon::Settings,
                         if settings_active { ACCENT_DEEP } else { INK_2 },
                     );
                     if show_labels {
-                        ui.painter().text(
-                            egui::pos2(s_rect.left() + 38.0, s_rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            "Pengaturan",
-                            egui::FontId::proportional(13.0),
-                            if settings_active { ACCENT_DEEP } else { INK },
+                        let text_rect = egui::Rect::from_min_max(
+                            egui::pos2(s_rect.left() + 39.0_f32, s_rect.top()),
+                            s_rect.max,
+                        );
+                        ui.allocate_new_ui(
+                            egui::UiBuilder::new().max_rect(text_rect),
+                            |ui| {
+                                ui.horizontal_centered(|ui| {
+                                    ui.label(if settings_active {
+                                        theme::semi("Pengaturan", 13.0_f32, ACCENT_DEEP)
+                                    } else {
+                                        theme::regular("Pengaturan", 13.0_f32, INK)
+                                    });
+                                });
+                            },
                         );
                     } else {
                         s_resp.clone().on_hover_text("Pengaturan");
@@ -2171,11 +2189,11 @@ impl NotelyApp {
                         self.page = Page::Settings;
                     }
 
-                    ui.add_space(6.0);
+                    ui.add_space(6.0_f32);
 
                     // Import Audio Button
                     let (i_rect, i_resp) = ui.allocate_exact_size(
-                        Vec2::new(ui.available_width(), 38.0),
+                        Vec2::new(ui.available_width(), 38.0_f32),
                         Sense::click(),
                     );
                     if i_resp.hovered() {
@@ -2183,31 +2201,36 @@ impl NotelyApp {
                     }
                     ui.painter().rect_filled(
                         i_rect,
-                        CornerRadius::same(9),
+                        CornerRadius::same(10),
                         if i_resp.hovered() { SURFACE_HOVER } else { SURFACE },
                     );
                     ui.painter().rect_stroke(
                         i_rect,
-                        CornerRadius::same(9),
-                        Stroke::new(1.0, BORDER),
-                        egui::StrokeKind::Inside,
+                        CornerRadius::same(10),
+                        Stroke::new(1.0_f32, BORDER),
+                        StrokeKind::Inside,
                     );
                     let i_icon = if show_labels {
                         egui::Rect::from_center_size(
-                            egui::pos2(i_rect.left() + 20.0, i_rect.center().y),
-                            Vec2::splat(16.0),
+                            egui::pos2(i_rect.left() + 22.0_f32, i_rect.center().y),
+                            Vec2::splat(16.0_f32),
                         )
                     } else {
-                        egui::Rect::from_center_size(i_rect.center(), Vec2::splat(17.0))
+                        egui::Rect::from_center_size(i_rect.center(), Vec2::splat(17.0_f32))
                     };
-                    theme::draw_nav_icon(ui.painter(), i_icon, theme::NavIcon::Upload, ACCENT);
+                    theme::paint_icon(ui, i_icon, theme::NavIcon::Upload, ACCENT);
                     if show_labels {
-                        ui.painter().text(
-                            egui::pos2(i_rect.left() + 38.0, i_rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            "Impor audio",
-                            egui::FontId::proportional(13.0),
-                            INK,
+                        let text_rect = egui::Rect::from_min_max(
+                            egui::pos2(i_rect.left() + 39.0_f32, i_rect.top()),
+                            i_rect.max,
+                        );
+                        ui.allocate_new_ui(
+                            egui::UiBuilder::new().max_rect(text_rect),
+                            |ui| {
+                                ui.horizontal_centered(|ui| {
+                                    ui.label(theme::semi("Impor audio", 13.0_f32, INK));
+                                });
+                            },
                         );
                     } else {
                         i_resp.clone().on_hover_text("Impor audio");
@@ -2216,12 +2239,12 @@ impl NotelyApp {
                         self.pick_and_import_audio("");
                     }
 
-                    ui.add_space(6.0);
+                    ui.add_space(6.0_f32);
 
                     // Primary Record / Stop Button
                     let is_rec = self.is_recording();
                     let (r_rect, r_resp) = ui.allocate_exact_size(
-                        Vec2::new(ui.available_width(), 40.0),
+                        Vec2::new(ui.available_width(), 40.0_f32),
                         Sense::click(),
                     );
                     if r_resp.hovered() {
@@ -2237,30 +2260,38 @@ impl NotelyApp {
                     ui.painter().rect_filled(r_rect, CornerRadius::same(10), r_bg);
                     let r_icon = if show_labels {
                         egui::Rect::from_center_size(
-                            egui::pos2(r_rect.left() + 20.0, r_rect.center().y),
-                            Vec2::splat(16.0),
+                            egui::pos2(r_rect.left() + 22.0_f32, r_rect.center().y),
+                            Vec2::splat(16.0_f32),
                         )
                     } else {
-                        egui::Rect::from_center_size(r_rect.center(), Vec2::splat(17.0))
+                        egui::Rect::from_center_size(r_rect.center(), Vec2::splat(17.0_f32))
                     };
                     if is_rec {
-                        let sq = egui::Rect::from_center_size(r_icon.center(), Vec2::splat(10.0));
-                        ui.painter().rect_filled(sq, CornerRadius::same(2), Color32::WHITE);
-                    } else {
-                        theme::draw_nav_icon(
-                            ui.painter(),
+                        theme::paint_icon(
+                            ui,
                             r_icon,
-                            theme::NavIcon::Mic,
+                            theme::NavIcon::Square,
                             Color32::WHITE,
                         );
+                    } else {
+                        theme::paint_icon(ui, r_icon, theme::NavIcon::Mic, Color32::WHITE);
                     }
                     if show_labels {
-                        ui.painter().text(
-                            egui::pos2(r_rect.left() + 38.0, r_rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            if is_rec { "Hentikan" } else { "Mulai rekam" },
-                            egui::FontId::proportional(13.0),
-                            Color32::WHITE,
+                        let text_rect = egui::Rect::from_min_max(
+                            egui::pos2(r_rect.left() + 39.0_f32, r_rect.top()),
+                            r_rect.max,
+                        );
+                        ui.allocate_new_ui(
+                            egui::UiBuilder::new().max_rect(text_rect),
+                            |ui| {
+                                ui.horizontal_centered(|ui| {
+                                    ui.label(theme::semi(
+                                        if is_rec { "Hentikan" } else { "Mulai rekam" },
+                                        13.0_f32,
+                                        Color32::WHITE,
+                                    ));
+                                });
+                            },
                         );
                     } else {
                         r_resp.clone().on_hover_text(if is_rec {
@@ -2280,29 +2311,31 @@ impl NotelyApp {
             });
     }
 
-    // ── Top App Bar (Breadcrumb + CUDA pill & non-clickable Google Calendar indicator right beneath!) ──
-    fn draw_topbar(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("notely_topbar")
-            .exact_height(58.0)
-            .frame(
-                Frame::new()
-                    .fill(SURFACE)
-                    .stroke(Stroke::new(1.0, BORDER))
-                    .inner_margin(Margin::symmetric(16, 8)),
-            )
-            .show(ctx, |ui| {
+    // ── Top App Strip inside Elevated Workspace ──
+    fn draw_topbar_strip(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        Frame::new()
+            .fill(SURFACE)
+            .corner_radius(CornerRadius {
+                nw: 16,
+                ne: 16,
+                sw: 0,
+                se: 0,
+            })
+            .inner_margin(Margin::symmetric(18, 8))
+            .show(ui, |ui| {
+                ui.set_min_height(40.0_f32);
                 ui.horizontal_centered(|ui| {
                     // Sidebar collapse button
                     let (t_rect, t_resp) =
-                        ui.allocate_exact_size(Vec2::splat(30.0), Sense::click());
+                        ui.allocate_exact_size(Vec2::splat(30.0_f32), Sense::click());
                     if t_resp.hovered() {
                         ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
                         ui.painter()
                             .rect_filled(t_rect, CornerRadius::same(7), SURFACE_HOVER);
                     }
-                    theme::draw_nav_icon(
-                        ui.painter(),
-                        t_rect.shrink(6.0),
+                    theme::paint_icon(
+                        ui,
+                        t_rect.shrink(6.0_f32),
                         theme::NavIcon::SidebarToggle,
                         INK_2,
                     );
@@ -2311,14 +2344,15 @@ impl NotelyApp {
                         self.save_local_prefs();
                     }
 
-                    ui.add_space(6.0);
-                    ui.label(RichText::new("Notely").size(13.5).color(INK).strong());
-                    ui.label(RichText::new("/").size(13.5).color(INK_MUTED));
-                    ui.label(RichText::new(self.page.label()).size(13.5).color(INK_2));
+                    ui.add_space(6.0_f32);
+                    ui.label(theme::semi("Notely", 13.5_f32, INK));
+                    ui.label(theme::regular("/", 13.5_f32, INK_MUTED));
+                    ui.label(theme::regular(self.page.label(), 13.5_f32, INK_2));
 
-                    // Right-aligned stacked status block: CUDA badge on top, non-clickable Google Calendar right below!
+                    // Right-aligned stacked status block: CUDA pill on top, non-clickable Google Calendar below
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         ui.vertical(|ui| {
+                            ui.spacing_mut().item_spacing.y = 3.0_f32;
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 let backend = match self.status.backend.as_deref() {
                                     Some(b) if !b.is_empty() => b.to_string(),
@@ -2334,9 +2368,6 @@ impl NotelyApp {
                                 theme::status_pill(ui, dot, &backend, bg, fg);
                             });
 
-                            ui.add_space(2.0);
-
-                            // Pure non-clickable Google Calendar indicator (Green = Connected, Red = Disconnected)
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 let (dot, lbl) = if self.gcal.connected {
                                     (GREEN, "Google Calendar")
@@ -2349,6 +2380,13 @@ impl NotelyApp {
                     });
                 });
             });
+
+        // Subtle 1px divider between top strip and page body
+        let div_rect = ui.allocate_exact_size(
+            Vec2::new(ui.available_width(), 1.0_f32),
+            Sense::hover(),
+        ).0;
+        ui.painter().rect_filled(div_rect, CornerRadius::ZERO, BORDER);
     }
 
     // ── Floating Recording Dock (bottom-center pill with 18-bar animated spectrum) ──
@@ -2361,56 +2399,59 @@ impl NotelyApp {
 
         egui::Area::new(egui::Id::new("notely_floating_dock"))
             .order(egui::Order::Middle)
-            .anchor(egui::Align2::CENTER_BOTTOM, Vec2::new(34.0, -18.0))
+            .anchor(egui::Align2::CENTER_BOTTOM, Vec2::new(40.0_f32, -22.0_f32))
             .show(ctx, |ui| {
                 Frame::new()
                     .fill(SURFACE)
-                    .stroke(Stroke::new(1.0, if is_rec { theme::DANGER_BORDER } else { BORDER }))
+                    .stroke(Stroke::new(
+                        1.0_f32,
+                        if is_rec { theme::DANGER_BORDER } else { BORDER },
+                    ))
                     .corner_radius(CornerRadius::same(28))
                     .inner_margin(Margin::symmetric(12, 8))
                     .shadow(Shadow {
                         offset: [0, 8],
                         blur: 24,
                         spread: 0,
-                        color: Color32::from_rgba_unmultiplied(15, 38, 30, 32),
+                        color: Color32::from_rgba_unmultiplied(15, 38, 30, 30),
                     })
                     .show(ui, |ui| {
                         ui.horizontal_centered(|ui| {
-                            ui.spacing_mut().item_spacing.x = 12.0;
+                            ui.spacing_mut().item_spacing.x = 12.0_f32;
 
                             // Record / Stop circular button with pulsing halo
                             let (btn_rect, btn_resp) =
-                                ui.allocate_exact_size(Vec2::splat(38.0), Sense::click());
+                                ui.allocate_exact_size(Vec2::splat(38.0_f32), Sense::click());
                             if btn_resp.hovered() {
                                 ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
                             }
                             if is_rec {
-                                let halo = (0.5 + 0.5 * (time * 5.0).sin() as f32) * 5.0;
+                                let halo =
+                                    (0.5_f32 + 0.5_f32 * (time * 5.0).sin() as f32) * 5.0_f32;
                                 ui.painter().circle_filled(
                                     btn_rect.center(),
-                                    19.0 + halo,
+                                    19.0_f32 + halo,
                                     Color32::from_rgba_unmultiplied(217, 56, 69, 45),
                                 );
                             }
-                            let circle_col = if is_rec {
-                                DANGER
-                            } else if btn_resp.hovered() {
+                            let circle_col = if btn_resp.hovered() {
                                 DANGER_HOVER
                             } else {
                                 DANGER
                             };
                             ui.painter()
-                                .circle_filled(btn_rect.center(), 18.0, circle_col);
+                                .circle_filled(btn_rect.center(), 18.0_f32, circle_col);
                             if is_rec {
-                                let sq = egui::Rect::from_center_size(
-                                    btn_rect.center(),
-                                    Vec2::splat(11.0),
+                                theme::paint_icon(
+                                    ui,
+                                    btn_rect.shrink(10.0_f32),
+                                    theme::NavIcon::Square,
+                                    Color32::WHITE,
                                 );
-                                ui.painter().rect_filled(sq, CornerRadius::same(3), Color32::WHITE);
                             } else {
-                                theme::draw_nav_icon(
-                                    ui.painter(),
-                                    btn_rect.shrink(9.0),
+                                theme::paint_icon(
+                                    ui,
+                                    btn_rect.shrink(9.0_f32),
                                     theme::NavIcon::Mic,
                                     Color32::WHITE,
                                 );
@@ -2423,17 +2464,14 @@ impl NotelyApp {
                                 }
                             }
 
-                            // 18-bar spectrum equalizer
                             theme::draw_spectrum_bars(ui, &self.spectrum_bands, is_rec, time);
 
                             if is_rec {
-                                ui.label(
-                                    RichText::new(format_ts(self.status.elapsed.unwrap_or(0.0)))
-                                        .monospace()
-                                        .size(12.5)
-                                        .color(DANGER)
-                                        .strong(),
-                                );
+                                ui.label(theme::mono(
+                                    format_ts(self.status.elapsed.unwrap_or(0.0)),
+                                    12.5_f32,
+                                    DANGER,
+                                ));
                             }
                         });
                     });
@@ -2460,26 +2498,25 @@ impl NotelyApp {
             .resizable(false)
             .title_bar(false)
             .anchor(egui::Align2::CENTER_CENTER, Vec2::ZERO)
-            .fixed_size(Vec2::new(470.0, 0.0))
+            .fixed_size(Vec2::new(470.0_f32, 0.0_f32))
             .frame(theme::modal_frame())
             .show(ctx, |ui| {
-                ui.label(
-                    RichText::new(format!("Pembaruan Notely v{} Tersedia", upd.version))
-                        .size(17.5)
-                        .color(INK)
-                        .strong(),
-                );
-                ui.add_space(8.0);
+                ui.label(theme::bold(
+                    format!("Pembaruan Notely v{} Tersedia", upd.version),
+                    17.5_f32,
+                    INK,
+                ));
+                ui.add_space(8.0_f32);
                 egui::ScrollArea::vertical()
-                    .max_height(180.0)
+                    .max_height(180.0_f32)
                     .show(ui, |ui| {
                         theme::render_markdown_clean(ui, &upd.notes);
                     });
 
                 if self.update_downloading {
-                    ui.add_space(12.0);
+                    ui.add_space(12.0_f32);
                     let (bar, _) = ui.allocate_exact_size(
-                        Vec2::new(ui.available_width(), 7.0),
+                        Vec2::new(ui.available_width(), 7.0_f32),
                         Sense::hover(),
                     );
                     ui.painter().rect_filled(bar, CornerRadius::same(4), ACCENT_SOFT);
@@ -2488,11 +2525,11 @@ impl NotelyApp {
                         Vec2::new(bar.width() * self.update_progress, bar.height()),
                     );
                     ui.painter().rect_filled(fill, CornerRadius::same(4), ACCENT);
-                    ui.add_space(4.0);
-                    ui.label(RichText::new(&self.update_status_text).size(12.0).color(INK_2));
+                    ui.add_space(4.0_f32);
+                    ui.label(theme::regular(&self.update_status_text, 12.0_f32, INK_2));
                 }
 
-                ui.add_space(16.0);
+                ui.add_space(16.0_f32);
                 ui.horizontal(|ui| {
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         ui.add_enabled_ui(!self.update_downloading, |ui| {
@@ -2526,24 +2563,17 @@ impl NotelyApp {
             .resizable(false)
             .title_bar(false)
             .anchor(egui::Align2::CENTER_CENTER, Vec2::ZERO)
-            .fixed_size(Vec2::new(420.0, 0.0))
+            .fixed_size(Vec2::new(420.0_f32, 0.0_f32))
             .frame(theme::modal_frame())
             .show(ctx, |ui| {
-                ui.label(
-                    RichText::new("Rekaman Sedang Berlangsung")
-                        .size(17.0)
-                        .color(INK)
-                        .strong(),
-                );
-                ui.add_space(8.0);
-                ui.label(
-                    RichText::new(
-                        "Jika Anda menutup aplikasi sekarang, rekaman aktif akan dihentikan. Apakah Anda yakin?",
-                    )
-                    .size(13.0)
-                    .color(INK_2),
-                );
-                ui.add_space(16.0);
+                ui.label(theme::bold("Rekaman Sedang Berlangsung", 17.0_f32, INK));
+                ui.add_space(8.0_f32);
+                ui.label(theme::regular(
+                    "Jika Anda menutup aplikasi sekarang, rekaman aktif akan dihentikan. Apakah Anda yakin?",
+                    13.0_f32,
+                    INK_2,
+                ));
+                ui.add_space(16.0_f32);
                 ui.horizontal(|ui| {
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if theme::danger_btn(ui, "Hentikan & Keluar").clicked() {
@@ -2640,18 +2670,51 @@ impl eframe::App for NotelyApp {
             }
         }
 
-        // Render Main Native Chrome
+        // Render Main Native Studio Shell (Borderless Soft Sage sidebar + Elevated White Paper workspace)
         self.draw_sidebar(ctx);
-        self.draw_topbar(ctx);
 
         egui::CentralPanel::default()
-            .frame(Frame::new().fill(CANVAS).inner_margin(Margin::ZERO))
-            .show(ctx, |ui| match self.page {
-                Page::Home => views::home::show(self, ctx, ui),
-                Page::Notes => views::notes::show(self, ctx, ui),
-                Page::Recordings => views::recordings::show(self, ctx, ui),
-                Page::Deadlines => views::deadlines::show(self, ctx, ui),
-                Page::Settings => views::settings::show(self, ctx, ui),
+            .frame(
+                Frame::new()
+                    .fill(CANVAS)
+                    .inner_margin(Margin {
+                        left: 2,
+                        right: 10,
+                        top: 10,
+                        bottom: 10,
+                    }),
+            )
+            .show(ctx, |ui| {
+                Frame::new()
+                    .fill(SURFACE_SUBTLE)
+                    .stroke(Stroke::new(1.0_f32, BORDER))
+                    .corner_radius(CornerRadius::same(16))
+                    .inner_margin(Margin::ZERO)
+                    .shadow(Shadow {
+                        offset: [0, 4],
+                        blur: 16,
+                        spread: 0,
+                        color: Color32::from_rgba_unmultiplied(18, 44, 34, 12),
+                    })
+                    .show(ui, |ui| {
+                        ui.set_min_size(ui.available_size());
+                        ui.vertical(|ui| {
+                            ui.spacing_mut().item_spacing.y = 0.0_f32;
+                            self.draw_topbar_strip(ctx, ui);
+
+                            let page_rect = ui.available_rect_before_wrap();
+                            ui.allocate_new_ui(
+                                egui::UiBuilder::new().max_rect(page_rect),
+                                |ui| match self.page {
+                                    Page::Home => views::home::show(self, ctx, ui),
+                                    Page::Notes => views::notes::show(self, ctx, ui),
+                                    Page::Recordings => views::recordings::show(self, ctx, ui),
+                                    Page::Deadlines => views::deadlines::show(self, ctx, ui),
+                                    Page::Settings => views::settings::show(self, ctx, ui),
+                                },
+                            );
+                        });
+                    });
             });
 
         self.draw_floating_dock(ctx);
